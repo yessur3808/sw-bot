@@ -1,0 +1,47 @@
+[
+    {
+        "q": "Which era should we spotlight this week?",
+        "options": [
+            "Old Republic",
+            "Prequel Era",
+            "Original Trilogy",
+            "New Republic"
+        ]
+    },
+    {
+        "q": "Best lightsaber fighting style to learn?",
+        "options": [
+            "Form II",
+            "Form III",
+            "Form V",
+            "Form VII"
+        ]
+    },
+    {
+        "q": "Pick tonight's Star Wars watch vibe:",
+        "options": [
+            "Clone Wars arc",
+            "Mandalorian episode",
+            "Classic trilogy",
+            "Andor"
+        ]
+    },
+    {
+        "q": "Most iconic droid companion?",
+        "options": [
+            "R2-D2",
+            "C-3PO",
+            "BB-8",
+            "Chopper"
+        ]
+    },
+    {
+        "q": "Which faction has the best style?",
+        "options": [
+            "Jedi",
+            "Sith",
+            "Mandalorians",
+            "Rebels"
+        ]
+    }
+]

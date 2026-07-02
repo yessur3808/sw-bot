@@ -1,0 +1,32 @@
+[
+    {
+        "q": "What color is Mace Windu's lightsaber?",
+        "options": [
+            "Blue",
+            "Green",
+            "Purple",
+            "Red"
+        ],
+        "correct": 2
+    },
+    {
+        "q": "Who built C-3PO?",
+        "options": [
+            "Han Solo",
+            "Anakin Skywalker",
+            "Obi-Wan",
+            "Luke"
+        ],
+        "correct": 1
+    },
+    {
+        "q": "What is the name of Han Solo's ship?",
+        "options": [
+            "Slave I",
+            "Millennium Falcon",
+            "Ghost",
+            "Razor Crest"
+        ],
+        "correct": 1
+    }
+]
