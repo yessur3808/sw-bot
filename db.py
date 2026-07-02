@@ -79,11 +79,17 @@ def init_db():
                 item_key TEXT UNIQUE,
                 title TEXT NOT NULL,
                 url TEXT NOT NULL,
+                canonical_url TEXT,
+                dedupe_key TEXT,
                 source_name TEXT NOT NULL,
                 source_tier TEXT NOT NULL,
                 region TEXT NOT NULL,
                 category TEXT NOT NULL,
                 event_date TEXT,
+                location_text TEXT,
+                language TEXT,
+                raw_event_type TEXT,
+                source_meta TEXT,
                 confidence REAL NOT NULL,
                 status TEXT NOT NULL,
                 auto_publish_allowed INTEGER NOT NULL DEFAULT 0,
@@ -117,6 +123,9 @@ def init_db():
                 status TEXT NOT NULL DEFAULT 'sent'
             );
             """)
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_events_status_region_date ON events(status, region, event_date)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_events_canonical_url ON events(canonical_url)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_events_dedupe_key ON events(dedupe_key)")
             return
 
         conn.executescript("""
@@ -136,11 +145,17 @@ def init_db():
             item_key TEXT UNIQUE,
             title TEXT NOT NULL,
             url TEXT NOT NULL,
+            canonical_url TEXT,
+            dedupe_key TEXT,
             source_name TEXT NOT NULL,
             source_tier TEXT NOT NULL,
             region TEXT NOT NULL,
             category TEXT NOT NULL,
             event_date TEXT,
+            location_text TEXT,
+            language TEXT,
+            raw_event_type TEXT,
+            source_meta TEXT,
             confidence REAL NOT NULL,
             status TEXT NOT NULL,
             auto_publish_allowed INTEGER NOT NULL DEFAULT 0,
@@ -169,6 +184,9 @@ def init_db():
             text_hash TEXT,
             status TEXT NOT NULL DEFAULT 'sent'
         );
+        CREATE INDEX IF NOT EXISTS idx_events_status_region_date ON events(status, region, event_date);
+        CREATE INDEX IF NOT EXISTS idx_events_canonical_url ON events(canonical_url);
+        CREATE INDEX IF NOT EXISTS idx_events_dedupe_key ON events(dedupe_key);
         """)
 
 
@@ -239,17 +257,24 @@ def upsert_event_item(item):
             """
             INSERT INTO events (
                 item_key, title, url, source_name, source_tier, region, category,
-                event_date, confidence, status, auto_publish_allowed, updated_at
+                event_date, canonical_url, dedupe_key, location_text, language,
+                raw_event_type, source_meta, confidence, status, auto_publish_allowed, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(item_key) DO UPDATE SET
                 title=excluded.title,
                 url=excluded.url,
+                canonical_url=excluded.canonical_url,
+                dedupe_key=excluded.dedupe_key,
                 source_name=excluded.source_name,
                 source_tier=excluded.source_tier,
                 region=excluded.region,
                 category=excluded.category,
                 event_date=excluded.event_date,
+                location_text=excluded.location_text,
+                language=excluded.language,
+                raw_event_type=excluded.raw_event_type,
+                source_meta=excluded.source_meta,
                 confidence=excluded.confidence,
                 status=excluded.status,
                 auto_publish_allowed=excluded.auto_publish_allowed,
@@ -264,6 +289,12 @@ def upsert_event_item(item):
                 item["region"],
                 item["category"],
                 item.get("event_date"),
+                item.get("canonical_url"),
+                item.get("dedupe_key"),
+                item.get("location_text"),
+                item.get("language"),
+                item.get("raw_event_type"),
+                item.get("source_meta"),
                 item["confidence"],
                 item["status"],
                 1 if item.get("auto_publish_allowed") else 0,

@@ -82,3 +82,57 @@ Use this quick flow:
 ## Preview
 
 ![Sium8 Preview](sium8_1.png)
+
+## Event Ingestion Enhancements
+
+The events pipeline now supports richer multi-source ingestion for Hong Kong and global coverage:
+
+- RSS and official feeds
+- JSON API sources (public endpoints)
+- Structured scrape extraction from HTML (JSON-LD Event + anchor candidate fallback)
+
+### Source Config Format
+
+`HK_SOURCE_CONFIG` and `GLOBAL_SOURCE_CONFIG` accept entries in this format:
+
+`tier|kind|name|url|k=v,k=v`
+
+- The metadata section is optional.
+- Backward compatibility is preserved with `tier|kind|name|url`.
+
+Example:
+
+`scrape|event|StarWars.com Events Category|https://www.starwars.com/news/category/events|parser=starwars_tag,locale=en`
+
+Recommended parser values:
+
+- `parser=starwars_tag` for StarWars.com tag/event pages
+- `parser=fandom` for fandom/wookieepedia style wiki pages
+- `parser=generic` for default fallback extraction
+
+### New Ingestion Controls
+
+- `INGEST_FEED_LIMIT` max feed entries per source
+- `INGEST_API_LIMIT` max API records per source
+- `INGEST_SCRAPE_LIMIT` max extracted scrape candidates per source
+- `HK_ENABLE_ZH` include/exclude Chinese-locale HK sources
+
+### Notes
+
+- Scrape mode still obeys source compliance controls (`SCRAPE_SOURCE_ALLOWLIST`, robots, and TOS allowlists when enabled).
+- URL canonicalization now strips common tracking params to reduce duplicate event rows across source tiers.
+- `/source_status` now includes tier, parser strategy, extraction health, and save ratio per source.
+- `StarWars.com News` feed now falls back to structured extraction from `https://www.starwars.com/news` when feed parsing returns empty.
+
+## Event Metadata Schema
+
+Migration `000003_event_metadata` adds enrichment fields to `events`:
+
+- `canonical_url`
+- `dedupe_key`
+- `location_text`
+- `language`
+- `raw_event_type`
+- `source_meta`
+
+It also creates indexes for faster filtering and diagnostics on event status/region/date and dedupe lookups.

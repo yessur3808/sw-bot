@@ -41,6 +41,11 @@ API_SOURCE_ALLOWLIST = os.getenv("API_SOURCE_ALLOWLIST", "")
 SCRAPE_SOURCE_ALLOWLIST = os.getenv("SCRAPE_SOURCE_ALLOWLIST", "")
 SCRAPE_TOS_ALLOWLIST = os.getenv("SCRAPE_TOS_ALLOWLIST", "")
 
+INGEST_FEED_LIMIT = int(os.getenv("INGEST_FEED_LIMIT", 30))
+INGEST_API_LIMIT = int(os.getenv("INGEST_API_LIMIT", 40))
+INGEST_SCRAPE_LIMIT = int(os.getenv("INGEST_SCRAPE_LIMIT", 60))
+HK_ENABLE_ZH = os.getenv("HK_ENABLE_ZH", "true").lower() == "true"
+
 _admin_raw = os.getenv("ADMIN_USER_IDS", "")
 ADMIN_USER_IDS = {
     int(v.strip()) for v in _admin_raw.split(",") if v.strip().lstrip("-").isdigit()
@@ -51,16 +56,20 @@ ADMIN_USER_IDS = {
 # kind: event|news
 HK_SOURCE_CONFIG = os.getenv(
     "HK_SOURCE_CONFIG",
-    "official|event|GoogleNews HK Events|https://news.google.com/rss/search?q=star+wars+hong+kong+events&hl=en-HK&gl=HK&ceid=HK:en;"
-    "rss|event|GoogleNews HK Fan Meetup|https://news.google.com/rss/search?q=star+wars+hong+kong+fan+meetup&hl=en-HK&gl=HK&ceid=HK:en",
+    "official|event|GoogleNews HK Events EN|https://news.google.com/rss/search?q=star+wars+hong+kong+events&hl=en-HK&gl=HK&ceid=HK:en;"
+    "rss|event|GoogleNews HK Fan Meetup EN|https://news.google.com/rss/search?q=star+wars+hong+kong+fan+meetup&hl=en-HK&gl=HK&ceid=HK:en;"
+    "rss|event|GoogleNews HK Star Wars ZH|https://news.google.com/rss/search?q=%E6%98%9F%E9%9A%9B%E5%A4%A7%E6%88%B0+%E9%A6%99%E6%B8%AF+%E6%B4%BB%E5%8B%95&hl=zh-HK&gl=HK&ceid=HK:zh-Hant|locale=zh-hant;"
+    "scrape|event|StarWars.com Events Category|https://www.starwars.com/news/category/events|parser=starwars_tag,locale=en",
 )
 
 GLOBAL_SOURCE_CONFIG = os.getenv(
     "GLOBAL_SOURCE_CONFIG",
     "official|news|StarWars.com News|https://www.starwars.com/news/feed;"
+    "scrape|event|StarWars.com Events Category|https://www.starwars.com/news/category/events|parser=starwars_tag,locale=en;"
     "rss|news|GoogleNews Star Wars Games|https://news.google.com/rss/search?q=star+wars+new+game+release&hl=en-US&gl=US&ceid=US:en;"
     "rss|news|GoogleNews Star Wars TV|https://news.google.com/rss/search?q=star+wars+new+series+release&hl=en-US&gl=US&ceid=US:en;"
-    "rss|news|GoogleNews Star Wars Movies|https://news.google.com/rss/search?q=star+wars+new+movie+release&hl=en-US&gl=US&ceid=US:en",
+    "rss|news|GoogleNews Star Wars Movies|https://news.google.com/rss/search?q=star+wars+new+movie+release&hl=en-US&gl=US&ceid=US:en;"
+    "rss|event|GoogleNews Star Wars Convention|https://news.google.com/rss/search?q=star+wars+convention+celebration+events&hl=en-US&gl=US&ceid=US:en",
 )
 
 THREADS = {
@@ -71,17 +80,39 @@ THREADS = {
 }
 
 
+def parse_source_meta(meta_raw):
+    if not meta_raw:
+        return {}
+    out = {}
+    for chunk in str(meta_raw).split(","):
+        part = chunk.strip()
+        if not part or "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        out[key.strip().lower()] = value.strip()
+    return out
+
+
 def parse_sources(raw_value):
     out = []
     for chunk in raw_value.split(";"):
         part = chunk.strip()
         if not part:
             continue
-        try:
-            tier, kind, name, url = [p.strip() for p in part.split("|", 3)]
-        except ValueError:
+        bits = [p.strip() for p in part.split("|")]
+        if len(bits) < 4:
             continue
-        out.append({"tier": tier.lower(), "kind": kind.lower(), "name": name, "url": url})
+        tier, kind, name, url = bits[:4]
+        meta_raw = bits[4] if len(bits) > 4 else ""
+        out.append(
+            {
+                "tier": tier.lower(),
+                "kind": kind.lower(),
+                "name": name,
+                "url": url,
+                "meta": parse_source_meta(meta_raw),
+            }
+        )
     return out
 
 
@@ -91,6 +122,13 @@ def parse_csv_set(raw_value):
 
 HK_SOURCES = parse_sources(HK_SOURCE_CONFIG)
 GLOBAL_SOURCES = parse_sources(GLOBAL_SOURCE_CONFIG)
+
+if not HK_ENABLE_ZH:
+    HK_SOURCES = [
+        s
+        for s in HK_SOURCES
+        if not str((s.get("meta") or {}).get("locale", "")).lower().startswith("zh")
+    ]
 
 SOURCE_ALLOWLISTS = {
     "official": parse_csv_set(OFFICIAL_SOURCE_ALLOWLIST),
