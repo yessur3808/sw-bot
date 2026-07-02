@@ -15,6 +15,7 @@ from telegram.ext import CommandHandler, ContextTypes
 
 import config
 import db
+from admin import runtime_settings
 
 
 SOURCE_WEIGHTS = {
@@ -121,7 +122,7 @@ def _contains_star_wars(text):
 
 
 def _source_tz(region):
-    return config.RELEASE_TIMEZONE if region == "hk" else "UTC"
+    return runtime_settings.get("release_timezone") if region == "hk" else "UTC"
 
 
 def _parse_datetime_with_tz(raw_value, fallback_tz):
@@ -161,7 +162,7 @@ def _extract_release_date(title, summary, published, region):
             try:
                 from zoneinfo import ZoneInfo
 
-                local_dt = parsed.astimezone(ZoneInfo(config.RELEASE_TIMEZONE))
+                local_dt = parsed.astimezone(ZoneInfo(runtime_settings.get("release_timezone")))
             except Exception:
                 local_dt = parsed
             return local_dt.date().isoformat()
@@ -203,9 +204,9 @@ def _score_item(source_tier, title, summary, region):
 
 
 def _status_for_score(score):
-    if score >= config.AUTO_PUBLISH_THRESHOLD:
+    if score >= runtime_settings.get("auto_publish_threshold"):
         return "approved", True
-    if score >= config.MIN_REVIEW_THRESHOLD:
+    if score >= runtime_settings.get("min_review_threshold"):
         return "pending_review", False
     return "rejected", False
 
@@ -229,7 +230,17 @@ def _domain_from_url(url):
 
 
 def _domain_allowed_for_tier(tier, domain):
-    allowlist = config.SOURCE_ALLOWLISTS.get(tier, set())
+    if tier == "official":
+        raw = runtime_settings.get("official_source_allowlist")
+    elif tier == "rss":
+        raw = runtime_settings.get("rss_source_allowlist")
+    elif tier == "api":
+        raw = runtime_settings.get("api_source_allowlist")
+    elif tier == "scrape":
+        raw = runtime_settings.get("scrape_source_allowlist")
+    else:
+        raw = ""
+    allowlist = {v.strip().lower() for v in str(raw).split(",") if v.strip()}
     if not allowlist:
         return False
     return any(domain == d or domain.endswith(f".{d}") for d in allowlist)
@@ -238,9 +249,11 @@ def _domain_allowed_for_tier(tier, domain):
 def _tos_allowed_for_scrape(domain):
     if not config.REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE:
         return True
-    if not config.SCRAPE_TOS_ALLOWLIST_SET:
+    raw = runtime_settings.get("scrape_tos_allowlist")
+    allowlist = {v.strip().lower() for v in str(raw).split(",") if v.strip()}
+    if not allowlist:
         return False
-    return any(domain == d or domain.endswith(f".{d}") for d in config.SCRAPE_TOS_ALLOWLIST_SET)
+    return any(domain == d or domain.endswith(f".{d}") for d in allowlist)
 
 
 def _robots_allowed(url):
@@ -281,7 +294,7 @@ def _fetch_feed(source):
     parsed = feedparser.parse(source["url"])
     entries = parsed.entries or []
     out = []
-    for ent in entries[: max(1, config.INGEST_FEED_LIMIT)]:
+    for ent in entries[: max(1, runtime_settings.get("ingest_feed_limit"))]:
         title = _normalize_text(getattr(ent, "title", ""))
         if not title:
             continue
@@ -355,9 +368,9 @@ def _extract_starwars_news_page_items(source):
                     "source_meta": {"fetcher": "feed_page_fallback"},
                 }
             )
-            if len(out) >= max(1, config.INGEST_FEED_LIMIT):
+            if len(out) >= max(1, runtime_settings.get("ingest_feed_limit")):
                 return out
-    return _dedupe_raw_items(out, config.INGEST_FEED_LIMIT)
+    return _dedupe_raw_items(out, runtime_settings.get("ingest_feed_limit"))
 
 
 def _extract_json_items(payload, items_key=None):
@@ -399,7 +412,7 @@ def _fetch_api(source, region):
 
     rows = _extract_json_items(payload, items_key=items_key)
     out = []
-    for row in rows[: max(1, config.INGEST_API_LIMIT)]:
+    for row in rows[: max(1, runtime_settings.get("ingest_api_limit"))]:
         if not isinstance(row, dict):
             continue
         title = _normalize_text(_pick_field(row, [title_key, "title", "name", "headline"]))
@@ -510,7 +523,7 @@ def _extract_anchor_candidates(soup, source, region):
                 "source_meta": {"fetcher": "anchor"},
             }
         )
-        if len(out) >= max(1, config.INGEST_SCRAPE_LIMIT):
+        if len(out) >= max(1, runtime_settings.get("ingest_scrape_limit")):
             break
     return out
 
@@ -548,7 +561,7 @@ def _extract_starwars_tag_items(soup, source, region):
                     "source_meta": {"fetcher": "starwars_tag"},
                 }
             )
-            if len(out) >= max(1, config.INGEST_SCRAPE_LIMIT):
+            if len(out) >= max(1, runtime_settings.get("ingest_scrape_limit")):
                 return out
     return out
 
@@ -580,7 +593,7 @@ def _extract_fandom_items(soup, source, region):
                 "source_meta": {"fetcher": "fandom"},
             }
         )
-        if len(out) >= max(1, config.INGEST_SCRAPE_LIMIT):
+        if len(out) >= max(1, runtime_settings.get("ingest_scrape_limit")):
             break
     return out
 
@@ -632,19 +645,19 @@ def _fetch_scrape(source, region):
     elif strategy == STRATEGY_FANDOM:
         out.extend(_extract_fandom_items(soup, source, region))
 
-    if len(out) < max(1, config.INGEST_SCRAPE_LIMIT // 2):
+    if len(out) < max(1, runtime_settings.get("ingest_scrape_limit") // 2):
         out.extend(_extract_json_ld_events(soup, source["url"], region))
-    if len(out) < max(1, config.INGEST_SCRAPE_LIMIT):
+    if len(out) < max(1, runtime_settings.get("ingest_scrape_limit")):
         out.extend(_extract_anchor_candidates(soup, source, region))
 
-    out = _dedupe_raw_items(out, config.INGEST_SCRAPE_LIMIT)
+    out = _dedupe_raw_items(out, runtime_settings.get("ingest_scrape_limit"))
     if out:
         return out
 
     parsed = feedparser.parse(response.text)
     entries = parsed.entries or []
     fallback = []
-    for ent in entries[: max(1, config.INGEST_SCRAPE_LIMIT // 2)]:
+    for ent in entries[: max(1, runtime_settings.get("ingest_scrape_limit") // 2)]:
         title = _normalize_text(getattr(ent, "title", ""))
         link = _canonicalize_url(_normalize_text(getattr(ent, "link", "")))
         if not title or not link:
@@ -672,6 +685,80 @@ def _source_items(source, region):
     return []
 
 
+def _source_veracity(source):
+    tier = (source.get("tier") or "").lower()
+    domain = _domain_from_url(source.get("url", ""))
+    if tier in ("official", "api"):
+        return "confirmed"
+    if tier == "rss" and domain.endswith("starwars.com"):
+        return "confirmed"
+    return "rumor"
+
+
+def _audit_strategy_for_source(source):
+    tier = (source.get("tier") or "").lower()
+    if tier == "scrape":
+        return _parser_strategy_for_source(source)
+    if tier in ("official", "rss"):
+        return "feed"
+    if tier == "api":
+        return "api"
+    return "unknown"
+
+
+def _audit_health(status, fetched_count, saved_count):
+    if status != "ok":
+        return None, None
+    fetched = int(fetched_count or 0)
+    saved = int(saved_count or 0)
+    if fetched <= 0:
+        return "no-data", 0.0
+    ratio = saved / max(1, fetched)
+    if saved <= 0:
+        return "no-save", ratio
+    if ratio >= 0.8:
+        return "strong", ratio
+    if ratio >= 0.4:
+        return "fair", ratio
+    return "weak", ratio
+
+
+def _log_source_audit(region, source, status, fetched_count, saved_count, error=None):
+    source_tier = source.get("tier", "unknown")
+    parser_strategy = _audit_strategy_for_source(source)
+    extraction_health, extraction_ratio = _audit_health(status, fetched_count, saved_count)
+
+    if source_tier == "scrape":
+        db.log_event_scrape_audit(
+            run_type=region,
+            source_name=source["name"],
+            source_url=source["url"],
+            source_tier=source_tier,
+            parser_strategy=parser_strategy,
+            status=status,
+            extraction_health=extraction_health,
+            extraction_ratio=extraction_ratio,
+            fetched_count=fetched_count,
+            saved_count=saved_count,
+            error=error,
+        )
+        return
+
+    db.log_event_crawl_audit(
+        run_type=region,
+        source_name=source["name"],
+        source_url=source["url"],
+        source_tier=source_tier,
+        parser_strategy=parser_strategy,
+        status=status,
+        extraction_health=extraction_health,
+        extraction_ratio=extraction_ratio,
+        fetched_count=fetched_count,
+        saved_count=saved_count,
+        error=error,
+    )
+
+
 def _eligible_star_wars(item):
     if item.get("force_relevance"):
         return True
@@ -695,6 +782,13 @@ def ingest_sources(region, sources):
                     run_type=region,
                     source_name=source["name"],
                     source_url=source["url"],
+                    status=f"blocked:{reason}",
+                    fetched_count=0,
+                    saved_count=0,
+                )
+                _log_source_audit(
+                    region,
+                    source,
                     status=f"blocked:{reason}",
                     fetched_count=0,
                     saved_count=0,
@@ -729,6 +823,7 @@ def ingest_sources(region, sources):
                     "url": canonical_url,
                     "source_name": source["name"],
                     "source_tier": source["tier"],
+                    "source_veracity": _source_veracity(source),
                     "region": region,
                     "category": category,
                     "event_date": release_date,
@@ -752,11 +847,26 @@ def ingest_sources(region, sources):
                 fetched_count=fetched_count,
                 saved_count=saved_count,
             )
+            _log_source_audit(
+                region,
+                source,
+                status="ok",
+                fetched_count=fetched_count,
+                saved_count=saved_count,
+            )
         except Exception as exc:
             db.log_ingestion_run(
                 run_type=region,
                 source_name=source["name"],
                 source_url=source["url"],
+                status="error",
+                fetched_count=fetched_count,
+                saved_count=saved_count,
+                error=str(exc),
+            )
+            _log_source_audit(
+                region,
+                source,
                 status="error",
                 fetched_count=fetched_count,
                 saved_count=saved_count,
@@ -774,14 +884,14 @@ def ingest_sources(region, sources):
 def ingest_now(region="all"):
     summaries = []
     if region in ("all", "hk"):
-        summaries.append(ingest_sources("hk", config.HK_SOURCES))
+        summaries.append(ingest_sources("hk", runtime_settings.get_sources("hk")))
     if region in ("all", "global"):
-        summaries.append(ingest_sources("global", config.GLOBAL_SOURCES))
+        summaries.append(ingest_sources("global", runtime_settings.get_sources("global")))
     return summaries
 
 
 async def ingest_events_job(context: ContextTypes.DEFAULT_TYPE):
-    if not config.ENABLE_EVENT_INGESTION:
+    if not runtime_settings.get("enable_event_ingestion"):
         return
     ingest_now("all")
 
@@ -850,7 +960,7 @@ async def daily_event_digest(context: ContextTypes.DEFAULT_TYPE):
 
 def _is_admin(update: Update):
     user = update.effective_user
-    return bool(user and user.id in config.ADMIN_USER_IDS)
+    return bool(user and db.is_admin_user(user.id))
 
 
 async def review_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1055,8 +1165,9 @@ async def events_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lines = [f"Upcoming Star Wars events ({region}, next {days} days, page {page}):"]
     for r in filtered:
+        veracity = (r.get("source_veracity") if hasattr(r, "get") else r["source_veracity"]) or "rumor"
         lines.append(
-            f"- #{r['id']} {r['event_date']} | {r['title']} ({r['region']}/{r['category']})"
+            f"- #{r['id']} {r['event_date']} | [{veracity.upper()}] {r['title']} ({r['region']}/{r['category']})"
         )
     lines.append("")
     lines.append("Tip: use /events_detail <id> for full source/confidence details.")
@@ -1114,6 +1225,7 @@ async def events_detail_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Title: {row['title']}\n"
         f"Region: {row['region']}\n"
         f"Category: {row['category']}\n"
+        f"Tag: {(row.get('source_veracity') if hasattr(row, 'get') else row['source_veracity']) or 'rumor'}\n"
         f"Date: {row['event_date'] or 'TBD'}\n"
         f"Location: {(row.get('location_text') if hasattr(row, 'get') else row['location_text']) or 'Unknown'}\n"
         f"Language: {(row.get('language') if hasattr(row, 'get') else row['language']) or 'Unknown'}\n"

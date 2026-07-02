@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Star Wars Ops Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-a"></div>
+    <div class="bg-glow bg-glow-b"></div>
+
+    {% if not user_id %}
+    <main class="auth-shell">
+        <section class="auth-card">
+            <h1>Ops Access</h1>
+            <p>Authenticate with your Telegram admin user id and local access token.</p>
+            {% if request.args.get('error') %}
+            <p class="auth-error">
+                Access denied.
+                {% if request.args.get('wait') %}
+                Retry in about {{ request.args.get('wait') }}s.
+                {% endif %}
+            </p>
+            {% endif %}
+            <form method="post" action="{{ url_for('admin_login') }}" class="auth-form">
+                <label for="user_id">Telegram User ID</label>
+                <input id="user_id" name="user_id" type="text" required>
+                <label for="access_token">Admin Access Token</label>
+                <input id="access_token" name="access_token" type="password" required>
+                <button type="submit">Enter Console</button>
+            </form>
+        </section>
+    </main>
+    {% else %}
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">STAR WARS BOT CONTROL CENTER</p>
+            <h1>Nexus Admin Console</h1>
+        </div>
+        <div class="topbar-actions">
+            <div id="connection-status" class="connection-pill is-loading" aria-live="polite">
+                <span class="status-dot"></span>
+                <span class="connection-copy">
+                    <strong id="connection-status-label">Connecting...</strong>
+                    <small id="connection-status-detail">Loading dashboard data</small>
+                </span>
+            </div>
+            <span class="chip">Admin {{ user_id }}</span>
+            <form method="post" action="{{ url_for('admin_logout') }}">
+                <button class="ghost" type="submit">Sign Out</button>
+            </form>
+        </div>
+    </header>
+    <div id="loading-strip" class="loading-strip" aria-hidden="true"></div>
+
+    <main id="app" class="app" data-csrf="{{ csrf_token }}">
+        <nav class="tabs">
+            <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+            <button class="tab" data-tab="health">🤖 Bot Health</button>
+            <button class="tab" data-tab="ai">🧠 AI Models</button>
+            <button class="tab" data-tab="admins">🛡️ Admins</button>
+            <button class="tab" data-tab="events">🛰️ Event Review</button>
+            <button class="tab" data-tab="reddit">👽 Reddit Cache</button>
+            <button class="tab" data-tab="datasets">📚 Datasets</button>
+            <button class="tab" data-tab="dataset-candidates">🧪 Dataset Candidates</button>
+            <button class="tab" data-tab="settings">⚙️ Runtime Settings</button>
+            <button class="tab" data-tab="sources">🌐 Sources</button>
+            <button class="tab" data-tab="audit">🧾 Audit</button>
+        </nav>
+
+        <section class="panel active" data-panel="dashboard">
+            <article class="card">
+                <h2>Telemetry Filters</h2>
+                <div class="filter-row">
+                    <label>Window
+                        <select id="filter-hours">
+                            <option value="6">6h</option>
+                            <option value="24" selected>24h</option>
+                            <option value="72">72h</option>
+                            <option value="168">7d</option>
+                        </select>
+                    </label>
+                    <label>Ingestion Scope
+                        <select id="filter-run-type">
+                            <option value="all" selected>all</option>
+                            <option value="hk">hk</option>
+                            <option value="global">global</option>
+                        </select>
+                    </label>
+                    <button id="refresh-telemetry">Refresh Telemetry</button>
+                </div>
+            </article>
+            <div class="grid two">
+                <article class="card health-card health-hero dashboard-health-card">
+                    <div class="health-avatar-wrap">
+                        <img id="bot-avatar" class="bot-avatar" src="/admin/assets/sium8-avatar" alt="Sium8 Bot Avatar">
+                        <div class="health-title-block">
+                            <p class="eyebrow health-eyebrow">LIVE BOT HEALTH</p>
+                            <h2>SIUM8 Runtime</h2>
+                            <p class="help">Live CPU, memory, and load metrics refresh automatically.</p>
+                        </div>
+                    </div>
+                    <div id="health-metrics" class="metric-row"></div>
+                    <div class="button-row">
+                        <button id="refresh-health">↻ Refresh Health</button>
+                        <button id="open-health-tab" data-tab-target="health">Open Full Health View</button>
+                    </div>
+                </article>
+                <article class="card">
+                    <h2>Quick Snapshot</h2>
+                    <div class="list-item">
+                        <p>Operational view</p>
+                        <small id="health-snapshot">Loading metrics...</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Host footprint</p>
+                        <small id="health-footprint">CPU, memory, and RSS are sampled every 15 seconds.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Recent behavior</p>
+                        <small id="health-behavior">Charts stay live without needing manual refresh.</small>
+                    </div>
+                </article>
+            </div>
+            <div class="grid two">
+                <article class="card">
+                    <h2>Source Health Matrix</h2>
+                    <div id="dashboard-metrics" class="metric-row"></div>
+                    <div class="scroll-panel matrix-scroll">
+                        <div id="status-list" class="list"></div>
+                    </div>
+                </article>
+                <article class="card">
+                    <h2>Manual Control</h2>
+                    <div class="button-row">
+                        <button data-ingest="all" type="button">Ingest All</button>
+                        <button data-ingest="hk" type="button">Ingest HK</button>
+                        <button data-ingest="global" type="button">Ingest Global</button>
+                    </div>
+                    <div id="manual-control-status" class="help">Select a run type to trigger live ingestion.</div>
+                    <pre id="ingest-result" class="console"></pre>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="health">
+            <div class="health-shell">
+                <div class="grid two health-layout">
+                    <article class="card panel-surface health-live-card">
+                        <div class="health-avatar-wrap">
+                            <img id="bot-avatar" class="bot-avatar" src="/admin/assets/sium8-avatar"
+                                alt="Sium8 Bot Avatar">
+                            <div class="health-title-block">
+                                <p class="eyebrow health-eyebrow">LIVE SYSTEM READOUT</p>
+                                <h2>SIUM8 Runtime</h2>
+                                <p class="help">Live CPU, memory, and load metrics refresh automatically.</p>
+                            </div>
+                        </div>
+                        <div id="health-metrics" class="metric-row"></div>
+                        <div class="list-item">
+                            <p>Operational view</p>
+                            <small id="health-snapshot">Loading metrics...</small>
+                        </div>
+                        <div class="list-item">
+                            <p>Host footprint</p>
+                            <small id="health-footprint">CPU, memory, and RSS are sampled every 15 seconds.</small>
+                        </div>
+                        <div class="list-item">
+                            <p>Recent behavior</p>
+                            <small id="health-behavior">Charts stay live without needing manual refresh.</small>
+                        </div>
+                        <div class="list-item">
+                            <p>Alerts</p>
+                            <div id="health-alerts" class="list"></div>
+                        </div>
+                    </article>
+                    <article class="card panel-surface health-chart-card">
+                        <h2>Live Trends</h2>
+                        <div class="chart-stack">
+                            <div>
+                                <h3>CPU Trend</h3>
+                                <div id="chart-health-cpu" class="chart-canvas chart-lg chart-shell"></div>
+                            </div>
+                            <div>
+                                <h3>CPU + Memory Snapshot</h3>
+                                <div id="chart-health-usage" class="chart-canvas chart-lg chart-shell"></div>
+                            </div>
+                            <div>
+                                <h3>Memory Trend</h3>
+                                <div id="chart-health-memory" class="chart-canvas chart-lg chart-shell"></div>
+                            </div>
+                            <div>
+                                <h3>Load Average</h3>
+                                <div id="chart-health-load" class="chart-canvas chart-lg chart-shell"></div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="ai">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Current AI LLM</h2>
+                    <p class="help">What the bot is currently using for autonomous replies and generation.</p>
+                    <div id="ai-summary" class="metric-row"></div>
+                    <div class="list-item">
+                        <p>Provider</p>
+                        <small id="ai-provider-detail"></small>
+                    </div>
+                    <div class="list-item">
+                        <p>Integration</p>
+                        <small id="ai-integration-detail"></small>
+                    </div>
+                    <div class="list-item">
+                        <p>Notes</p>
+                        <small id="ai-notes-detail"></small>
+                    </div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>LLM Options</h2>
+                    <p class="help">Quick links to other model families and API providers.</p>
+                    <div id="ai-catalog" class="catalog-grid"></div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="admins">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>My Admin Profile</h2>
+                    <p class="help">Update your display name, username, and email for alerts.</p>
+                    <form id="admin-profile-form" class="admin-profile-form">
+                        <label>User ID
+                            <input name="user_id" type="number" readonly>
+                        </label>
+                        <label>Display Name
+                            <input name="display_name" type="text" placeholder="Display name">
+                        </label>
+                        <label>Username
+                            <input name="username" type="text" placeholder="username">
+                        </label>
+                        <label>Email
+                            <input name="email" type="email" placeholder="name@example.com">
+                        </label>
+                        <label>Role
+                            <input name="role" type="text" placeholder="admin">
+                        </label>
+                        <label>Notes
+                            <input name="notes" type="text" placeholder="Emergency contact notes">
+                        </label>
+                        <label class="switch-row">
+                            <input name="is_active" type="checkbox" checked>
+                            <span>Active</span>
+                        </label>
+                        <label class="switch-row">
+                            <input name="is_primary" type="checkbox">
+                            <span>Primary contact</span>
+                        </label>
+                        <div class="button-row">
+                            <button id="save-admin-profile" type="submit">Save My Profile</button>
+                        </div>
+                    </form>
+                    <div class="list-item">
+                        <p>Emergency email</p>
+                        <small>The bot can email this profile if downtime lasts longer than the configured
+                            threshold.</small>
+                    </div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Admin Directory</h2>
+                    <p class="help">Add, remove, and manage the active admin roster.</p>
+                    <div class="button-row">
+                        <button id="add-admin-profile" type="button">Add Admin</button>
+                        <button id="refresh-admin-profiles" type="button">Refresh List</button>
+                    </div>
+                    <div id="admin-directory" class="admin-grid"></div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="reddit">
+            <article class="card">
+                <h2>Reddit Cache Browser</h2>
+                <div class="filter-row">
+                    <label>Type
+                        <select id="reddit-filter-type">
+                            <option value="">all</option>
+                            <option value="post">post</option>
+                            <option value="comment">comment</option>
+                        </select>
+                    </label>
+                    <label>Relayed
+                        <select id="reddit-filter-relayed">
+                            <option value="">all</option>
+                            <option value="0" selected>unrelayed</option>
+                            <option value="1">relayed</option>
+                        </select>
+                    </label>
+                    <label>Blocked
+                        <select id="reddit-filter-blocked">
+                            <option value="">all</option>
+                            <option value="0" selected>not blocked</option>
+                            <option value="1">blocked</option>
+                        </select>
+                    </label>
+                    <label>Subreddit
+                        <input id="reddit-filter-subreddit" placeholder="StarWarsMemes">
+                    </label>
+                    <label>Search
+                        <input id="reddit-filter-query" placeholder="title, body, author">
+                    </label>
+                    <label>Sort By
+                        <select id="reddit-sort-by">
+                            <option value="fetched_at" selected>fetched_at</option>
+                            <option value="score">score</option>
+                            <option value="subreddit">subreddit</option>
+                            <option value="content_type">content_type</option>
+                            <option value="created_utc">created_utc</option>
+                            <option value="id">id</option>
+                        </select>
+                    </label>
+                    <label>Order
+                        <select id="reddit-sort-dir">
+                            <option value="desc" selected>desc</option>
+                            <option value="asc">asc</option>
+                        </select>
+                    </label>
+                    <button id="reddit-filter-apply">Apply Filters</button>
+                </div>
+                <div id="reddit-cache-meta" class="help"></div>
+                <div class="button-row" id="reddit-sort-shortcuts">
+                    <button data-reddit-sort="score">Sort by Score</button>
+                    <button data-reddit-sort="fetched_at">Sort by Fetched Time</button>
+                    <button data-reddit-sort="subreddit">Sort by Subreddit</button>
+                </div>
+                <div id="reddit-cache-list" class="list"></div>
+                <div class="pagination-row">
+                    <button id="reddit-page-prev">← Prev</button>
+                    <span id="reddit-page-info" class="chip">page 1</span>
+                    <button id="reddit-page-next">Next →</button>
+                </div>
+            </article>
+        </section>
+
+        <section class="panel" data-panel="events">
+            <article class="card">
+                <h2>Pending Review Queue</h2>
+                <div id="events-summary" class="help"></div>
+                <div id="pending-events" class="list event-queue"></div>
+            </article>
+        </section>
+
+        <section class="panel" data-panel="datasets">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Dataset Library</h2>
+                    <p class="help">Select a dataset, edit the JSON, and save it back instantly.</p>
+                    <div class="tab-chip-row" role="tablist" aria-label="Dataset picker">
+                        <button class="tab-chip active" data-dataset="facts" type="button">📚 Facts</button>
+                        <button class="tab-chip" data-dataset="quotes" type="button">💬 Quotes</button>
+                        <button class="tab-chip" data-dataset="polls" type="button">🗳️ Polls</button>
+                        <button class="tab-chip" data-dataset="trivia" type="button">🧠 Trivia</button>
+                        <button class="tab-chip" data-dataset="discussions" type="button">🔥 Discussions</button>
+                    </div>
+                    <div class="list-item panel-summary">
+                        <p>Active dataset</p>
+                        <small id="dataset-active-name">facts</small>
+                    </div>
+                    <textarea id="dataset-editor" class="editor" spellcheck="false"></textarea>
+                    <div class="button-row">
+                        <button id="save-dataset" type="button">Save Dataset</button>
+                    </div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Editing Tips</h2>
+                    <div class="list-item">
+                        <p>Fast edits</p>
+                        <small>Click a dataset pill to load its JSON, then save after editing.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Validation</p>
+                        <small>Invalid JSON is rejected before it reaches storage.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Workflow</p>
+                        <small>Switch datasets without leaving the panel.</small>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="dataset-candidates">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Collected Candidates</h2>
+                    <p class="help">Review source-collected candidates and approve to append directly into datasets.</p>
+                    <div class="filter-row">
+                        <label>Dataset
+                            <select id="candidate-filter-dataset">
+                                <option value="">all</option>
+                                <option value="facts">facts</option>
+                                <option value="quotes">quotes</option>
+                                <option value="trivia">trivia</option>
+                                <option value="polls">polls</option>
+                                <option value="discussions">discussions</option>
+                            </select>
+                        </label>
+                        <label>Status
+                            <select id="candidate-filter-status">
+                                <option value="candidate" selected>candidate</option>
+                                <option value="approved">approved</option>
+                                <option value="rejected">rejected</option>
+                            </select>
+                        </label>
+                        <label>Limit
+                            <input id="candidate-filter-limit" type="number" value="40" min="1" max="300">
+                        </label>
+                        <button id="candidate-filter-apply" type="button">Apply</button>
+                    </div>
+                    <div class="button-row candidate-view-controls">
+                        <span class="help">Card View:</span>
+                        <button id="candidate-view-compact" type="button" class="tab-chip active">Compact</button>
+                        <button id="candidate-view-expanded" type="button" class="tab-chip">Expanded</button>
+                    </div>
+                    <div class="button-row">
+                        <button id="run-dataset-ingest" type="button">Run Dataset Collectors Now</button>
+                        <button id="candidate-select-all-visible" type="button">Select All Visible</button>
+                        <button id="candidate-clear-selection" type="button">Clear Selection</button>
+                        <button id="candidate-bulk-approve" type="button">Bulk Approve</button>
+                        <button id="candidate-bulk-reject" type="button">Bulk Reject</button>
+                    </div>
+                    <div id="dataset-candidates-meta" class="help"></div>
+                    <div id="dataset-candidates-list" class="list"></div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Approval Flow</h2>
+                    <div class="list-item">
+                        <p>Approve</p>
+                        <small>Appends normalized item directly into the target dataset JSON file, then marks candidate
+                            approved.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Reject</p>
+                        <small>Marks candidate rejected without modifying dataset files.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Source attribution</p>
+                        <small>Approved items keep source metadata and are deduped by normalized key.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Live filters</p>
+                        <small>Dataset, status, and limit filters apply instantly when changed.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Question/answers view</p>
+                        <small>Trivia and polls are shown with explicit question text and answer options for faster
+                            review.</small>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="settings">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Runtime Settings</h2>
+                    <p class="help">Adjust bot behavior, ingestion, and admin controls from one place.</p>
+                    <div id="settings-form" class="settings-grid settings-grid-modern"></div>
+                    <div class="button-row">
+                        <button id="save-settings" type="button">Apply Settings</button>
+                    </div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Settings Overview</h2>
+                    <div class="list-item">
+                        <p>Connection</p>
+                        <small>Changes apply live after saving, no page reload required.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Safety</p>
+                        <small>Source and event controls remain guarded by server-side checks.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Review</p>
+                        <small>Use the admin audit trail to confirm changes after save.</small>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="sources">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Source Overrides</h2>
+                    <p class="help">Manage HK and global source lists with a clearer, card-based editor.</p>
+                    <div class="tab-chip-row" role="tablist" aria-label="Source list selector">
+                        <button class="tab-chip active" data-source-type="hk" type="button">🌏 HK</button>
+                        <button class="tab-chip" data-source-type="global" type="button">🪐 Global</button>
+                    </div>
+                    <div class="button-row">
+                        <button id="add-source-row" type="button">Add Source</button>
+                        <button id="normalize-source-order" type="button">Normalize Order</button>
+                    </div>
+                    <div id="source-builder" class="source-builder"></div>
+                    <div class="button-row">
+                        <button id="save-sources" type="button">Save Source Overrides</button>
+                    </div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Raw Source Feed</h2>
+                    <details class="advanced-box" open>
+                        <summary>Raw JSON Lines</summary>
+                        <textarea id="source-editor" class="editor" spellcheck="false"></textarea>
+                        <div class="button-row">
+                            <button id="load-raw-sources" type="button">Load Raw into Builder</button>
+                            <button id="export-builder-sources" type="button">Export Builder to Raw</button>
+                        </div>
+                    </details>
+                    <div class="list-item">
+                        <p>Tip</p>
+                        <small>Use raw mode when you want to paste a full source list quickly.</small>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="audit">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Admin Audit Trail</h2>
+                    <p class="help">Recent actions, setting changes, and source edits are grouped by event.</p>
+                    <div id="audit-list" class="audit-grid"></div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Audit Summary</h2>
+                    <div class="list-item">
+                        <p>Activity window</p>
+                        <small>Most recent admin actions appear first with timestamps and details.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Traceability</p>
+                        <small>Use the audit trail to confirm what changed after each save.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Reviewability</p>
+                        <small>The layout keeps long details readable instead of burying them in a single
+                            column.</small>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+    {% endif %}
+
+    {% if user_id %}
+    <script src="{{ url_for('static', filename='admin.js') }}"></script>
+    {% endif %}
+</body>
+
+</html>

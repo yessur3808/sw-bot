@@ -1,10 +1,197 @@
 [
-    "Coruscant first appeared on-screen in Star Wars: Episode VI as the Imperial capital world.",
-    "The sound of a TIE fighter combines an elephant call with a car driving on wet pavement.",
-    "Ewoks were inspired partly by the filmmaker's dog as a visual reference.",
-    "Darth Vader's breathing became one of the most recognizable sound motifs in cinema.",
-    "The opening crawl style was inspired by 1930s and 1940s adventure serials.",
-    "BB-8 was built as a practical prop before extensive digital use.",
-    "The phrase 'I have a bad feeling about this' appears across multiple Star Wars films.",
-    "Mandalore is known for beskar, a rare metal resistant to lightsabers."
+    {
+        "text": "Coruscant was first named in the 1991 novel Heir to the Empire before becoming the Republic and Imperial capital on-screen in the prequel era.",
+        "category": "lore_fact",
+        "topics": [
+            "coruscant",
+            "galactic capital",
+            "timeline"
+        ],
+        "source": {
+            "type": "novel + movie",
+            "title": "Heir to the Empire (1991), Episode I-III"
+        }
+    },
+    {
+        "text": "The TIE fighter sound effect was built from an elephant call blended with a car tire hiss on wet pavement.",
+        "category": "movie_fact",
+        "topics": [
+            "sound design",
+            "tie fighter",
+            "ben burtt"
+        ],
+        "source": {
+            "type": "production",
+            "title": "A New Hope sound design notes"
+        }
+    },
+    {
+        "text": "Yoda was primarily performed as a puppet in The Empire Strikes Back and Return of the Jedi.",
+        "category": "movie_fact",
+        "topics": [
+            "practical effects",
+            "yoda",
+            "original trilogy"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode V and Episode VI"
+        }
+    },
+    {
+        "text": "Darth Bane is credited with formalizing the Rule of Two: one Sith master and one Sith apprentice.",
+        "category": "lore_fact",
+        "topics": [
+            "sith",
+            "rule of two",
+            "bane"
+        ],
+        "source": {
+            "type": "movie lore",
+            "title": "Episode I: The Phantom Menace"
+        }
+    },
+    {
+        "text": "Beskar armor is resistant to blaster bolts and can withstand direct lightsaber strikes for a short time.",
+        "category": "lore_fact",
+        "topics": [
+            "mandalorian",
+            "armor",
+            "beskar"
+        ],
+        "source": {
+            "type": "series",
+            "title": "The Mandalorian"
+        }
+    },
+    {
+        "text": "The Darksaber was created by Tarre Vizsla, the first Mandalorian inducted into the Jedi Order.",
+        "category": "lore_fact",
+        "topics": [
+            "darksaber",
+            "mandalore",
+            "jedi history"
+        ],
+        "source": {
+            "type": "series",
+            "title": "Star Wars: The Clone Wars / Rebels"
+        }
+    },
+    {
+        "text": "Kyber crystals are the focusing core in lightsabers and were also weaponized for the Death Star superlaser.",
+        "category": "lore_fact",
+        "topics": [
+            "kyber",
+            "death star",
+            "jedi"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Rogue One: A Star Wars Story"
+        }
+    },
+    {
+        "text": "The line 'I have a bad feeling about this' appears across the Skywalker Saga films as a recurring franchise motif.",
+        "category": "movie_fact",
+        "topics": [
+            "running gag",
+            "dialogue",
+            "skywalker saga"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode I-IX"
+        }
+    },
+    {
+        "text": "Grand Admiral Thrawn first appeared in the Legends continuity through Timothy Zahn's Heir to the Empire.",
+        "category": "legends_lore_fact",
+        "topics": [
+            "thrawn",
+            "legends",
+            "imperial"
+        ],
+        "source": {
+            "type": "novel",
+            "title": "Heir to the Empire (1991)"
+        }
+    },
+    {
+        "text": "Revan became one of the most iconic Force users through the events of Knights of the Old Republic.",
+        "category": "legends_lore_fact",
+        "topics": [
+            "revan",
+            "old republic",
+            "rpg"
+        ],
+        "source": {
+            "type": "game",
+            "title": "Star Wars: Knights of the Old Republic"
+        }
+    },
+    {
+        "text": "Doctor Aphra debuted in Marvel's Darth Vader comic and quickly became a major anti-hero in modern Star Wars comics.",
+        "category": "comic_series_fact",
+        "topics": [
+            "doctor aphra",
+            "marvel",
+            "comics"
+        ],
+        "source": {
+            "type": "comic",
+            "title": "Darth Vader (2015) #3"
+        }
+    },
+    {
+        "text": "The Nightsisters of Dathomir use magick traditions distinct from standard Jedi and Sith Force training.",
+        "category": "lore_fact",
+        "topics": [
+            "dathomir",
+            "nightsisters",
+            "force traditions"
+        ],
+        "source": {
+            "type": "series",
+            "title": "The Clone Wars / Ahsoka"
+        }
+    },
+    {
+        "text": "Andor explores how fragmented local resistance cells eventually unified into the Rebel Alliance.",
+        "category": "tv_series_fact",
+        "topics": [
+            "rebellion",
+            "andor",
+            "politics"
+        ],
+        "source": {
+            "type": "series",
+            "title": "Andor Season 1"
+        }
+    },
+    {
+        "text": "The 501st Legion transitioned from clone troopers under Anakin to stormtrooper formations under the Empire.",
+        "category": "lore_fact",
+        "topics": [
+            "501st",
+            "clones",
+            "empire"
+        ],
+        "source": {
+            "type": "movie + series",
+            "title": "Episode III / The Clone Wars / The Bad Batch"
+        }
+    },
+    {
+        "text": "Starkiller (Galen Marek) is a Legends character from The Force Unleashed and is not part of current canon continuity.",
+        "category": "legends_lore_fact",
+        "topics": [
+            "starkiller",
+            "legends",
+            "video games"
+        ],
+        "source": {
+            "type": "game",
+            "title": "Star Wars: The Force Unleashed"
+        }
+    }
 ]

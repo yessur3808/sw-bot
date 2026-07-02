@@ -1,47 +1,157 @@
 [
     {
-        "q": "Which era should we spotlight this week?",
+        "question": "Which era should we spotlight this week?",
         "options": [
             "Old Republic",
             "Prequel Era",
             "Original Trilogy",
             "New Republic"
-        ]
+        ],
+        "category": "era_poll",
+        "topics": [
+            "timeline",
+            "community spotlight"
+        ],
+        "source": {
+            "type": "community"
+        }
     },
     {
-        "q": "Best lightsaber fighting style to learn?",
+        "question": "Best lightsaber style to study first?",
         "options": [
-            "Form II",
-            "Form III",
-            "Form V",
-            "Form VII"
-        ]
+            "Form II: Makashi",
+            "Form III: Soresu",
+            "Form V: Djem So",
+            "Form VII: Juyo"
+        ],
+        "category": "lore_poll",
+        "topics": [
+            "lightsaber forms",
+            "jedi"
+        ],
+        "source": {
+            "type": "reference",
+            "title": "Jedi training lore"
+        }
     },
     {
-        "q": "Pick tonight's Star Wars watch vibe:",
+        "question": "Pick tonight's watch vibe",
         "options": [
             "Clone Wars arc",
-            "Mandalorian episode",
-            "Classic trilogy",
-            "Andor"
-        ]
+            "Andor episode",
+            "Original trilogy",
+            "Rogue One"
+        ],
+        "category": "watch_party_poll",
+        "topics": [
+            "watchlist",
+            "series",
+            "movies"
+        ],
+        "source": {
+            "type": "community"
+        }
     },
     {
-        "q": "Most iconic droid companion?",
+        "question": "Most iconic droid companion?",
         "options": [
             "R2-D2",
             "C-3PO",
             "BB-8",
             "Chopper"
-        ]
+        ],
+        "category": "character_poll",
+        "topics": [
+            "droids",
+            "iconic characters"
+        ],
+        "source": {
+            "type": "community"
+        }
     },
     {
-        "q": "Which faction has the best style?",
+        "question": "Most compelling villain arc?",
         "options": [
-            "Jedi",
+            "Anakin to Vader",
+            "Kylo Ren",
+            "Maul",
+            "Thrawn"
+        ],
+        "category": "character_poll",
+        "topics": [
+            "villains",
+            "character arcs"
+        ],
+        "source": {
+            "type": "movie + series"
+        }
+    },
+    {
+        "question": "Which faction has the best visual style?",
+        "options": [
+            "Jedi Order",
             "Sith",
             "Mandalorians",
-            "Rebels"
-        ]
+            "Rebel Alliance"
+        ],
+        "category": "faction_poll",
+        "topics": [
+            "factions",
+            "design"
+        ],
+        "source": {
+            "type": "community"
+        }
+    },
+    {
+        "question": "Best Star Wars game campaign?",
+        "options": [
+            "KOTOR",
+            "Jedi: Fallen Order",
+            "Battlefront II",
+            "The Force Unleashed"
+        ],
+        "category": "game_poll",
+        "topics": [
+            "games",
+            "story mode"
+        ],
+        "source": {
+            "type": "game"
+        }
+    },
+    {
+        "question": "Most impressive fleet moment?",
+        "options": [
+            "Battle of Endor",
+            "Scarif shield assault",
+            "Exegol finale",
+            "Mandalore siege"
+        ],
+        "category": "battle_poll",
+        "topics": [
+            "space battles",
+            "fleet tactics"
+        ],
+        "source": {
+            "type": "movie + series"
+        }
+    },
+    {
+        "question": "Preferred era for new stories?",
+        "options": [
+            "High Republic",
+            "Old Republic",
+            "Post-ROTJ New Republic",
+            "Far future"
+        ],
+        "category": "future_content_poll",
+        "topics": [
+            "story development",
+            "new content"
+        ],
+        "source": {
+            "type": "community"
+        }
     }
 ]

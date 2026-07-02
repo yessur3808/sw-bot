@@ -13,6 +13,8 @@ services:
     volumes:
       - ./starwars.db:/app/starwars.db
       - ./data:/app/data
+    ports:
+      - "8088:8088"
 
   postgres:
     image: postgres:16-alpine

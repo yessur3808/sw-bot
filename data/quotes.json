@@ -1,5 +1,170 @@
 [
-    "Do or do not. There is no try. — Yoda",
-    "I find your lack of faith disturbing. — Darth Vader",
-    "Never tell me the odds. — Han Solo"
+    {
+        "quote": "Do or do not. There is no try.",
+        "speaker": "Yoda",
+        "category": "movie_quote",
+        "topics": [
+            "jedi",
+            "discipline",
+            "training"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode V: The Empire Strikes Back"
+        }
+    },
+    {
+        "quote": "I find your lack of faith disturbing.",
+        "speaker": "Darth Vader",
+        "category": "movie_quote",
+        "topics": [
+            "sith",
+            "imperial",
+            "intimidation"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode IV: A New Hope"
+        }
+    },
+    {
+        "quote": "Never tell me the odds.",
+        "speaker": "Han Solo",
+        "category": "movie_quote",
+        "topics": [
+            "smuggler",
+            "confidence",
+            "falcon"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode V: The Empire Strikes Back"
+        }
+    },
+    {
+        "quote": "In my experience, there is no such thing as luck.",
+        "speaker": "Obi-Wan Kenobi",
+        "category": "movie_quote",
+        "topics": [
+            "force",
+            "destiny",
+            "wisdom"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode IV: A New Hope"
+        }
+    },
+    {
+        "quote": "I am one with the Force, and the Force is with me.",
+        "speaker": "Chirrut Imwe",
+        "category": "movie_quote",
+        "topics": [
+            "faith",
+            "force",
+            "rogue one"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Rogue One: A Star Wars Story"
+        }
+    },
+    {
+        "quote": "This is the way.",
+        "speaker": "The Mandalorian",
+        "category": "tv_series_quote",
+        "topics": [
+            "mandalorian",
+            "creed",
+            "culture"
+        ],
+        "source": {
+            "type": "series",
+            "title": "The Mandalorian"
+        }
+    },
+    {
+        "quote": "The Force will be with you. Always.",
+        "speaker": "Obi-Wan Kenobi",
+        "category": "movie_quote",
+        "topics": [
+            "force",
+            "hope",
+            "legacy"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode IV: A New Hope"
+        }
+    },
+    {
+        "quote": "Your focus determines your reality.",
+        "speaker": "Qui-Gon Jinn",
+        "category": "movie_quote",
+        "topics": [
+            "jedi",
+            "mindset",
+            "philosophy"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode I: The Phantom Menace"
+        }
+    },
+    {
+        "quote": "Fear is the path to the dark side.",
+        "speaker": "Yoda",
+        "category": "movie_quote",
+        "topics": [
+            "dark side",
+            "emotion",
+            "jedi teaching"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode I: The Phantom Menace"
+        }
+    },
+    {
+        "quote": "Rebellions are built on hope.",
+        "speaker": "Jyn Erso",
+        "category": "movie_quote",
+        "topics": [
+            "rebellion",
+            "hope",
+            "resistance"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Rogue One: A Star Wars Story"
+        }
+    },
+    {
+        "quote": "Luminous beings are we, not this crude matter.",
+        "speaker": "Yoda",
+        "category": "movie_quote",
+        "topics": [
+            "force",
+            "spiritual",
+            "jedi"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode V: The Empire Strikes Back"
+        }
+    },
+    {
+        "quote": "I have spoken.",
+        "speaker": "Kuiil",
+        "category": "tv_series_quote",
+        "topics": [
+            "mandalorian",
+            "resolve",
+            "fan favorite"
+        ],
+        "source": {
+            "type": "series",
+            "title": "The Mandalorian"
+        }
+    }
 ]

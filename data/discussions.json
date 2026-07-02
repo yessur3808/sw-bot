@@ -1,0 +1,151 @@
+[
+    {
+        "prompt": "Was Anakin fully responsible for his fall, or did the Jedi Council's structure make it almost inevitable?",
+        "stance_options": [
+            "Mostly Anakin",
+            "Mostly Jedi failure",
+            "Palpatine tipped it",
+            "Combination of all"
+        ],
+        "category": "movie_discussion",
+        "topics": [
+            "anakin",
+            "jedi council",
+            "tragedy"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode I-III"
+        }
+    },
+    {
+        "prompt": "Did Luke's exile in The Last Jedi deepen his character, or undermine the hopeful ending of Return of the Jedi?",
+        "stance_options": [
+            "Deepened character",
+            "Undermined ROTJ",
+            "Both are true",
+            "Undecided"
+        ],
+        "category": "movie_discussion",
+        "topics": [
+            "luke skywalker",
+            "sequels",
+            "character arc"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode VIII"
+        }
+    },
+    {
+        "prompt": "Should the franchise prioritize tightly connected canon continuity, or allow more standalone stories with loose ties?",
+        "stance_options": [
+            "Tight canon",
+            "Standalone freedom",
+            "Balanced mix",
+            "Depends on medium"
+        ],
+        "category": "franchise_discussion",
+        "topics": [
+            "canon",
+            "story strategy",
+            "future projects"
+        ],
+        "source": {
+            "type": "franchise"
+        }
+    },
+    {
+        "prompt": "Was the sequel trilogy harmed more by changing creative direction between films than by any one plot choice?",
+        "stance_options": [
+            "Direction shifts hurt most",
+            "Specific plot choices hurt most",
+            "Both equally",
+            "Disagree"
+        ],
+        "category": "movie_discussion",
+        "topics": [
+            "sequels",
+            "production",
+            "story planning"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode VII-IX"
+        }
+    },
+    {
+        "prompt": "Should Legends stories continue to be adapted into canon, or stay as a separate legacy timeline?",
+        "stance_options": [
+            "Adapt more Legends",
+            "Keep timelines separate",
+            "Case-by-case",
+            "No preference"
+        ],
+        "category": "legends_discussion",
+        "topics": [
+            "legends",
+            "canon",
+            "adaptation"
+        ],
+        "source": {
+            "type": "publishing"
+        }
+    },
+    {
+        "prompt": "Did the prequels age into classics mainly because of The Clone Wars expanding their characters and politics?",
+        "stance_options": [
+            "Yes, mostly",
+            "No, films stood alone",
+            "Partly",
+            "Not sure"
+        ],
+        "category": "movie_discussion",
+        "topics": [
+            "prequels",
+            "clone wars",
+            "reputation"
+        ],
+        "source": {
+            "type": "movie + series",
+            "title": "Episode I-III / The Clone Wars"
+        }
+    },
+    {
+        "prompt": "Is the Force more compelling when treated as a spiritual mystery, or when heavily systematized with rules?",
+        "stance_options": [
+            "Mystery first",
+            "Rules and structure",
+            "Both needed",
+            "Changes by story"
+        ],
+        "category": "lore_discussion",
+        "topics": [
+            "force",
+            "worldbuilding",
+            "philosophy"
+        ],
+        "source": {
+            "type": "franchise"
+        }
+    },
+    {
+        "prompt": "Did Andor set a new quality bar that future live-action Star Wars shows should match, even if it means fewer releases?",
+        "stance_options": [
+            "Yes, raise bar",
+            "No, keep variety",
+            "Blend both",
+            "Too early to say"
+        ],
+        "category": "tv_series_discussion",
+        "topics": [
+            "andor",
+            "quality vs quantity",
+            "disney+"
+        ],
+        "source": {
+            "type": "series",
+            "title": "Andor"
+        }
+    }
+]

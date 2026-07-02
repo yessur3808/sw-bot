@@ -1,4 +1,4 @@
-.PHONY: help build up up-postgres run down restart logs ps shell migrate migrate-local migrate-up migrate-down
+.PHONY: help build up up-postgres run down restart rebuild logs ps shell migrate migrate-local migrate-up migrate-down
 
 PYTHON := /home/curlycoffee3808/Desktop/server/bots/starwars-bot/venv/bin/python
 WITH_ENV := set -a; . ./.env; set +a
@@ -11,6 +11,7 @@ help:
 	@echo "  run           Run bot in foreground"
 	@echo "  down          Stop and remove containers"
 	@echo "  restart       Restart bot container"
+	@echo "  rebuild       Rebuild image and restart bot"
 	@echo "  logs          Follow bot logs"
 	@echo "  ps            Show compose services"
 	@echo "  shell         Open shell in bot container"
@@ -36,6 +37,9 @@ down:
 
 restart:
 	docker compose restart bot
+
+rebuild:
+	docker compose up -d --build bot
 
 logs:
 	docker compose logs -f bot

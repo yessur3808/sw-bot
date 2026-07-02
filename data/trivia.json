@@ -1,32 +1,193 @@
 [
     {
-        "q": "What color is Mace Windu's lightsaber?",
+        "question": "What color is Mace Windu's lightsaber?",
         "options": [
             "Blue",
             "Green",
             "Purple",
             "Red"
         ],
-        "correct": 2
+        "correct": 2,
+        "category": "movie_trivia",
+        "topics": [
+            "jedi",
+            "lightsaber"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode II and III"
+        }
     },
     {
-        "q": "Who built C-3PO?",
+        "question": "Who built C-3PO?",
         "options": [
             "Han Solo",
             "Anakin Skywalker",
-            "Obi-Wan",
-            "Luke"
+            "Obi-Wan Kenobi",
+            "Luke Skywalker"
         ],
-        "correct": 1
+        "correct": 1,
+        "category": "movie_trivia",
+        "topics": [
+            "droids",
+            "tatooine"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode I: The Phantom Menace"
+        }
     },
     {
-        "q": "What is the name of Han Solo's ship?",
+        "question": "What is the name of Han Solo's ship?",
         "options": [
             "Slave I",
             "Millennium Falcon",
             "Ghost",
             "Razor Crest"
         ],
-        "correct": 1
+        "correct": 1,
+        "category": "movie_trivia",
+        "topics": [
+            "ships",
+            "smugglers"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Original Trilogy"
+        }
+    },
+    {
+        "question": "Who trained Obi-Wan Kenobi as a Padawan?",
+        "options": [
+            "Yoda",
+            "Mace Windu",
+            "Qui-Gon Jinn",
+            "Ki-Adi-Mundi"
+        ],
+        "correct": 2,
+        "category": "lore_trivia",
+        "topics": [
+            "jedi lineage",
+            "prequels"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode I"
+        }
+    },
+    {
+        "question": "Which planet is known as the Wookiee homeworld?",
+        "options": [
+            "Kashyyyk",
+            "Corellia",
+            "Mandalore",
+            "Mon Cala"
+        ],
+        "correct": 0,
+        "category": "lore_trivia",
+        "topics": [
+            "planets",
+            "species"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode III"
+        }
+    },
+    {
+        "question": "Who created the Darksaber?",
+        "options": [
+            "Bo-Katan Kryze",
+            "Tarre Vizsla",
+            "Pre Vizsla",
+            "Darth Maul"
+        ],
+        "correct": 1,
+        "category": "lore_trivia",
+        "topics": [
+            "mandalorian",
+            "darksaber"
+        ],
+        "source": {
+            "type": "series",
+            "title": "The Clone Wars / Rebels"
+        }
+    },
+    {
+        "question": "In canon, what rank does Thrawn hold in the Empire?",
+        "options": [
+            "Moff",
+            "Grand Admiral",
+            "Commander",
+            "General"
+        ],
+        "correct": 1,
+        "category": "series_trivia",
+        "topics": [
+            "imperial",
+            "thrawn"
+        ],
+        "source": {
+            "type": "series",
+            "title": "Star Wars Rebels"
+        }
+    },
+    {
+        "question": "Which battle station was destroyed at Yavin?",
+        "options": [
+            "Starkiller Base",
+            "Death Star I",
+            "Death Star II",
+            "The Supremacy"
+        ],
+        "correct": 1,
+        "category": "movie_trivia",
+        "topics": [
+            "rebellion",
+            "space battles"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Episode IV"
+        }
+    },
+    {
+        "question": "Which character says 'I am one with the Force and the Force is with me'?",
+        "options": [
+            "Baze Malbus",
+            "Cassian Andor",
+            "Chirrut Imwe",
+            "Saw Gerrera"
+        ],
+        "correct": 2,
+        "category": "movie_trivia",
+        "topics": [
+            "rogue one",
+            "quotes"
+        ],
+        "source": {
+            "type": "movie",
+            "title": "Rogue One"
+        }
+    },
+    {
+        "question": "Which game first introduced Darth Revan?",
+        "options": [
+            "Jedi Outcast",
+            "Battlefront II",
+            "KOTOR",
+            "The Force Unleashed"
+        ],
+        "correct": 2,
+        "category": "legends_trivia",
+        "topics": [
+            "old republic",
+            "games",
+            "legends"
+        ],
+        "source": {
+            "type": "game",
+            "title": "Star Wars: Knights of the Old Republic"
+        }
     }
 ]
