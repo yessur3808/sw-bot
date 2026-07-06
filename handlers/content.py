@@ -163,16 +163,16 @@ def _resolve_fact_thread(fact_text):
     lore_tid = get_thread_id("lore")
     movie_tid = get_thread_id("movie")
     show_tid = get_thread_id("show")
-    general_tid = get_thread_id("general")
+    chat_tid = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general")
 
     if topic == "show":
         # User rule: show goes to show thread, fallback to movie.
-        return topic, (show_tid or movie_tid or lore_tid or general_tid or THREADS["general"])
+        return topic, (show_tid or movie_tid or lore_tid or chat_tid or THREADS["general"])
     if topic == "movie":
-        return topic, (movie_tid or general_tid or lore_tid or THREADS["general"])
+        return topic, (movie_tid or lore_tid or chat_tid or THREADS["general"])
     if topic == "general":
-        return topic, (general_tid or lore_tid or THREADS["general"])
-    return topic, (lore_tid or general_tid or THREADS["general"])
+        return topic, (chat_tid or lore_tid or THREADS["general"])
+    return topic, (lore_tid or chat_tid or THREADS["general"])
 
 async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
     item = random.choice(QUOTES)
@@ -191,9 +191,10 @@ async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
         extra += f"\nSource: {src}"
 
     text = f"💬 *Quote of the Day*\n\n{body}{extra}"
+    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
     message = await context.bot.send_message(
         chat_id=GROUP_ID,
-        message_thread_id=THREADS["general"],
+        message_thread_id=thread_id,
         text=text,
         parse_mode="Markdown",
     )
@@ -202,7 +203,7 @@ async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
         raw = f"{quote}|{speaker}"
     db.log_post_audit(
         topic="quote",
-        thread_id=THREADS["general"],
+        thread_id=thread_id,
         telegram_message_id=message.message_id,
         content_type="quote",
         content_id=f"quote:{db.compute_text_hash(raw)[:16]}",
@@ -248,9 +249,10 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
     if len(clean_options) < 2:
         return
 
+    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
     message = await context.bot.send_poll(
         chat_id=GROUP_ID,
-        message_thread_id=THREADS["general"],
+        message_thread_id=thread_id,
         question=f"🗳️ {question}",
         options=clean_options,
         is_anonymous=False,
@@ -258,7 +260,7 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
     raw = f"{question}|{'|'.join(clean_options)}"
     db.log_post_audit(
         topic="poll",
-        thread_id=THREADS["general"],
+        thread_id=thread_id,
         telegram_message_id=message.message_id,
         content_type="poll",
         content_id=f"poll:{db.compute_text_hash(raw)[:16]}",
@@ -283,7 +285,7 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
     if src:
         lines.append(f"Source: {src}")
 
-    thread_id = get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
+    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
     text = "\n".join(lines)
     message = await context.bot.send_message(
         chat_id=GROUP_ID,
@@ -335,7 +337,7 @@ async def daily_greeting(context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = f"🌟 *Community Greeting*\n\n{greeting}"
-    thread_id = get_thread_id("general") or THREADS["general"]
+    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
     message = await context.bot.send_message(
         chat_id=GROUP_ID,
         message_thread_id=thread_id,

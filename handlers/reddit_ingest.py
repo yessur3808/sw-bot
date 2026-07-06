@@ -193,7 +193,7 @@ def _relay_thread_id():
     configured = config.get_thread_id(config.REDDIT_RELAY_THREAD)
     if configured:
         return configured
-    return config.get_thread_id("memes") or config.get_thread_id("general") or config.THREADS.get("general", 0)
+    return config.get_thread_id("memes") or config.get_chat_thread_id() or config.THREADS.get("general", 0)
 
 
 def _relay_text(row):

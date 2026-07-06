@@ -52,11 +52,14 @@ def _safe_text(message):
 def _allowed_thread(thread_id):
     if thread_id is None:
         return False
-    allowed_ids = {
-        int(v)
-        for k, v in config.THREADS.items()
-        if k in config.LLM_ALLOWED_THREAD_NAMES and int(v) > 0
-    }
+    allowed_ids = set()
+    for name in config.LLM_ALLOWED_THREAD_NAMES:
+        if name == "general":
+            resolved = config.get_chat_thread_id()
+        else:
+            resolved = config.get_thread_id(name)
+        if resolved and int(resolved) > 0:
+            allowed_ids.add(int(resolved))
     return thread_id in allowed_ids
 
 

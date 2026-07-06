@@ -89,8 +89,13 @@ DATABASE_URL=<railway-postgres-connection-url>
 THREAD_LORE=<thread-id>
 THREAD_MEMES=<thread-id>
 THREAD_WALLPAPERS=<thread-id>
+THREAD_CHAT=<thread-id>
 THREAD_GENERAL=<thread-id>
+THREAD_EVENTS=<thread-id>
 ```
+
+`THREAD_EVENTS` is optional; if omitted, event posts use `THREAD_GENERAL`.
+Set `THREAD_CHAT` to isolate non-event posts (greeting, leaderboard, quote/fact/poll/discussion, and LLM general thread behavior) away from the events topic.
 
 Optional admin UI variables for web access:
 
@@ -267,6 +272,39 @@ DATASET_COLLECTOR_SOURCE_LIMIT=20
 # Format: dataset|tier|name|url|k=v,k=v;...
 DATASET_SOURCE_CONFIG=facts|rss|StarWars News Feed Facts|https://www.starwars.com/news/feed|locale=en;quotes|scrape|StarWars Quote Sources|https://www.starwars.com/news|locale=en,parser=starwars_news_quotes;trivia|scrape|StarWars Databank Trivia|https://www.starwars.com/databank|locale=en,parser=starwars_databank;polls|rss|StarWars News Poll Prompts|https://www.starwars.com/news/feed|locale=en;discussions|rss|StarWars News Discussion Prompts|https://www.starwars.com/news/feed|locale=en
 ```
+
+## Event Config Simplification (Compatibility Mode)
+
+Event/news pipeline knobs can now be provided in one optional JSON env key:
+
+```dotenv
+EVENT_PIPELINE={"enable_ingestion":true,"auto_publish_threshold":0.82,"min_review_threshold":0.55,"ingest_hours":6,"digest_utc_hour":11,"digest_utc_minute":0,"release_timezone":"Asia/Hong_Kong","enable_source_compliance":true,"require_robots_for_scrape":true,"require_tos_allowlist_for_scrape":true,"official_source_allowlist":"starwars.com,news.google.com","rss_source_allowlist":"starwars.com,news.google.com","api_source_allowlist":"","scrape_source_allowlist":"","scrape_tos_allowlist":"","ingest_feed_limit":30,"ingest_api_limit":40,"ingest_scrape_limit":60,"hk_enable_zh":true}
+```
+
+Compatibility rules:
+
+- Existing legacy env keys are still supported.
+- If both are present, legacy key values take precedence over `EVENT_PIPELINE`.
+- This allows gradual migration without breaking current deployments.
+
+Daily digest behavior:
+
+- Digest now includes only incoming approved events from today onward (based on `RELEASE_TIMEZONE`).
+- Each digest item includes a clickable source link.
+
+## Telegram Conflict Handling (Single Poller Rule)
+
+Telegram long polling allows only one active `getUpdates` consumer per bot token.
+If you run both Railway and local bot at the same time with the same `BOT_TOKEN`, one will conflict.
+
+This bot supports:
+
+```dotenv
+EXIT_ON_TELEGRAM_CONFLICT=true
+```
+
+When enabled, an instance that encounters polling conflict exits to prevent endless conflict spam.
+Operationally, keep exactly one active poller per token (either Railway or local).
 
 Admin UI additions:
 

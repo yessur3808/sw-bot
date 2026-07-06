@@ -78,6 +78,41 @@ DATE_PATTERNS = (
 )
 
 
+def _today_in_release_timezone():
+    tz_name = runtime_settings.get("release_timezone")
+    try:
+        from zoneinfo import ZoneInfo
+
+        return datetime.now(ZoneInfo(tz_name)).date()
+    except Exception:
+        return date.today()
+
+
+def _event_thread_id():
+    return config.get_thread_id("events") or config.get_thread_id("general") or config.THREADS["general"]
+
+
+def _parse_event_date(raw_date):
+    if not raw_date:
+        return None
+    try:
+        return date.fromisoformat(str(raw_date))
+    except Exception:
+        return None
+
+
+def _is_incoming_event_date(raw_date, today=None, max_days=None):
+    parsed = _parse_event_date(raw_date)
+    if not parsed:
+        return False
+    today_date = today or _today_in_release_timezone()
+    if parsed < today_date:
+        return False
+    if max_days is None:
+        return True
+    return parsed <= (today_date + timedelta(days=max(1, int(max_days))))
+
+
 def _normalize_text(v):
     return " ".join((v or "").strip().split())
 
@@ -912,14 +947,14 @@ async def publish_auto_approved(context: ContextTypes.DEFAULT_TYPE):
         )
         message = await context.bot.send_message(
             chat_id=config.GROUP_ID,
-            message_thread_id=config.THREADS["general"],
+            message_thread_id=_event_thread_id(),
             text=text,
             parse_mode="Markdown",
             disable_web_page_preview=False,
         )
         db.log_post_audit(
             topic="event_update",
-            thread_id=config.THREADS["general"],
+            thread_id=_event_thread_id(),
             telegram_message_id=message.message_id,
             content_type="event",
             content_id=row["item_key"],
@@ -931,8 +966,27 @@ async def daily_event_digest(context: ContextTypes.DEFAULT_TYPE):
     hk = db.list_events_by_status("approved", limit=5, region="hk")
     global_items = db.list_events_by_status("approved", limit=5, region="global")
 
+    today = _today_in_release_timezone()
+    hk = [row for row in hk if _is_incoming_event_date(row.get("event_date") if hasattr(row, "get") else row["event_date"], today=today)]
+    global_items = [
+        row
+        for row in global_items
+        if _is_incoming_event_date(row.get("event_date") if hasattr(row, "get") else row["event_date"], today=today)
+    ]
+
+    def _escape_md(text):
+        raw = str(text or "")
+        for ch in ("_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"):
+            raw = raw.replace(ch, f"\\{ch}")
+        return raw
+
     def _line(row):
-        return f"- {row['title']} ({row['category']})"
+        title = _escape_md(row["title"])
+        category = _escape_md(row["category"])
+        url = str(row.get("url") if hasattr(row, "get") else row["url"]).strip()
+        if url:
+            return f"- [{title}]({url}) ({category})"
+        return f"- {title} ({category})"
 
     parts = ["🗓️ *Daily Star Wars Event Digest*"]
     if hk:
@@ -940,17 +994,17 @@ async def daily_event_digest(context: ContextTypes.DEFAULT_TYPE):
     if global_items:
         parts.append("\n*Global*\n" + "\n".join(_line(r) for r in global_items))
     if len(parts) == 1:
-        parts.append("\nNo approved items yet. Ingestion is still warming up.")
+        parts.append("\nNo incoming approved events from today onward yet.")
 
     message = await context.bot.send_message(
         chat_id=config.GROUP_ID,
-        message_thread_id=config.THREADS["general"],
+        message_thread_id=_event_thread_id(),
         text="\n".join(parts),
         parse_mode="Markdown",
     )
     db.log_post_audit(
         topic="event_digest",
-        thread_id=config.THREADS["general"],
+        thread_id=_event_thread_id(),
         telegram_message_id=message.message_id,
         content_type="event_digest",
         content_id=f"event_digest:{date.today().isoformat()}",
@@ -1144,17 +1198,11 @@ async def events_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         region=region,
         days=days,
     )
-    today = date.today()
+    today = _today_in_release_timezone()
     filtered = []
     for r in rows:
         event_date = r.get("event_date") if hasattr(r, "get") else r["event_date"]
-        if not event_date:
-            continue
-        try:
-            parsed = date.fromisoformat(str(event_date))
-        except Exception:
-            continue
-        if today <= parsed <= (today + timedelta(days=days)):
+        if _is_incoming_event_date(event_date, today=today, max_days=days):
             filtered.append(r)
         if len(filtered) >= limit:
             break

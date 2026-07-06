@@ -9,6 +9,9 @@ from admin import runtime_settings
 from admin.server import start_admin_ui
 from handlers import xp, trivia, memes, wallpapers, content, events, auto_engage, reddit_ingest, dataset_collectors
 
+
+_conflict_shutdown_requested = False
+
 async def start(update, context):
     await update.message.reply_text("May the Force be with you! 🌌")
 
@@ -56,14 +59,15 @@ async def weekly_leaderboard(context):
     text = "🏆 *Weekly Champions*\n\n"
     for i, r in enumerate(rows, 1):
         text += f"{i}. {r['username']} — {r['score']} XP\n"
+    thread_id = config.get_chat_thread_id() or config.THREADS["general"]
     message = await context.bot.send_message(
         chat_id=config.GROUP_ID,
-        message_thread_id=config.THREADS["general"],
+        message_thread_id=thread_id,
         text=text, parse_mode="Markdown",
     )
     db.log_post_audit(
         topic="leaderboard",
-        thread_id=config.THREADS["general"],
+        thread_id=thread_id,
         telegram_message_id=message.message_id,
         content_type="leaderboard",
         content_id=f"weekly_leaderboard:{datetime.now(timezone.utc).date().isoformat()}",
@@ -284,12 +288,19 @@ async def thread_map_cmd(update, context):
 
 
 async def telegram_error_handler(update, context):
+    global _conflict_shutdown_requested
     err = context.error
     if isinstance(err, Conflict):
         print(
             "TELEGRAM CONFLICT: another process is calling getUpdates with this BOT_TOKEN. "
             "Ensure exactly one running bot instance across Railway/local machines."
         )
+        if config.EXIT_ON_TELEGRAM_CONFLICT and not _conflict_shutdown_requested:
+            _conflict_shutdown_requested = True
+            print("TELEGRAM CONFLICT: exiting this instance to avoid repeated polling conflicts.")
+            app = getattr(context, "application", None)
+            if app and hasattr(app, "stop_running"):
+                app.stop_running()
         return
     print(f"Unhandled Telegram error: {err}")
 

@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,8 +20,61 @@ def _required_int_env(name):
         raise RuntimeError(f"Environment variable {name} must be an integer, got: {raw!r}") from exc
 
 
+def _parse_json_env(name):
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return {}
+    try:
+        value = json.loads(raw)
+    except Exception:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _as_bool(value, default):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _as_int(value, default):
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _as_float(value, default):
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _as_str(value, default):
+    if value is None:
+        return default
+    out = str(value).strip()
+    return out if out else default
+
+
+# Optional compact JSON block for event pipeline settings.
+# Legacy env keys still take precedence for backwards compatibility.
+EVENT_PIPELINE = _parse_json_env("EVENT_PIPELINE")
+
+
+def _event_setting(name, env_name, default, cast):
+    legacy_raw = os.getenv(env_name)
+    if legacy_raw is not None:
+        return cast(legacy_raw, default)
+    return cast(EVENT_PIPELINE.get(name), default)
+
+
 BOT_TOKEN = _required_env("BOT_TOKEN")
 GROUP_ID = _required_int_env("GROUP_ID")
+EXIT_ON_TELEGRAM_CONFLICT = os.getenv("EXIT_ON_TELEGRAM_CONFLICT", "true").lower() == "true"
 
 REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
 REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
@@ -30,8 +84,8 @@ USE_REDDIT = os.getenv("USE_REDDIT", "true").lower() == "true"
 MEME_PROVIDER_PRIORITY = [
     p.strip().lower() for p in os.getenv("MEME_PROVIDER_PRIORITY", "imgflip,reddit").split(",") if p.strip()
 ]
-REDDIT_INGEST_ENABLED = os.getenv("REDDIT_INGEST_ENABLED", "false").lower() == "true"
-REDDIT_RELAY_ENABLED = os.getenv("REDDIT_RELAY_ENABLED", "false").lower() == "true"
+REDDIT_INGEST_ENABLED = os.getenv("REDDIT_INGEST_ENABLED", "true").lower() == "true"
+REDDIT_RELAY_ENABLED = os.getenv("REDDIT_RELAY_ENABLED", "true").lower() == "true"
 REDDIT_SUBREDDITS = [
     s.strip() for s in os.getenv("REDDIT_SUBREDDITS", "StarWars,StarWarsMemes,PrequelMemes,sequelmemes").split(",") if s.strip()
 ]
@@ -76,35 +130,35 @@ HK_PUBLIC_HOLIDAYS = {
     v.strip() for v in _holidays_raw.split(",") if v.strip()
 }
 
-ENABLE_EVENT_INGESTION = os.getenv("ENABLE_EVENT_INGESTION", "true").lower() == "true"
-AUTO_PUBLISH_THRESHOLD = float(os.getenv("AUTO_PUBLISH_THRESHOLD", 0.82))
-MIN_REVIEW_THRESHOLD = float(os.getenv("MIN_REVIEW_THRESHOLD", 0.55))
-RELEASE_TIMEZONE = os.getenv("RELEASE_TIMEZONE", "Asia/Hong_Kong")
+ENABLE_EVENT_INGESTION = _event_setting("enable_ingestion", "ENABLE_EVENT_INGESTION", True, _as_bool)
+AUTO_PUBLISH_THRESHOLD = _event_setting("auto_publish_threshold", "AUTO_PUBLISH_THRESHOLD", 0.90, _as_float)
+MIN_REVIEW_THRESHOLD = _event_setting("min_review_threshold", "MIN_REVIEW_THRESHOLD", 0.65, _as_float)
+RELEASE_TIMEZONE = _event_setting("release_timezone", "RELEASE_TIMEZONE", "Asia/Hong_Kong", _as_str)
 
-EVENT_INGEST_HOURS = int(os.getenv("EVENT_INGEST_HOURS", 6))
-DAILY_EVENT_DIGEST_UTC_HOUR = int(os.getenv("DAILY_EVENT_DIGEST_UTC_HOUR", 11))
-DAILY_EVENT_DIGEST_UTC_MINUTE = int(os.getenv("DAILY_EVENT_DIGEST_UTC_MINUTE", 0))
+EVENT_INGEST_HOURS = _event_setting("ingest_hours", "EVENT_INGEST_HOURS", 12, _as_int)
+DAILY_EVENT_DIGEST_UTC_HOUR = _event_setting("digest_utc_hour", "DAILY_EVENT_DIGEST_UTC_HOUR", 11, _as_int)
+DAILY_EVENT_DIGEST_UTC_MINUTE = _event_setting("digest_utc_minute", "DAILY_EVENT_DIGEST_UTC_MINUTE", 0, _as_int)
 
-ENABLE_SOURCE_COMPLIANCE = os.getenv("ENABLE_SOURCE_COMPLIANCE", "true").lower() == "true"
-REQUIRE_ROBOTS_FOR_SCRAPE = os.getenv("REQUIRE_ROBOTS_FOR_SCRAPE", "true").lower() == "true"
-REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE = os.getenv("REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE", "true").lower() == "true"
+ENABLE_SOURCE_COMPLIANCE = _event_setting("enable_source_compliance", "ENABLE_SOURCE_COMPLIANCE", True, _as_bool)
+REQUIRE_ROBOTS_FOR_SCRAPE = _event_setting("require_robots_for_scrape", "REQUIRE_ROBOTS_FOR_SCRAPE", True, _as_bool)
+REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE = _event_setting("require_tos_allowlist_for_scrape", "REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE", True, _as_bool)
 
-OFFICIAL_SOURCE_ALLOWLIST = os.getenv("OFFICIAL_SOURCE_ALLOWLIST", "starwars.com,news.google.com")
-RSS_SOURCE_ALLOWLIST = os.getenv("RSS_SOURCE_ALLOWLIST", "starwars.com,news.google.com")
-API_SOURCE_ALLOWLIST = os.getenv("API_SOURCE_ALLOWLIST", "")
-SCRAPE_SOURCE_ALLOWLIST = os.getenv("SCRAPE_SOURCE_ALLOWLIST", "")
-SCRAPE_TOS_ALLOWLIST = os.getenv("SCRAPE_TOS_ALLOWLIST", "")
+OFFICIAL_SOURCE_ALLOWLIST = _event_setting("official_source_allowlist", "OFFICIAL_SOURCE_ALLOWLIST", "starwars.com,news.google.com", _as_str)
+RSS_SOURCE_ALLOWLIST = _event_setting("rss_source_allowlist", "RSS_SOURCE_ALLOWLIST", "starwars.com,news.google.com", _as_str)
+API_SOURCE_ALLOWLIST = _event_setting("api_source_allowlist", "API_SOURCE_ALLOWLIST", "", _as_str)
+SCRAPE_SOURCE_ALLOWLIST = _event_setting("scrape_source_allowlist", "SCRAPE_SOURCE_ALLOWLIST", "wookieepedia.com,starwars.fandom.com,starwars.com", _as_str)
+SCRAPE_TOS_ALLOWLIST = _event_setting("scrape_tos_allowlist", "SCRAPE_TOS_ALLOWLIST", "wookieepedia.com,starwars.fandom.com,starwars.com", _as_str)
 
-INGEST_FEED_LIMIT = int(os.getenv("INGEST_FEED_LIMIT", 30))
-INGEST_API_LIMIT = int(os.getenv("INGEST_API_LIMIT", 40))
-INGEST_SCRAPE_LIMIT = int(os.getenv("INGEST_SCRAPE_LIMIT", 60))
-HK_ENABLE_ZH = os.getenv("HK_ENABLE_ZH", "true").lower() == "true"
+INGEST_FEED_LIMIT = _event_setting("ingest_feed_limit", "INGEST_FEED_LIMIT", 30, _as_int)
+INGEST_API_LIMIT = _event_setting("ingest_api_limit", "INGEST_API_LIMIT", 40, _as_int)
+INGEST_SCRAPE_LIMIT = _event_setting("ingest_scrape_limit", "INGEST_SCRAPE_LIMIT", 60, _as_int)
+HK_ENABLE_ZH = _event_setting("hk_enable_zh", "HK_ENABLE_ZH", True, _as_bool)
 
 DATASET_COLLECTORS_ENABLED = os.getenv("DATASET_COLLECTORS_ENABLED", "true").lower() == "true"
 DATASET_COLLECTOR_INTERVAL_MINUTES = int(os.getenv("DATASET_COLLECTOR_INTERVAL_MINUTES", 180))
 DATASET_COLLECTOR_SOURCE_LIMIT = int(os.getenv("DATASET_COLLECTOR_SOURCE_LIMIT", 20))
 
-LLM_ENABLED = os.getenv("LLM_ENABLED", "false").lower() == "true"
+LLM_ENABLED = os.getenv("LLM_ENABLED", "true").lower() == "true"
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
 LLM_MODEL = os.getenv("LLM_MODEL", "meta-llama/llama-3.1-8b-instruct:free").strip()
 LLM_API_KEY = os.getenv("LLM_API_KEY", "").strip()
@@ -112,7 +166,7 @@ LLM_API_BASE_URL = os.getenv("LLM_API_BASE_URL", "").strip()
 LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", 18))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", 140))
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0.85))
-LLM_AUTONOMOUS_MODE = os.getenv("LLM_AUTONOMOUS_MODE", "false").lower() == "true"
+LLM_AUTONOMOUS_MODE = os.getenv("LLM_AUTONOMOUS_MODE", "true").lower() == "true"
 LLM_REPLY_DAILY_CAP = int(os.getenv("LLM_REPLY_DAILY_CAP", 40))
 LLM_REPLY_THREAD_DAILY_CAP = int(os.getenv("LLM_REPLY_THREAD_DAILY_CAP", 12))
 LLM_REPLY_COOLDOWN_SECONDS = int(os.getenv("LLM_REPLY_COOLDOWN_SECONDS", 180))
@@ -164,12 +218,14 @@ DATASET_SOURCE_CONFIG = os.getenv(
 )
 
 THREADS = {
+    "chat": int(os.getenv("THREAD_CHAT", 0)),
     "lore": int(os.getenv("THREAD_LORE", 0)),
     "memes": int(os.getenv("THREAD_MEMES", 0)),
     "wallpapers": int(os.getenv("THREAD_WALLPAPERS", 0)),
     "movie": int(os.getenv("THREAD_MOVIE", 0)),
     "show": int(os.getenv("THREAD_SHOW", 0)),
     "general": int(os.getenv("THREAD_GENERAL", 0)),
+    "events": int(os.getenv("THREAD_EVENTS", os.getenv("THREAD_GENERAL", 0))),
 }
 
 
@@ -180,6 +236,15 @@ def get_thread_id(name):
     except Exception:
         return None
     return value if value > 0 else None
+
+
+def get_chat_thread_id():
+    # Keep non-event fallback away from the events thread.
+    return (
+        get_thread_id("chat")
+        or get_thread_id("lore")
+        or get_thread_id("general")
+    )
 
 
 def parse_source_meta(meta_raw):
@@ -265,7 +330,7 @@ SOURCE_ALLOWLISTS = {
 
 SCRAPE_TOS_ALLOWLIST_SET = parse_csv_set(SCRAPE_TOS_ALLOWLIST)
 
-ADMIN_UI_ENABLED = os.getenv("ADMIN_UI_ENABLED", "false").lower() == "true"
+ADMIN_UI_ENABLED = os.getenv("ADMIN_UI_ENABLED", "true").lower() == "true"
 ADMIN_UI_HOST = os.getenv("ADMIN_UI_HOST", "0.0.0.0")
 ADMIN_UI_PORT = int(os.getenv("ADMIN_UI_PORT", 8088))
 ADMIN_UI_ACCESS_TOKEN = os.getenv("ADMIN_UI_ACCESS_TOKEN", "")
@@ -274,7 +339,7 @@ ADMIN_UI_SESSION_HOURS = int(os.getenv("ADMIN_UI_SESSION_HOURS", 12))
 ADMIN_UI_COOKIE_SECURE = os.getenv("ADMIN_UI_COOKIE_SECURE", "false").lower() == "true"
 ADMIN_UI_ALLOWED_HOSTS = {
     v.strip().lower()
-    for v in os.getenv("ADMIN_UI_ALLOWED_HOSTS", "").split(",")
+    for v in os.getenv("ADMIN_UI_ALLOWED_HOSTS", "*").split(",")
     if v.strip()
 }
 ADMIN_UI_IP_ALLOWLIST = {
