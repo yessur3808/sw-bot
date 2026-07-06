@@ -3,11 +3,20 @@ import threading
 import config
 from admin.web import create_admin_app
 
+try:
+    from waitress import serve as waitress_serve
+except Exception:
+    waitress_serve = None
+
 
 _ADMIN_THREAD = None
 
 
 def _run_server(app):
+    if waitress_serve:
+        waitress_serve(app, host=config.ADMIN_UI_HOST, port=config.ADMIN_UI_PORT, threads=8)
+        return
+
     app.run(
         host=config.ADMIN_UI_HOST,
         port=config.ADMIN_UI_PORT,

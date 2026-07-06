@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, time, timezone
 import math
 import random
 from telegram import BotCommand
+from telegram.error import Conflict
 from telegram.ext import Application, CommandHandler
 import config, db
 from admin import runtime_settings
@@ -282,6 +283,17 @@ async def thread_map_cmd(update, context):
     await update.message.reply_text("\n".join(_thread_map_lines()))
 
 
+async def telegram_error_handler(update, context):
+    err = context.error
+    if isinstance(err, Conflict):
+        print(
+            "TELEGRAM CONFLICT: another process is calling getUpdates with this BOT_TOKEN. "
+            "Ensure exactly one running bot instance across Railway/local machines."
+        )
+        return
+    print(f"Unhandled Telegram error: {err}")
+
+
 def record_bot_heartbeat():
     db.set_bot_health_state("bot_heartbeat_at", datetime.now(timezone.utc).isoformat())
 
@@ -354,6 +366,7 @@ def main():
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("whereami", whereami_cmd))
     app.add_handler(CommandHandler("thread_map", thread_map_cmd))
+    app.add_error_handler(telegram_error_handler)
     xp.register(app)
     auto_engage.register(app)
     events.register(app)
