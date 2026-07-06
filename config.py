@@ -108,8 +108,8 @@ REDDIT_BANNED_WORDS = [
     if w.strip()
 ]
 
-DAILY_MIN_POSTS = int(os.getenv("DAILY_MIN_POSTS", 4))
-DAILY_MAX_POSTS = int(os.getenv("DAILY_MAX_POSTS", 8))
+DAILY_MIN_POSTS = int(os.getenv("DAILY_MIN_POSTS", 20))
+DAILY_MAX_POSTS = int(os.getenv("DAILY_MAX_POSTS", 40))
 MAX_PER_TOPIC_PER_DAY = int(os.getenv("MAX_PER_TOPIC_PER_DAY", 2))
 MIN_GAP_MINUTES = int(os.getenv("MIN_GAP_MINUTES", 60))
 STARTUP_RECOVERY_ENABLED = os.getenv("STARTUP_RECOVERY_ENABLED", "true").lower() == "true"
@@ -117,6 +117,25 @@ STARTUP_RECOVERY_HOURS = float(os.getenv("STARTUP_RECOVERY_HOURS", 4))
 GREETING_ENABLED = os.getenv("GREETING_ENABLED", "true").lower() == "true"
 GREETING_UTC_HOUR = int(os.getenv("GREETING_UTC_HOUR", 1))
 GREETING_UTC_MINUTE = int(os.getenv("GREETING_UTC_MINUTE", 30))
+SATURDAY_POST_MULTIPLIER = float(os.getenv("SATURDAY_POST_MULTIPLIER", 1.5))
+STAR_WARS_DAY_POST_MULTIPLIER = float(os.getenv("STAR_WARS_DAY_POST_MULTIPLIER", 2.5))
+
+WALLPAPER_PROVIDER_PRIORITY = [
+    p.strip().lower()
+    for p in os.getenv("WALLPAPER_PROVIDER_PRIORITY", "wallhaven,pinterest,instagram").split(",")
+    if p.strip()
+]
+PINTEREST_WALLPAPER_FEEDS = [
+    v.strip()
+    for v in os.getenv("PINTEREST_WALLPAPER_FEEDS", "").split(",")
+    if v.strip()
+]
+INSTAGRAM_WALLPAPER_FEEDS = [
+    v.strip()
+    for v in os.getenv("INSTAGRAM_WALLPAPER_FEEDS", "").split(",")
+    if v.strip()
+]
+WALLPAPER_FEED_FETCH_LIMIT = int(os.getenv("WALLPAPER_FEED_FETCH_LIMIT", 30))
 
 POST_BOOST_ENABLED = os.getenv("POST_BOOST_ENABLED", "true").lower() == "true"
 POST_BOOST_MULTIPLIER = float(os.getenv("POST_BOOST_MULTIPLIER", 3.0))
@@ -191,6 +210,8 @@ HK_SOURCE_CONFIG = os.getenv(
     "HK_SOURCE_CONFIG",
     "official|event|GoogleNews HK Events EN|https://news.google.com/rss/search?q=star+wars+hong+kong+events&hl=en-HK&gl=HK&ceid=HK:en;"
     "rss|event|GoogleNews HK Fan Meetup EN|https://news.google.com/rss/search?q=star+wars+hong+kong+fan+meetup&hl=en-HK&gl=HK&ceid=HK:en;"
+    "rss|event|GoogleNews HK Star Wars Exhibition EN|https://news.google.com/rss/search?q=star+wars+hong+kong+exhibition&hl=en-HK&gl=HK&ceid=HK:en;"
+    "rss|event|GoogleNews HK Star Wars Cosplay EN|https://news.google.com/rss/search?q=star+wars+hong+kong+cosplay+event&hl=en-HK&gl=HK&ceid=HK:en;"
     "rss|event|GoogleNews HK Star Wars ZH|https://news.google.com/rss/search?q=%E6%98%9F%E9%9A%9B%E5%A4%A7%E6%88%B0+%E9%A6%99%E6%B8%AF+%E6%B4%BB%E5%8B%95&hl=zh-HK&gl=HK&ceid=HK:zh-Hant|locale=zh-hant;"
     "scrape|event|StarWars.com Events Category|https://www.starwars.com/news/category/events|parser=starwars_tag,locale=en",
 )
@@ -202,7 +223,9 @@ GLOBAL_SOURCE_CONFIG = os.getenv(
     "rss|news|GoogleNews Star Wars Games|https://news.google.com/rss/search?q=star+wars+new+game+release&hl=en-US&gl=US&ceid=US:en;"
     "rss|news|GoogleNews Star Wars TV|https://news.google.com/rss/search?q=star+wars+new+series+release&hl=en-US&gl=US&ceid=US:en;"
     "rss|news|GoogleNews Star Wars Movies|https://news.google.com/rss/search?q=star+wars+new+movie+release&hl=en-US&gl=US&ceid=US:en;"
-    "rss|event|GoogleNews Star Wars Convention|https://news.google.com/rss/search?q=star+wars+convention+celebration+events&hl=en-US&gl=US&ceid=US:en",
+    "rss|event|GoogleNews Star Wars Convention|https://news.google.com/rss/search?q=star+wars+convention+celebration+events&hl=en-US&gl=US&ceid=US:en;"
+    "rss|event|GoogleNews Star Wars Fan Event|https://news.google.com/rss/search?q=star+wars+fan+event+tickets&hl=en-US&gl=US&ceid=US:en;"
+    "rss|event|GoogleNews Star Wars Live Event|https://news.google.com/rss/search?q=star+wars+live+event+announcement&hl=en-US&gl=US&ceid=US:en",
 )
 
 # Format: "dataset|tier|name|url|k=v,k=v" entries separated by semicolons
@@ -213,6 +236,8 @@ DATASET_SOURCE_CONFIG = os.getenv(
     "facts|rss|StarWars News Feed Facts|https://www.starwars.com/news/feed|locale=en;"
     "quotes|scrape|StarWars Quote Sources|https://www.starwars.com/news|locale=en,parser=starwars_news_quotes;"
     "trivia|scrape|StarWars Databank Trivia|https://www.starwars.com/databank|locale=en,parser=starwars_databank;"
+    "trivia|rss|GoogleNews Star Wars Trivia Quiz|https://news.google.com/rss/search?q=star+wars+trivia+quiz&hl=en-US&gl=US&ceid=US:en|locale=en;"
+    "trivia|rss|GoogleNews Star Wars Facts Quiz|https://news.google.com/rss/search?q=star+wars+facts+quiz&hl=en-US&gl=US&ceid=US:en|locale=en;"
     "polls|rss|StarWars News Poll Prompts|https://www.starwars.com/news/feed|locale=en;"
     "discussions|rss|StarWars News Discussion Prompts|https://www.starwars.com/news/feed|locale=en",
 )

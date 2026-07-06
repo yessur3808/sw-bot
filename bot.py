@@ -98,12 +98,11 @@ def _build_topics_for_day():
     target_count = random.randint(min_posts, max_posts)
 
     boosted = False
-    boost_extra = 0
+    day_multiplier = 1.0
     if config.POST_BOOST_ENABLED:
-        boosted, boost_extra = _day_boost_profile(datetime.now(timezone.utc))
+        boosted, day_multiplier = _day_boost_profile(datetime.now(timezone.utc))
         if boosted:
-            target_count = int(math.ceil(target_count * max(1.0, config.POST_BOOST_MULTIPLIER)))
-        target_count += boost_extra
+            target_count = int(math.ceil(target_count * max(1.0, day_multiplier)))
 
     per_topic_cap = config.MAX_PER_TOPIC_PER_DAY
     if boosted:
@@ -143,22 +142,19 @@ def _day_boost_profile(now_utc):
     weekday = local_dt.weekday()  # Monday=0
     local_date = local_dt.date().isoformat()
     boosted = False
+    multiplier = 1.0
 
-    extra = 0
-    if weekday == 4 and local_dt.hour >= 18:
-        boosted = True
-        extra += max(0, config.BOOST_FRIDAY_EVENING_EXTRA)
     if weekday in (5, 6):
         boosted = True
-        extra += max(0, config.BOOST_WEEKEND_EXTRA)
-    if local_date in config.HK_PUBLIC_HOLIDAYS:
-        boosted = True
-        extra += max(0, config.BOOST_HOLIDAY_EXTRA)
+    if weekday == 5:
+        multiplier = max(multiplier, float(config.SATURDAY_POST_MULTIPLIER))
     if local_dt.month == 5 and local_dt.day == 4:
         boosted = True
-        extra += max(0, config.BOOST_STAR_WARS_DAY_EXTRA)
+        multiplier = max(multiplier, float(config.STAR_WARS_DAY_POST_MULTIPLIER))
 
-    return boosted, extra
+    if multiplier > 1.0:
+        boosted = True
+    return boosted, multiplier
 
 
 def schedule_day_posts(job_queue, start_dt):
@@ -211,6 +207,32 @@ async def startup_recovery_post(context):
             continue
         if db.has_recent_post(hours=0.25):
             return
+
+
+async def first_run_introduction(context):
+    # Send one intro message only when the bot has never posted before.
+    if db.has_any_post_audit():
+        return
+
+    thread_id = config.get_chat_thread_id() or config.get_thread_id("general") or config.THREADS["general"]
+    text = (
+        "Hi, I am SIU-M8, your Star Wars assistant bot.\n\n"
+        "I post lore, trivia, memes, wallpapers, and verified event updates. "
+        "May the Force be with you all."
+    )
+    message = await context.bot.send_message(
+        chat_id=config.GROUP_ID,
+        message_thread_id=thread_id,
+        text=text,
+    )
+    db.log_post_audit(
+        topic="intro",
+        thread_id=thread_id,
+        telegram_message_id=message.message_id,
+        content_type="intro",
+        content_id="intro:siu-m8:v1",
+        text=text,
+    )
 
 
 async def post_init(app: Application):
@@ -432,6 +454,7 @@ def main():
             interval=max(10, runtime_settings.get("dataset_collector_interval_minutes")) * 60,
             first=25,
         )
+    jq.run_once(first_run_introduction, when=8)
     jq.run_once(startup_recovery_post, when=10)
     async def heartbeat_job(context):
         record_bot_heartbeat()

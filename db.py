@@ -622,6 +622,12 @@ def has_recent_post(hours=4):
     return dt >= (datetime.now(timezone.utc) - window)
 
 
+def has_any_post_audit():
+    with get_db() as conn:
+        row = _fetchone(_execute(conn, "SELECT 1 FROM post_audit LIMIT 1"))
+    return bool(row)
+
+
 def upsert_event_item(item):
     with get_db() as conn:
         _execute(
