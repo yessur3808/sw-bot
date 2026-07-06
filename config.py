@@ -3,8 +3,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-GROUP_ID = int(os.getenv("GROUP_ID"))
+
+def _required_env(name):
+    value = os.getenv(name)
+    if value is None or not str(value).strip():
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value.strip()
+
+
+def _required_int_env(name):
+    raw = _required_env(name)
+    try:
+        return int(raw)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"Environment variable {name} must be an integer, got: {raw!r}") from exc
+
+
+BOT_TOKEN = _required_env("BOT_TOKEN")
+GROUP_ID = _required_int_env("GROUP_ID")
 
 REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
 REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
