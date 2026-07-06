@@ -2,6 +2,12 @@
 
 ## Quick Onboarding (Copy-Paste)
 
+Start from the sanitized template:
+
+```bash
+cp .env.example .env
+```
+
 ### 1) Build and run with SQLite (default)
 
 ```bash
@@ -53,6 +59,54 @@ make shell
 make restart
 make down
 ```
+
+## Railway Live Deployment (GitHub Actions)
+
+This repo includes a CI pipeline that auto-deploys to Railway on every push to `main`.
+
+### 1) Add GitHub Actions secrets
+
+In your GitHub repo settings, add these secrets:
+
+- `RAILWAY_TOKEN`
+- `RAILWAY_PROJECT_ID`
+- `RAILWAY_ENVIRONMENT_ID`
+- `RAILWAY_SERVICE_ID`
+
+Tip: you can get IDs from Railway project settings (Project, Environment, and Service).
+
+### 2) Set Railway runtime variables
+
+In Railway service variables, set your bot runtime env (minimum):
+
+```dotenv
+BOT_TOKEN=<telegram-bot-token>
+GROUP_ID=<telegram-group-id>
+
+DB_BACKEND=postgres
+DATABASE_URL=<railway-postgres-connection-url>
+
+THREAD_LORE=<thread-id>
+THREAD_MEMES=<thread-id>
+THREAD_WALLPAPERS=<thread-id>
+THREAD_GENERAL=<thread-id>
+```
+
+Optional admin UI variables for web access:
+
+```dotenv
+ADMIN_UI_ENABLED=true
+ADMIN_UI_HOST=0.0.0.0
+ADMIN_UI_PORT=8088
+ADMIN_UI_COOKIE_SECURE=true
+```
+
+### 3) Trigger deployment
+
+- Push to `main`, or
+- Run the `Deploy to Railway` workflow manually from GitHub Actions.
+
+The workflow installs Railway CLI and runs a detached deployment against the configured project/service.
 
 ## Admin Control Center (Web UI)
 

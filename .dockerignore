@@ -7,4 +7,6 @@ __pycache__/
 venv/
 .git/
 .gitignore
+.env
+.env.*
 starwars.db
