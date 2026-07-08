@@ -16,6 +16,7 @@ from telegram.ext import CommandHandler, ContextTypes
 import config
 import db
 from admin import runtime_settings
+from telemetry import instrument_command_handler
 
 
 SOURCE_WEIGHTS = {
@@ -994,7 +995,7 @@ async def daily_event_digest(context: ContextTypes.DEFAULT_TYPE):
     if global_items:
         parts.append("\n*Global*\n" + "\n".join(_line(r) for r in global_items))
     if len(parts) == 1:
-        parts.append("\nNo incoming approved events from today onward yet.")
+        return
 
     message = await context.bot.send_message(
         chat_id=config.GROUP_ID,
@@ -1286,11 +1287,11 @@ async def events_detail_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def register(app):
-    app.add_handler(CommandHandler("events", events_cmd))
-    app.add_handler(CommandHandler("events_detail", events_detail_cmd))
-    app.add_handler(CommandHandler("release_calendar", release_calendar_cmd))
-    app.add_handler(CommandHandler("review_events", review_events))
-    app.add_handler(CommandHandler("approve", approve_event))
-    app.add_handler(CommandHandler("reject", reject_event))
-    app.add_handler(CommandHandler("ingest_now", ingest_now_cmd))
-    app.add_handler(CommandHandler("source_status", source_status_cmd))
+    app.add_handler(CommandHandler("events", instrument_command_handler("events", events_cmd)))
+    app.add_handler(CommandHandler("events_detail", instrument_command_handler("events_detail", events_detail_cmd)))
+    app.add_handler(CommandHandler("release_calendar", instrument_command_handler("release_calendar", release_calendar_cmd)))
+    app.add_handler(CommandHandler("review_events", instrument_command_handler("review_events", review_events)))
+    app.add_handler(CommandHandler("approve", instrument_command_handler("approve", approve_event)))
+    app.add_handler(CommandHandler("reject", instrument_command_handler("reject", reject_event)))
+    app.add_handler(CommandHandler("ingest_now", instrument_command_handler("ingest_now", ingest_now_cmd)))
+    app.add_handler(CommandHandler("source_status", instrument_command_handler("source_status", source_status_cmd)))

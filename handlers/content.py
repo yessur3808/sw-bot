@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from telegram.ext import ContextTypes
 from config import GROUP_ID, THREADS, get_thread_id, RELEASE_TIMEZONE, HK_PUBLIC_HOLIDAYS
 import db
+from telemetry import mark_scheduler_execution_outcome
 
 try:
     from zoneinfo import ZoneInfo
@@ -209,6 +210,13 @@ async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
         content_id=f"quote:{db.compute_text_hash(raw)[:16]}",
         text=text,
     )
+    mark_scheduler_execution_outcome(
+        context,
+        "sent",
+        message_id=message.message_id,
+        content_type="quote",
+        content_id=f"quote:{db.compute_text_hash(raw)[:16]}",
+    )
 
 
 async def daily_fact(context: ContextTypes.DEFAULT_TYPE):
@@ -236,6 +244,13 @@ async def daily_fact(context: ContextTypes.DEFAULT_TYPE):
         content_type="fact",
         content_id=f"fact:{db.compute_text_hash(fact)[:16]}",
         text=text,
+    )
+    mark_scheduler_execution_outcome(
+        context,
+        "sent",
+        message_id=message.message_id,
+        content_type="fact",
+        content_id=f"fact:{db.compute_text_hash(fact)[:16]}",
     )
 
 
@@ -265,6 +280,13 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
         content_type="poll",
         content_id=f"poll:{db.compute_text_hash(raw)[:16]}",
         text=raw,
+    )
+    mark_scheduler_execution_outcome(
+        context,
+        "sent",
+        message_id=message.message_id,
+        content_type="poll",
+        content_id=f"poll:{db.compute_text_hash(raw)[:16]}",
     )
 
 
@@ -300,6 +322,13 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
         content_type="discussion",
         content_id=f"discussion:{db.compute_text_hash(prompt)[:16]}",
         text=text,
+    )
+    mark_scheduler_execution_outcome(
+        context,
+        "sent",
+        message_id=message.message_id,
+        content_type="discussion",
+        content_id=f"discussion:{db.compute_text_hash(prompt)[:16]}",
     )
 
 

@@ -9,6 +9,7 @@ from telegram.ext import CommandHandler, ContextTypes
 import config
 import db
 from admin import runtime_settings
+from telemetry import instrument_command_handler
 
 
 IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp")
@@ -390,5 +391,5 @@ async def reddit_digest_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def register(app):
-    app.add_handler(CommandHandler("reddit_ingest_now", reddit_ingest_now_cmd))
-    app.add_handler(CommandHandler("reddit_digest", reddit_digest_cmd))
+    app.add_handler(CommandHandler("reddit_ingest_now", instrument_command_handler("reddit_ingest_now", reddit_ingest_now_cmd)))
+    app.add_handler(CommandHandler("reddit_digest", instrument_command_handler("reddit_digest", reddit_digest_cmd)))

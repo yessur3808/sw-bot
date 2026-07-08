@@ -5,6 +5,7 @@ from config import (REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET,
                     REDDIT_USER_AGENT, GROUP_ID, THREADS,
                     USE_REDDIT, MEME_PROVIDER_PRIORITY)
 import db
+from telemetry import mark_scheduler_execution_outcome
 
 SUBS = "StarWarsMemes+PrequelMemes+sequelmemes"
 IMGFLIP_API = "https://api.imgflip.com/get_memes"
@@ -98,5 +99,12 @@ async def daily_meme(context: ContextTypes.DEFAULT_TYPE):
                 content_type="meme",
                 content_id=meme_id,
                 text=caption,
+            )
+            mark_scheduler_execution_outcome(
+                context,
+                "sent",
+                message_id=message.message_id,
+                content_type="meme",
+                content_id=meme_id,
             )
             return

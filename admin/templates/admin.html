@@ -99,6 +99,7 @@
                     </label>
                     <button id="refresh-telemetry">Refresh Telemetry</button>
                 </div>
+                <div id="schema-status-card" class="list"></div>
             </article>
             <div class="grid two">
                 <article class="card health-card health-hero dashboard-health-card">
@@ -141,6 +142,13 @@
                     </div>
                 </article>
                 <article class="card">
+                    <h2>Operational Summary</h2>
+                    <div id="ops-summary-metrics" class="metric-row"></div>
+                    <div id="ops-alerts" class="list"></div>
+                </article>
+            </div>
+            <div class="grid two">
+                <article class="card">
                     <h2>Manual Control</h2>
                     <div class="button-row">
                         <button data-ingest="all" type="button">Ingest All</button>
@@ -149,6 +157,32 @@
                     </div>
                     <div id="manual-control-status" class="help">Select a run type to trigger live ingestion.</div>
                     <pre id="ingest-result" class="console"></pre>
+                </article>
+                <article class="card">
+                    <h2>Pipeline Backlog</h2>
+                    <div id="ops-queue-list" class="list"></div>
+                </article>
+            </div>
+            <div class="grid two">
+                <article class="card">
+                    <h2>Scheduler Breakdown</h2>
+                    <div id="scheduler-outcome-metrics" class="metric-row"></div>
+                    <div id="chart-scheduler-outcomes" class="chart-canvas chart-lg chart-shell"></div>
+                    <div id="scheduler-breakdown-list" class="list"></div>
+                </article>
+                <article class="card">
+                    <h2>Command Reliability</h2>
+                    <div id="command-error-metrics" class="metric-row"></div>
+                    <div id="chart-command-errors" class="chart-canvas chart-lg chart-shell"></div>
+                    <div id="command-error-list" class="list"></div>
+                </article>
+            </div>
+            <div class="grid two">
+                <article class="card">
+                    <h2>Scheduler Plan Inspector</h2>
+                    <div id="scheduler-plan-summary" class="help">Select a scheduler row to inspect its full plan.</div>
+                    <div id="scheduler-plan-post-audit" class="list"></div>
+                    <div id="scheduler-plan-detail" class="list"></div>
                 </article>
             </div>
         </section>

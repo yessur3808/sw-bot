@@ -8,9 +8,30 @@ import config, db
 from admin import runtime_settings
 from admin.server import start_admin_ui
 from handlers import xp, trivia, memes, wallpapers, content, events, auto_engage, reddit_ingest, dataset_collectors
+from telemetry import instrument_command_handler, mark_scheduler_execution_outcome, scheduler_execution_logged
 
 
 _conflict_shutdown_requested = False
+
+TOPIC_BASE_WEIGHTS = {
+    "meme": 1.0,
+    "wallpaper": 0.94,
+    "trivia": 0.9,
+    "quote": 0.82,
+    "fact": 0.9,
+    "poll": 0.78,
+    "discussion": 0.8,
+}
+
+TOPIC_CONTENT_TYPES = {
+    "meme": "meme",
+    "wallpaper": "wallpaper",
+    "trivia": "trivia",
+    "quote": "quote",
+    "fact": "fact",
+    "poll": "poll",
+    "discussion": "discussion",
+}
 
 async def start(update, context):
     await update.message.reply_text("May the Force be with you! 🌌")
@@ -29,6 +50,7 @@ async def help_cmd(update, context):
         "/rank - Show your XP and rank",
         "/leaderboard - Show top XP users",
         "/whereami - Show current chat/thread IDs",
+        "/whats_new_today - Summary of today's posts, upcoming queue, and key events",
         "/events [hk|global|all] [limit] [days] [page=N] - Upcoming approved events",
         "/events_detail <id> - Rich details for a specific event",
         "/release_calendar [hk|global|all] [limit] [days] [page=N] - Upcoming games/TV/movies",
@@ -88,11 +110,22 @@ async def run_scheduled_topic(context):
         "discussion": content.daily_discussion_topic,
     }
     producer = producer_map.get(topic)
-    if producer:
+    if not producer:
+        mark_scheduler_execution_outcome(context, "no_producer", error=f"No producer registered for topic={topic}")
+        return
+
+    try:
         await producer(context)
+    except Exception as exc:
+        mark_scheduler_execution_outcome(context, "failed", error=f"{type(exc).__name__}: {exc}")
+        raise
+
+    if not scheduler_execution_logged(context):
+        mark_scheduler_execution_outcome(context, "no_content", error=f"Producer returned without posting for topic={topic}")
 
 
 def _build_topics_for_day():
+    now_utc = datetime.now(timezone.utc)
     min_posts = min(config.DAILY_MIN_POSTS, config.DAILY_MAX_POSTS)
     max_posts = max(config.DAILY_MIN_POSTS, config.DAILY_MAX_POSTS)
     target_count = random.randint(min_posts, max_posts)
@@ -100,7 +133,7 @@ def _build_topics_for_day():
     boosted = False
     day_multiplier = 1.0
     if config.POST_BOOST_ENABLED:
-        boosted, day_multiplier = _day_boost_profile(datetime.now(timezone.utc))
+        boosted, day_multiplier = _day_boost_profile(now_utc)
         if boosted:
             target_count = int(math.ceil(target_count * max(1.0, day_multiplier)))
 
@@ -119,16 +152,79 @@ def _build_topics_for_day():
         "discussion": per_topic_cap,
     }
     target_count = max(1, min(target_count, sum(caps.values())))
+
+    recent_counts = db.recent_post_counts_by_content_type(
+        hours=72,
+        content_types=tuple(sorted(set(TOPIC_CONTENT_TYPES.values()))),
+    )
+    simulated_counts = {
+        content_type: int(recent_counts.get(content_type, 0))
+        for content_type in set(TOPIC_CONTENT_TYPES.values())
+    }
     topics = []
+    decision_rows = []
+    plan_key = f"daily-plan:{now_utc.date().isoformat()}:{int(now_utc.timestamp())}"
+
     while len(topics) < target_count:
         eligible = [k for k, v in caps.items() if v > 0]
         if not eligible:
             break
-        picked = random.choice(eligible)
+        slot_index = len(topics)
+        slot_scores = []
+        for topic in eligible:
+            content_type = TOPIC_CONTENT_TYPES.get(topic, topic)
+            recent_count = int(simulated_counts.get(content_type, 0))
+            base_weight = float(TOPIC_BASE_WEIGHTS.get(topic, 0.75))
+            diversity_bonus = 0.24 if recent_count == 0 else max(0.0, 0.12 - (recent_count * 0.02))
+            saturation_penalty = recent_count * 0.18
+            seasonal_bonus = 0.0
+            if boosted:
+                if topic in ("meme", "wallpaper"):
+                    seasonal_bonus += (day_multiplier - 1.0) * 0.16
+                elif topic in ("trivia", "discussion", "poll"):
+                    seasonal_bonus += (day_multiplier - 1.0) * 0.10
+            jitter = random.random() * 0.08
+            score = max(0.01, base_weight + diversity_bonus + seasonal_bonus + jitter - saturation_penalty)
+            slot_scores.append(
+                {
+                    "plan_key": plan_key,
+                    "slot_index": slot_index,
+                    "topic": topic,
+                    "score": round(score, 4),
+                    "selected": False,
+                    "reason": "candidate",
+                    "score_factors": {
+                        "base_weight": round(base_weight, 4),
+                        "recent_count_72h": recent_count,
+                        "diversity_bonus": round(diversity_bonus, 4),
+                        "seasonal_bonus": round(seasonal_bonus, 4),
+                        "saturation_penalty": round(saturation_penalty, 4),
+                        "jitter": round(jitter, 4),
+                        "boosted": boosted,
+                        "day_multiplier": round(day_multiplier, 4),
+                    },
+                }
+            )
+
+        picked_row = max(slot_scores, key=lambda item: (item["score"], item["topic"]))
+        picked = picked_row["topic"]
+        for row in slot_scores:
+            if row["topic"] == picked:
+                row["selected"] = True
+                row["reason"] = "selected-highest-score"
+        decision_rows.extend(slot_scores)
         topics.append(picked)
         caps[picked] -= 1
-    random.shuffle(topics)
-    return topics
+        picked_content_type = TOPIC_CONTENT_TYPES.get(picked, picked)
+        simulated_counts[picked_content_type] = int(simulated_counts.get(picked_content_type, 0)) + 1
+
+    return {
+        "plan_key": plan_key,
+        "topics": topics,
+        "decision_rows": decision_rows,
+        "boosted": boosted,
+        "day_multiplier": day_multiplier,
+    }
 
 
 def _day_boost_profile(now_utc):
@@ -158,13 +254,15 @@ def _day_boost_profile(now_utc):
 
 
 def schedule_day_posts(job_queue, start_dt):
-    topics = _build_topics_for_day()
+    plan = _build_topics_for_day()
+    topics = plan.get("topics") or []
     if not topics:
         return
 
     used_offsets = set()
     min_gap = max(5, config.MIN_GAP_MINUTES)
-    for topic in topics:
+    run_times_by_slot = {}
+    for slot_index, topic in enumerate(topics):
         for _ in range(30):
             offset_min = random.randint(20, (24 * 60) - 20)
             if all(abs(offset_min - x) >= min_gap for x in used_offsets):
@@ -175,12 +273,82 @@ def schedule_day_posts(job_queue, start_dt):
             used_offsets.add(offset_min)
 
         run_at = start_dt + timedelta(minutes=offset_min)
+        run_times_by_slot[slot_index] = run_at
         delay = max(1.0, (run_at - datetime.now(timezone.utc)).total_seconds())
-        job_queue.run_once(run_scheduled_topic, when=delay, data={"topic": topic})
+        job_queue.run_once(
+            run_scheduled_topic,
+            when=delay,
+            data={
+                "topic": topic,
+                "plan_key": plan.get("plan_key"),
+                "slot_index": slot_index,
+                "scheduled_run_at": run_at.isoformat(),
+            },
+        )
+
+    scheduled_for_date = start_dt.date().isoformat()
+    for row in plan.get("decision_rows") or []:
+        selected = bool(row.get("selected"))
+        run_at = run_times_by_slot.get(int(row.get("slot_index", 0))) if selected else None
+        db.log_scheduler_decision(
+            plan_key=row.get("plan_key") or plan.get("plan_key"),
+            slot_index=int(row.get("slot_index", 0)),
+            topic=row.get("topic"),
+            score=float(row.get("score") or 0.0),
+            selected=selected,
+            scheduled_for_date=scheduled_for_date,
+            run_at=(run_at.isoformat() if run_at else None),
+            score_factors=row.get("score_factors") or {},
+            reason=row.get("reason") or ("selected" if selected else "candidate"),
+        )
 
 
 async def plan_today_posts(context):
     schedule_day_posts(context.job_queue, datetime.now(timezone.utc))
+
+
+async def whats_new_today_cmd(update, context):
+    today_rows = db.posted_today_by_content_type()
+    upcoming_rows = db.upcoming_scheduler_decisions(limit=6)
+    upcoming_events = []
+    today = events._today_in_release_timezone()
+    for row in db.list_approved_events(limit=18, region="all", days=14):
+        event_date = row.get("event_date") if hasattr(row, "get") else row["event_date"]
+        if events._is_incoming_event_date(event_date, today=today, max_days=14):
+            upcoming_events.append(row)
+        if len(upcoming_events) >= 3:
+            break
+    releases = db.list_upcoming_releases(limit=3, region="all", days=60)
+
+    lines = ["*What's New Today*", ""]
+
+    if today_rows:
+        summary_bits = [f"{row['content_type']} x{row['cnt']}" for row in today_rows]
+        lines.append(f"Posted today: {', '.join(summary_bits)}")
+    else:
+        lines.append("Posted today: nothing has gone out yet.")
+
+    if upcoming_rows:
+        lines.append("")
+        lines.append("Still queued:")
+        for row in upcoming_rows[:4]:
+            run_at = row.get("run_at") if hasattr(row, "get") else row[7]
+            stamp = str(run_at or "").replace("T", " ")[:16] if run_at else "later"
+            lines.append(f"- {row['topic']} at {stamp} UTC")
+
+    if upcoming_events:
+        lines.append("")
+        lines.append("Upcoming events:")
+        for row in upcoming_events:
+            lines.append(f"- {row['event_date']} | {row['title']}")
+
+    if releases:
+        lines.append("")
+        lines.append("Upcoming releases:")
+        for row in releases:
+            lines.append(f"- {row['event_date']} | [{row['category'].upper()}] {row['title']}")
+
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown", disable_web_page_preview=True)
 
 
 async def startup_recovery_post(context):
@@ -240,6 +408,7 @@ async def post_init(app: Application):
         BotCommand("start", "Start and verify bot is alive"),
         BotCommand("help", "Show command list"),
         BotCommand("whereami", "Show current chat/thread IDs"),
+        BotCommand("whats_new_today", "Summary of today's posts and queued updates"),
         BotCommand("rank", "Show your XP and rank"),
         BotCommand("leaderboard", "Show top XP users"),
         BotCommand("events", "Upcoming approved events"),
@@ -395,10 +564,11 @@ def main():
     start_admin_ui()
     app = Application.builder().token(config.BOT_TOKEN).post_init(post_init).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("whereami", whereami_cmd))
-    app.add_handler(CommandHandler("thread_map", thread_map_cmd))
+    app.add_handler(CommandHandler("start", instrument_command_handler("start", start)))
+    app.add_handler(CommandHandler("help", instrument_command_handler("help", help_cmd)))
+    app.add_handler(CommandHandler("whereami", instrument_command_handler("whereami", whereami_cmd)))
+    app.add_handler(CommandHandler("whats_new_today", instrument_command_handler("whats_new_today", whats_new_today_cmd)))
+    app.add_handler(CommandHandler("thread_map", instrument_command_handler("thread_map", thread_map_cmd)))
     app.add_error_handler(telegram_error_handler)
     xp.register(app)
     auto_engage.register(app)

@@ -7,6 +7,7 @@ import requests
 from telegram.ext import ContextTypes
 import config
 import db
+from telemetry import mark_scheduler_execution_outcome
 
 API = "https://wallhaven.cc/api/v1/search"
 
@@ -151,5 +152,12 @@ async def daily_wallpaper(context: ContextTypes.DEFAULT_TYPE):
                     content_type="wallpaper",
                     content_id=wallpaper_id,
                     text=caption,
+                )
+                mark_scheduler_execution_outcome(
+                    context,
+                    "sent",
+                    message_id=message.message_id,
+                    content_type="wallpaper",
+                    content_id=wallpaper_id,
                 )
                 return

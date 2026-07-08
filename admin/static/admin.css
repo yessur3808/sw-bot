@@ -321,6 +321,22 @@ button:hover {
     gap: 10px;
 }
 
+.ops-alert.is-critical {
+    border-left: 3px solid var(--danger);
+}
+
+.ops-alert.is-warn {
+    border-left: 3px solid var(--accent2);
+}
+
+.ops-alert.is-info {
+    border-left: 3px solid #57a9ff;
+}
+
+.ops-alert.is-ok {
+    border-left: 3px solid var(--ok);
+}
+
 .event-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

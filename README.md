@@ -148,8 +148,10 @@ ADMIN_UI_BIND_SESSION_IP=false
 Ensure your Telegram ID is listed in:
 
 ```dotenv
-ADMIN_USER_IDS=123456789
+ADMIN_USER_IDS=123456789,987654321
 ```
+
+Multiple admin IDs are supported as a comma-separated list.
 
 Then run the bot and open:
 

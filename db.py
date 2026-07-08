@@ -162,6 +162,43 @@ def init_db():
             );
             """)
             _execute(conn, """
+            CREATE TABLE IF NOT EXISTS scheduler_decisions (
+                id BIGSERIAL PRIMARY KEY,
+                plan_key TEXT NOT NULL,
+                slot_index INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                score REAL NOT NULL DEFAULT 0,
+                selected INTEGER NOT NULL DEFAULT 0,
+                scheduled_for_date TEXT,
+                run_at TIMESTAMP,
+                score_factors TEXT,
+                reason TEXT,
+                execution_status TEXT,
+                executed_at TIMESTAMP,
+                execution_error TEXT,
+                executed_message_id BIGINT,
+                executed_content_type TEXT,
+                executed_content_id TEXT,
+                execution_latency_ms INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+            _execute(conn, """
+            CREATE TABLE IF NOT EXISTS command_usage_audit (
+                id BIGSERIAL PRIMARY KEY,
+                command_name TEXT NOT NULL,
+                status TEXT NOT NULL,
+                user_id BIGINT,
+                chat_id BIGINT,
+                thread_id BIGINT,
+                args_text TEXT,
+                is_admin INTEGER NOT NULL DEFAULT 0,
+                latency_ms INTEGER,
+                error TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+            _execute(conn, """
             CREATE TABLE IF NOT EXISTS runtime_settings (
                 setting_key TEXT PRIMARY KEY,
                 setting_value TEXT NOT NULL,
@@ -237,6 +274,19 @@ def init_db():
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit(created_at)")
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_admin_profiles_active_primary ON admin_profiles(is_active, is_primary)")
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_bot_health_state_updated ON bot_health_state(updated_at)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_plan_slot ON scheduler_decisions(plan_key, slot_index, selected)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_created ON scheduler_decisions(created_at)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_run_at ON scheduler_decisions(run_at)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_exec_status ON scheduler_decisions(execution_status, executed_at)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_command_usage_created ON command_usage_audit(created_at)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_command_usage_name_created ON command_usage_audit(command_name, created_at)")
+            _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS execution_status TEXT")
+            _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS executed_at TIMESTAMP")
+            _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS execution_error TEXT")
+            _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS executed_message_id BIGINT")
+            _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS executed_content_type TEXT")
+            _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS executed_content_id TEXT")
+            _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS execution_latency_ms INTEGER")
             _execute(conn, """
             CREATE TABLE IF NOT EXISTS llm_action_audit (
                 id BIGSERIAL PRIMARY KEY,
@@ -401,6 +451,39 @@ def init_db():
             text_hash TEXT,
             status TEXT NOT NULL DEFAULT 'sent'
         );
+        CREATE TABLE IF NOT EXISTS scheduler_decisions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_key TEXT NOT NULL,
+            slot_index INTEGER NOT NULL,
+            topic TEXT NOT NULL,
+            score REAL NOT NULL DEFAULT 0,
+            selected INTEGER NOT NULL DEFAULT 0,
+            scheduled_for_date TEXT,
+            run_at TEXT,
+            score_factors TEXT,
+            reason TEXT,
+            execution_status TEXT,
+            executed_at TEXT,
+            execution_error TEXT,
+            executed_message_id INTEGER,
+            executed_content_type TEXT,
+            executed_content_id TEXT,
+            execution_latency_ms INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS command_usage_audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            command_name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            user_id INTEGER,
+            chat_id INTEGER,
+            thread_id INTEGER,
+            args_text TEXT,
+            is_admin INTEGER NOT NULL DEFAULT 0,
+            latency_ms INTEGER,
+            error TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
         CREATE TABLE IF NOT EXISTS runtime_settings (
             setting_key TEXT PRIMARY KEY,
             setting_value TEXT NOT NULL,
@@ -524,6 +607,12 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit(created_at);
         CREATE INDEX IF NOT EXISTS idx_admin_profiles_active_primary ON admin_profiles(is_active, is_primary);
         CREATE INDEX IF NOT EXISTS idx_bot_health_state_updated ON bot_health_state(updated_at);
+        CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_plan_slot ON scheduler_decisions(plan_key, slot_index, selected);
+        CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_created ON scheduler_decisions(created_at);
+        CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_run_at ON scheduler_decisions(run_at);
+        CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_exec_status ON scheduler_decisions(execution_status, executed_at);
+        CREATE INDEX IF NOT EXISTS idx_command_usage_created ON command_usage_audit(created_at);
+        CREATE INDEX IF NOT EXISTS idx_command_usage_name_created ON command_usage_audit(command_name, created_at);
         CREATE INDEX IF NOT EXISTS idx_llm_action_created ON llm_action_audit(created_at);
         CREATE INDEX IF NOT EXISTS idx_llm_action_thread_created ON llm_action_audit(thread_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_llm_action_fingerprint_created ON llm_action_audit(fingerprint, created_at);
@@ -541,6 +630,34 @@ def init_db():
             pass
         try:
             conn.execute("ALTER TABLE reddit_ingest_cache ADD COLUMN blocked_reason TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE scheduler_decisions ADD COLUMN execution_status TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE scheduler_decisions ADD COLUMN executed_at TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE scheduler_decisions ADD COLUMN execution_error TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE scheduler_decisions ADD COLUMN executed_message_id INTEGER")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE scheduler_decisions ADD COLUMN executed_content_type TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE scheduler_decisions ADD COLUMN executed_content_id TEXT")
+        except Exception:
+            pass
+        try:
+            conn.execute("ALTER TABLE scheduler_decisions ADD COLUMN execution_latency_ms INTEGER")
         except Exception:
             pass
 
@@ -570,6 +687,527 @@ def log_post_audit(topic, thread_id, telegram_message_id, content_type, content_
                 status,
             ),
         )
+
+
+def log_scheduler_decision(
+    plan_key,
+    slot_index,
+    topic,
+    score,
+    selected,
+    scheduled_for_date=None,
+    run_at=None,
+    score_factors=None,
+    reason=None,
+):
+    factors_payload = score_factors
+    if factors_payload is not None and not isinstance(factors_payload, str):
+        factors_payload = json.dumps(factors_payload, ensure_ascii=False, sort_keys=True)
+    with get_db() as conn:
+        _execute(
+            conn,
+            """
+            INSERT INTO scheduler_decisions(
+                plan_key, slot_index, topic, score, selected,
+                scheduled_for_date, run_at, score_factors, reason
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(plan_key),
+                int(slot_index),
+                str(topic),
+                float(score or 0.0),
+                1 if selected else 0,
+                scheduled_for_date,
+                run_at,
+                factors_payload,
+                reason,
+            ),
+        )
+
+
+def list_scheduler_decisions_window(hours=24, selected=None, limit=500):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    sql = """
+        SELECT id, plan_key, slot_index, topic, score, selected, scheduled_for_date,
+             run_at, score_factors, reason, execution_status, executed_at,
+             execution_error, executed_message_id, executed_content_type,
+             executed_content_id, execution_latency_ms, created_at
+        FROM scheduler_decisions
+        WHERE created_at >= ?
+    """
+    args = [cutoff]
+    if selected is not None:
+        sql += " AND selected=?"
+        args.append(1 if bool(selected) else 0)
+    sql += " ORDER BY created_at DESC, slot_index ASC LIMIT ?"
+    args.append(max(1, min(2000, int(limit))))
+    with get_db() as conn:
+        rows = _fetchall(_execute(conn, sql, tuple(args)))
+    out = []
+    for row in rows:
+        payload = dict(row) if hasattr(row, "keys") else {
+            "id": row[0],
+            "plan_key": row[1],
+            "slot_index": row[2],
+            "topic": row[3],
+            "score": row[4],
+            "selected": row[5],
+            "scheduled_for_date": row[6],
+            "run_at": row[7],
+            "score_factors": row[8],
+            "reason": row[9],
+            "execution_status": row[10],
+            "executed_at": row[11],
+            "execution_error": row[12],
+            "executed_message_id": row[13],
+            "executed_content_type": row[14],
+            "executed_content_id": row[15],
+            "execution_latency_ms": row[16],
+            "created_at": row[17],
+        }
+        factors_raw = payload.get("score_factors")
+        if isinstance(factors_raw, str) and factors_raw.strip():
+            try:
+                payload["score_factors"] = json.loads(factors_raw)
+            except Exception:
+                payload["score_factors"] = {}
+        elif not isinstance(factors_raw, dict):
+            payload["score_factors"] = {}
+        out.append(payload)
+    return out
+
+
+def upcoming_scheduler_decisions(limit=10):
+    now_value = datetime.now(timezone.utc) if _use_postgres() else datetime.now(timezone.utc).isoformat()
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT id, plan_key, slot_index, topic, score, selected, scheduled_for_date,
+                      run_at, score_factors, reason, execution_status, executed_at,
+                      execution_error, executed_message_id, executed_content_type,
+                      executed_content_id, execution_latency_ms, created_at
+                FROM scheduler_decisions
+                WHERE selected=1 AND run_at IS NOT NULL AND run_at >= ?
+                ORDER BY run_at ASC, slot_index ASC
+                LIMIT ?
+                """,
+                (now_value, max(1, min(100, int(limit)))),
+            )
+        )
+    out = []
+    for row in rows:
+        payload = dict(row) if hasattr(row, "keys") else {
+            "id": row[0],
+            "plan_key": row[1],
+            "slot_index": row[2],
+            "topic": row[3],
+            "score": row[4],
+            "selected": row[5],
+            "scheduled_for_date": row[6],
+            "run_at": row[7],
+            "score_factors": row[8],
+            "reason": row[9],
+            "execution_status": row[10],
+            "executed_at": row[11],
+            "execution_error": row[12],
+            "executed_message_id": row[13],
+            "executed_content_type": row[14],
+            "executed_content_id": row[15],
+            "execution_latency_ms": row[16],
+            "created_at": row[17],
+        }
+        factors_raw = payload.get("score_factors")
+        if isinstance(factors_raw, str) and factors_raw.strip():
+            try:
+                payload["score_factors"] = json.loads(factors_raw)
+            except Exception:
+                payload["score_factors"] = {}
+        elif not isinstance(factors_raw, dict):
+            payload["score_factors"] = {}
+        out.append(payload)
+    return out
+
+
+def mark_scheduler_execution(
+    plan_key,
+    slot_index,
+    execution_status,
+    executed_at=None,
+    execution_error=None,
+    executed_message_id=None,
+    executed_content_type=None,
+    executed_content_id=None,
+    execution_latency_ms=None,
+):
+    stamp = executed_at or (datetime.now(timezone.utc) if _use_postgres() else datetime.now(timezone.utc).isoformat())
+    with get_db() as conn:
+        _execute(
+            conn,
+            """
+            UPDATE scheduler_decisions
+            SET execution_status=?,
+                executed_at=?,
+                execution_error=?,
+                executed_message_id=?,
+                executed_content_type=?,
+                executed_content_id=?,
+                execution_latency_ms=?
+            WHERE plan_key=? AND slot_index=? AND selected=1
+            """,
+            (
+                execution_status,
+                stamp,
+                execution_error,
+                executed_message_id,
+                executed_content_type,
+                executed_content_id,
+                execution_latency_ms,
+                str(plan_key),
+                int(slot_index),
+            ),
+        )
+
+
+def scheduler_plan_detail(plan_key):
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT id, plan_key, slot_index, topic, score, selected, scheduled_for_date,
+                       run_at, score_factors, reason, execution_status, executed_at,
+                       execution_error, executed_message_id, executed_content_type,
+                       executed_content_id, execution_latency_ms, created_at
+                FROM scheduler_decisions
+                WHERE plan_key=?
+                ORDER BY slot_index ASC, selected DESC, score DESC, id ASC
+                """,
+                (str(plan_key),),
+            )
+        )
+    out = []
+    for row in rows:
+        payload = dict(row) if hasattr(row, "keys") else {
+            "id": row[0],
+            "plan_key": row[1],
+            "slot_index": row[2],
+            "topic": row[3],
+            "score": row[4],
+            "selected": row[5],
+            "scheduled_for_date": row[6],
+            "run_at": row[7],
+            "score_factors": row[8],
+            "reason": row[9],
+            "execution_status": row[10],
+            "executed_at": row[11],
+            "execution_error": row[12],
+            "executed_message_id": row[13],
+            "executed_content_type": row[14],
+            "executed_content_id": row[15],
+            "execution_latency_ms": row[16],
+            "created_at": row[17],
+        }
+        factors_raw = payload.get("score_factors")
+        if isinstance(factors_raw, str) and factors_raw.strip():
+            try:
+                payload["score_factors"] = json.loads(factors_raw)
+            except Exception:
+                payload["score_factors"] = {}
+        elif not isinstance(factors_raw, dict):
+            payload["score_factors"] = {}
+        out.append(payload)
+    return out
+
+
+def latest_post_audit_for_delivery(telegram_message_id=None, content_type=None, content_id=None):
+    sql = """
+        SELECT id, posted_at, topic, thread_id, telegram_message_id, content_type, content_id, status
+        FROM post_audit
+        WHERE 1=1
+    """
+    args = []
+    if telegram_message_id is not None:
+        sql += " AND telegram_message_id=?"
+        args.append(telegram_message_id)
+    if content_type:
+        sql += " AND content_type=?"
+        args.append(str(content_type))
+    if content_id:
+        sql += " AND content_id=?"
+        args.append(str(content_id))
+    sql += " ORDER BY posted_at DESC LIMIT 1"
+    with get_db() as conn:
+        row = _fetchone(_execute(conn, sql, tuple(args)))
+    if not row:
+        return None
+    return dict(row) if hasattr(row, "keys") else {
+        "id": row[0],
+        "posted_at": row[1],
+        "topic": row[2],
+        "thread_id": row[3],
+        "telegram_message_id": row[4],
+        "content_type": row[5],
+        "content_id": row[6],
+        "status": row[7],
+    }
+
+
+def scheduler_topic_counts(hours=24, selected_only=True):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    sql = """
+        SELECT topic, COUNT(*) AS cnt
+        FROM scheduler_decisions
+        WHERE created_at >= ?
+    """
+    args = [cutoff]
+    if selected_only:
+        sql += " AND selected=1"
+    sql += " GROUP BY topic ORDER BY cnt DESC, topic ASC"
+    with get_db() as conn:
+        rows = _fetchall(_execute(conn, sql, tuple(args)))
+    return [dict(row) if hasattr(row, "keys") else {"topic": row[0], "cnt": row[1]} for row in rows]
+
+
+def scheduler_outcome_counts(hours=24):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT COALESCE(execution_status, 'pending') AS execution_status, COUNT(*) AS cnt
+                FROM scheduler_decisions
+                WHERE created_at >= ? AND selected=1
+                GROUP BY COALESCE(execution_status, 'pending')
+                ORDER BY cnt DESC, execution_status ASC
+                """,
+                (cutoff,),
+            )
+        )
+    return [dict(row) if hasattr(row, "keys") else {"execution_status": row[0], "cnt": row[1]} for row in rows]
+
+
+def scheduler_selected_breakdown(hours=24, limit=30):
+    rows = list_scheduler_decisions_window(hours=hours, selected=True, limit=limit)
+    return rows
+
+
+def log_command_usage(
+    command_name,
+    status,
+    user_id=None,
+    chat_id=None,
+    thread_id=None,
+    args_text=None,
+    is_admin=False,
+    latency_ms=None,
+    error=None,
+):
+    with get_db() as conn:
+        _execute(
+            conn,
+            """
+            INSERT INTO command_usage_audit(
+                command_name, status, user_id, chat_id, thread_id,
+                args_text, is_admin, latency_ms, error
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(command_name),
+                str(status),
+                user_id,
+                chat_id,
+                thread_id,
+                args_text,
+                1 if is_admin else 0,
+                latency_ms,
+                error,
+            ),
+        )
+
+
+def command_usage_counts(hours=24, limit=20):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT command_name, status, COUNT(*) AS cnt
+                FROM command_usage_audit
+                WHERE created_at >= ?
+                GROUP BY command_name, status
+                ORDER BY cnt DESC, command_name ASC
+                LIMIT ?
+                """,
+                (cutoff, max(1, min(200, int(limit)))),
+            )
+        )
+    return [
+        dict(row) if hasattr(row, "keys") else {"command_name": row[0], "status": row[1], "cnt": row[2]}
+        for row in rows
+    ]
+
+
+def top_commands(hours=24, limit=10):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT command_name, COUNT(*) AS cnt, AVG(COALESCE(latency_ms, 0)) AS avg_latency_ms
+                FROM command_usage_audit
+                WHERE created_at >= ?
+                GROUP BY command_name
+                ORDER BY cnt DESC, command_name ASC
+                LIMIT ?
+                """,
+                (cutoff, max(1, min(100, int(limit)))),
+            )
+        )
+    return [
+        dict(row) if hasattr(row, "keys") else {"command_name": row[0], "cnt": row[1], "avg_latency_ms": row[2]}
+        for row in rows
+    ]
+
+
+def command_error_rates(hours=24, limit=15):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT command_name,
+                       COUNT(*) AS total_count,
+                       SUM(CASE WHEN status='error' THEN 1 ELSE 0 END) AS error_count,
+                       AVG(COALESCE(latency_ms, 0)) AS avg_latency_ms
+                FROM command_usage_audit
+                WHERE created_at >= ?
+                GROUP BY command_name
+                ORDER BY error_count DESC, total_count DESC, command_name ASC
+                LIMIT ?
+                """,
+                (cutoff, max(1, min(100, int(limit)))),
+            )
+        )
+    out = []
+    for row in rows:
+        if hasattr(row, "get"):
+            total = int(row.get("total_count") or 0)
+            errors = int(row.get("error_count") or 0)
+            avg_latency = row.get("avg_latency_ms")
+            name = row.get("command_name")
+        else:
+            name, total, errors, avg_latency = row
+            total = int(total or 0)
+            errors = int(errors or 0)
+        out.append(
+            {
+                "command_name": name,
+                "total_count": total,
+                "error_count": errors,
+                "error_rate": round((errors / total) if total else 0.0, 4),
+                "avg_latency_ms": avg_latency,
+            }
+        )
+    return out
+
+
+def scheduler_outcome_timeseries(hours=24, bucket_minutes=60):
+    rows = scheduler_selected_breakdown(hours=hours, limit=5000)
+    buckets = {}
+    for row in rows:
+        dt = _coerce_any_datetime(row.get("executed_at") or row.get("created_at"))
+        if not dt:
+            continue
+        bucket_dt = dt.replace(minute=(dt.minute // max(5, int(bucket_minutes))) * max(5, int(bucket_minutes)), second=0, microsecond=0)
+        label = bucket_dt.strftime("%m-%d %H:%M")
+        status = str(row.get("execution_status") or "pending")
+        payload = buckets.setdefault(label, {"bucket": label, "sent": 0, "failed": 0, "no_content": 0, "pending": 0})
+        if status in payload:
+            payload[status] += 1
+        else:
+            payload[status] = payload.get(status, 0) + 1
+    return [buckets[key] for key in sorted(buckets.keys())]
+
+
+def command_failure_timeseries(hours=24, bucket_minutes=60):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT status, created_at
+                FROM command_usage_audit
+                WHERE created_at >= ?
+                ORDER BY created_at ASC
+                """,
+                (cutoff,),
+            )
+        )
+    buckets = {}
+    bucket_size = max(5, int(bucket_minutes))
+    for row in rows:
+        status = row.get("status") if hasattr(row, "get") else row[0]
+        created_at = row.get("created_at") if hasattr(row, "get") else row[1]
+        dt = _coerce_any_datetime(created_at)
+        if not dt:
+            continue
+        bucket_dt = dt.replace(minute=(dt.minute // bucket_size) * bucket_size, second=0, microsecond=0)
+        label = bucket_dt.strftime("%m-%d %H:%M")
+        payload = buckets.setdefault(label, {"bucket": label, "total": 0, "errors": 0})
+        payload["total"] += 1
+        if str(status) == "error":
+            payload["errors"] += 1
+    return [buckets[key] for key in sorted(buckets.keys())]
+
+
+def recent_post_counts_by_content_type(hours=72, content_types=None):
+    cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
+    sql = """
+        SELECT content_type, COUNT(*) AS cnt
+        FROM post_audit
+        WHERE posted_at >= ?
+    """
+    args = [cutoff]
+    if content_types:
+        placeholders = ",".join(["?"] * len(content_types))
+        sql += f" AND content_type IN ({placeholders})"
+        args.extend([str(value) for value in content_types])
+    sql += " GROUP BY content_type ORDER BY cnt DESC"
+    with get_db() as conn:
+        rows = _fetchall(_execute(conn, sql, tuple(args)))
+    counts = {}
+    for row in rows:
+        key = row.get("content_type") if hasattr(row, "get") else row[0]
+        value = row.get("cnt") if hasattr(row, "get") else row[1]
+        counts[str(key)] = int(value or 0)
+    return counts
+
+
+def posted_today_by_content_type():
+    start, end = _utc_window_for_today()
+    with get_db() as conn:
+        rows = _fetchall(
+            _execute(
+                conn,
+                """
+                SELECT content_type, COUNT(*) AS cnt
+                FROM post_audit
+                WHERE posted_at >= ? AND posted_at < ?
+                GROUP BY content_type
+                ORDER BY cnt DESC, content_type ASC
+                """,
+                (start, end),
+            )
+        )
+    return [dict(row) if hasattr(row, "keys") else {"content_type": row[0], "cnt": row[1]} for row in rows]
 
 
 def topic_thread_usage(limit=200):
@@ -837,6 +1475,25 @@ def latest_ingestion_run_per_source(limit=20):
         ))
 
 
+def latest_successful_ingestion_at(run_type=None):
+    sql = "SELECT MAX(created_at) FROM ingestion_runs WHERE status='ok'"
+    args = []
+    if run_type and run_type != "all":
+        sql += " AND run_type=?"
+        args.append(str(run_type).strip().lower())
+    with get_db() as conn:
+        row = _fetchone(_execute(conn, sql, tuple(args)))
+    if not row:
+        return None
+    if hasattr(row, "get"):
+        try:
+            return row[0]
+        except Exception:
+            values = list(row.values())
+            return values[0] if values else None
+    return row[0]
+
+
 def list_approved_events(limit=10, region=None, categories=None, days=None, offset=0):
     query = "SELECT * FROM events WHERE status='approved'"
     args = []
@@ -860,6 +1517,25 @@ def list_approved_events(limit=10, region=None, categories=None, days=None, offs
 
     with get_db() as conn:
         return _fetchall(_execute(conn, query, tuple(args)))
+
+
+def count_events_by_status(status, region=None):
+    sql = "SELECT COUNT(*) FROM events WHERE status=?"
+    args = [str(status).strip().lower()]
+    if region:
+        sql += " AND region=?"
+        args.append(str(region).strip().lower())
+    with get_db() as conn:
+        row = _fetchone(_execute(conn, sql, tuple(args)))
+    if not row:
+        return 0
+    if hasattr(row, "get"):
+        try:
+            return int(row[0])
+        except Exception:
+            values = list(row.values())
+            return int(values[0]) if values else 0
+    return int(row[0])
 
 
 def list_upcoming_releases(limit=10, region=None, days=180, offset=0):
@@ -1210,6 +1886,32 @@ def get_admin_profile(user_id):
         )
 
 
+def schema_migration_versions():
+    with get_db() as conn:
+        try:
+            rows = _fetchall(
+                _execute(
+                    conn,
+                    "SELECT version, applied_at FROM schema_migrations ORDER BY version ASC",
+                )
+            )
+        except Exception:
+            return []
+    out = []
+    for row in rows:
+        if hasattr(row, "keys"):
+            out.append({
+                "version": row.get("version"),
+                "applied_at": row.get("applied_at"),
+            })
+        else:
+            out.append({
+                "version": row[0],
+                "applied_at": row[1],
+            })
+    return out
+
+
 def upsert_admin_profile(user_id, display_name=None, username=None, email=None, role="admin", is_active=True, is_primary=False, notes=None):
     with get_db() as conn:
         _execute(
@@ -1282,6 +1984,24 @@ def _utc_cutoff(seconds):
     if _use_postgres():
         return dt
     return dt.isoformat()
+
+
+def _coerce_any_datetime(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        raw = str(value).strip().replace(" ", "T").replace("Z", "+00:00")
+        if not raw:
+            return None
+        try:
+            dt = datetime.fromisoformat(raw)
+        except Exception:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 def log_llm_action(
@@ -1620,6 +2340,25 @@ def reddit_cache_count(relayed=None, blocked=None, subreddit=None, content_type=
     return int(row[0])
 
 
+def latest_reddit_cache_activity_at():
+    with get_db() as conn:
+        row = _fetchone(
+            _execute(
+                conn,
+                "SELECT MAX(fetched_at) FROM reddit_ingest_cache",
+            )
+        )
+    if not row:
+        return None
+    if hasattr(row, "get"):
+        try:
+            return row[0]
+        except Exception:
+            values = list(row.values())
+            return values[0] if values else None
+    return row[0]
+
+
 def reddit_subreddit_counts(hours=24):
     cutoff = _utc_cutoff(max(1, int(hours)) * 3600)
     with get_db() as conn:
@@ -1726,6 +2465,25 @@ def reddit_cache_stats(hours=24):
         relayed = 0
     by_type = [dict(row) if hasattr(row, "keys") else {"content_type": row[0], "cnt": row[1]} for row in type_rows]
     return {"total": total, "relayed": relayed, "by_type": by_type}
+
+
+def latest_dataset_candidate_activity_at(status=None):
+    sql = "SELECT MAX(updated_at) FROM dataset_ingest_candidates"
+    args = []
+    if status:
+        sql += " WHERE status=?"
+        args.append(str(status).strip().lower())
+    with get_db() as conn:
+        row = _fetchone(_execute(conn, sql, tuple(args)))
+    if not row:
+        return None
+    if hasattr(row, "get"):
+        try:
+            return row[0]
+        except Exception:
+            values = list(row.values())
+            return values[0] if values else None
+    return row[0]
 
 
 def dataset_candidate_upsert(item):

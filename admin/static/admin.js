@@ -21,7 +21,21 @@ let state = {
     dataset_candidates_limit: 40,
     dataset_candidates_offset: 0,
     telemetry_hours: 24,
+    telemetry_summary: {},
+    telemetry_alerts: [],
+    command_usage_counts: [],
+    top_commands: [],
+    command_error_rates: [],
+    scheduler_topics: [],
+    scheduler_outcomes: [],
+    scheduler_breakdown: [],
+    scheduler_trends: [],
+    scheduler_outcome_timeseries: [],
+    scheduled_upcoming: [],
+    schedulerPlanDetail: null,
+    command_failure_timeseries: [],
     system_metrics: {},
+    schema_status: null,
     ai_config: {},
     admin_profiles: [],
     current_admin_profile: null,
@@ -113,6 +127,51 @@ const createListItem = (title, subtitle, actions = []) => {
         wrap.appendChild(row);
     }
     return wrap;
+};
+
+const renderSchemaStatus = () => {
+    const target = document.getElementById("schema-status-card");
+    if (!target) {
+        return;
+    }
+    target.innerHTML = "";
+    const schema = state.schema_status;
+    if (!schema) {
+        target.appendChild(createListItem("Schema status", "Loading migration status..."));
+        return;
+    }
+
+    const statusText = schema.is_up_to_date ? "Up to date" : `Pending ${schema.pending_versions?.length || 0}`;
+    const currentVersion = schema.current_version || "none";
+    const latestVersion = schema.latest_available_version || "none";
+    const details = `backend=${schema.backend} | current=${currentVersion} | latest=${latestVersion} | status=${statusText}`;
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.textContent = "Copy Migration Command";
+    copyButton.onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(schema.migration_command || "");
+            copyButton.textContent = "Copied";
+            setTimeout(() => {
+                copyButton.textContent = "Copy Migration Command";
+            }, 1200);
+        } catch (_) {
+            alert(schema.migration_command || "No command available");
+        }
+    };
+
+    const item = createListItem("Schema Version", details, [copyButton]);
+    if (Array.isArray(schema.pending_versions) && schema.pending_versions.length) {
+        const pending = document.createElement("small");
+        pending.className = "candidate-source";
+        pending.textContent = `pending: ${schema.pending_versions.join(", ")}`;
+        item.appendChild(pending);
+    }
+    const command = document.createElement("small");
+    command.className = "candidate-source";
+    command.textContent = schema.migration_command || "";
+    item.appendChild(command);
+    target.appendChild(item);
 };
 
 const escapeHtml = (value) => {
@@ -522,6 +581,7 @@ const drawLineChart = (chartId, pointsA, pointsB, colorA, colorB, options = {}) 
 
     const { svg, tooltip, container, width, height } = chart;
     const seriesLabels = chartSeriesLabels(chartId, options);
+    const xLabels = Array.isArray(options.xLabels) ? options.xLabels : [];
     const margin = { top: 28, right: 22, bottom: 46, left: 54 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
@@ -547,7 +607,11 @@ const drawLineChart = (chartId, pointsA, pointsB, colorA, colorB, options = {}) 
     root
         .append("g")
         .attr("transform", `translate(0,${innerHeight})`)
-        .call(d3.axisBottom(x).ticks(Math.min(8, Math.max(2, pointsA.length || pointsB.length))))
+        .call(d3.axisBottom(x).ticks(Math.min(8, Math.max(2, pointsA.length || pointsB.length))).tickFormat((value) => {
+            const index = Math.round(Number(value || 0));
+            const raw = xLabels[index] || String(index);
+            return truncateChartLabel(raw, 10);
+        }))
         .call((axis) => axis.selectAll("text").attr("fill", "#8cc6d7").attr("font-size", 11))
         .call((axis) => axis.selectAll("path,line").attr("stroke", "rgba(116,230,255,0.22)"));
 
@@ -606,10 +670,11 @@ const drawLineChart = (chartId, pointsA, pointsB, colorA, colorB, options = {}) 
         const firstValue = pointsA[index];
         const secondValue = pointsB[index];
         const title = options.title || seriesLabels.join(" / ");
+        const bucket = xLabels[index] || `point ${index + 1}`;
         if (!hasSecondSeries) {
-            return `<strong>${title}</strong><span>${seriesLabels[0]}: ${formatChartValue(firstValue)}${chartValueSuffix(chartId, options)}</span>`;
+            return `<strong>${title}</strong><span>${bucket}</span><span>${seriesLabels[0]}: ${formatChartValue(firstValue)}${chartValueSuffix(chartId, options)}</span>`;
         }
-        return `<strong>${title}</strong><span>${seriesLabels[0]}: ${formatChartValue(firstValue)}${chartValueSuffix(chartId, options)}</span><span>${seriesLabels[1]}: ${formatChartValue(secondValue)}${chartValueSuffix(chartId, options)}</span>`;
+        return `<strong>${title}</strong><span>${bucket}</span><span>${seriesLabels[0]}: ${formatChartValue(firstValue)}${chartValueSuffix(chartId, options)}</span><span>${seriesLabels[1]}: ${formatChartValue(secondValue)}${chartValueSuffix(chartId, options)}</span>`;
     };
 
     const onMove = (event) => {
@@ -689,9 +754,293 @@ const fmtDuration = (seconds) => {
     return `${sec}s`;
 };
 
+const fmtRelativeAge = (seconds) => {
+    if (seconds === null || seconds === undefined) {
+        return "unknown";
+    }
+    return `${fmtDuration(seconds)} ago`;
+};
+
+const alertToneIcon = (level) => {
+    switch (String(level || "").toLowerCase()) {
+        case "critical":
+            return "⛔";
+        case "warn":
+            return "⚠️";
+        case "info":
+            return "ℹ️";
+        default:
+            return "✅";
+    }
+};
+
+const renderOperationalSummary = () => {
+    const metricTarget = document.getElementById("ops-summary-metrics");
+    const alertTarget = document.getElementById("ops-alerts");
+    const queueTarget = document.getElementById("ops-queue-list");
+    const summary = state.telemetry_summary || {};
+    const alerts = state.telemetry_alerts || [];
+
+    if (metricTarget) {
+        metricTarget.innerHTML = "";
+        const metrics = [
+            { label: "Last Post", value: fmtRelativeAge(summary.posts?.seconds_since_last) },
+            { label: "Event Success", value: fmtRelativeAge(summary.events?.seconds_since_success) },
+            { label: "Reddit Activity", value: fmtRelativeAge(summary.reddit?.seconds_since_activity) },
+            { label: "Heartbeat", value: fmtRelativeAge(summary.heartbeat?.seconds_since_last) },
+        ];
+        metrics.forEach((metric) => {
+            const node = document.createElement("div");
+            node.className = "metric";
+            node.innerHTML = `<b>${escapeHtml(metric.value)}</b><span>${escapeHtml(metric.label)}</span>`;
+            metricTarget.appendChild(node);
+        });
+    }
+
+    if (alertTarget) {
+        alertTarget.innerHTML = "";
+        alerts.forEach((alert) => {
+            const level = String(alert.level || "ok").toLowerCase();
+            const item = createListItem(
+                `${alertToneIcon(level)} ${escapeHtml(alert.title || "Alert")}`,
+                escapeHtml(alert.detail || "")
+            );
+            item.classList.add("ops-alert", `is-${level}`);
+            alertTarget.appendChild(item);
+        });
+    }
+
+    if (queueTarget) {
+        queueTarget.innerHTML = "";
+        const rows = [
+            {
+                title: "Event review queue",
+                detail: `${Number(summary.events?.pending_review || 0)} pending review`,
+            },
+            {
+                title: "Reddit relay queue",
+                detail: `${Number(summary.reddit?.queue_open || 0)} unrelayed | ${Number(summary.reddit?.blocked || 0)} blocked`,
+            },
+            {
+                title: "Dataset candidates",
+                detail: `${Number(summary.datasets?.candidate_queue || 0)} pending candidate rows`,
+            },
+        ];
+        rows.forEach((row) => {
+            queueTarget.appendChild(createListItem(escapeHtml(row.title), escapeHtml(row.detail)));
+        });
+
+        const scheduled = state.scheduled_upcoming || [];
+        if (scheduled.length) {
+            const items = scheduled.slice(0, 3).map((row) => {
+                const runAt = String(row.run_at || "").replace("T", " ").slice(0, 16) || "later";
+                return `${row.topic} @ ${runAt} UTC`;
+            });
+            queueTarget.appendChild(createListItem("Upcoming scheduled posts", items.join(" | ")));
+        }
+
+        const topCommands = state.top_commands || [];
+        if (topCommands.length) {
+            const details = topCommands.slice(0, 3).map((row) => {
+                const latency = row.avg_latency_ms != null ? `${Math.round(Number(row.avg_latency_ms || 0))}ms` : "n/a";
+                return `/${row.command_name} x${row.cnt} avg ${latency}`;
+            });
+            queueTarget.appendChild(createListItem("Top commands", details.join(" | ")));
+        }
+    }
+};
+
+const renderDecisionTelemetry = () => {
+    const schedulerMetricTarget = document.getElementById("scheduler-outcome-metrics");
+    const schedulerListTarget = document.getElementById("scheduler-breakdown-list");
+    const commandMetricTarget = document.getElementById("command-error-metrics");
+    const commandListTarget = document.getElementById("command-error-list");
+
+    if (schedulerMetricTarget) {
+        schedulerMetricTarget.innerHTML = "";
+        const counts = Object.fromEntries((state.scheduler_outcomes || []).map((row) => [row.execution_status || "pending", Number(row.cnt || 0)]));
+        [
+            { label: "Sent", value: counts.sent || 0 },
+            { label: "Pending", value: counts.pending || 0 },
+            { label: "No Content", value: counts.no_content || 0 },
+            { label: "Failed", value: counts.failed || 0 },
+        ].forEach((metric) => {
+            const node = document.createElement("div");
+            node.className = "metric";
+            node.innerHTML = `<b>${metric.value}</b><span>${escapeHtml(metric.label)}</span>`;
+            schedulerMetricTarget.appendChild(node);
+        });
+    }
+
+    if (schedulerListTarget) {
+        schedulerListTarget.innerHTML = "";
+        const rows = state.scheduler_breakdown || [];
+        if (!rows.length) {
+            schedulerListTarget.appendChild(createListItem("No scheduler decisions", "No selected scheduler rows found in the current window."));
+        } else {
+            rows.slice(0, 10).forEach((row) => {
+                const factors = row.score_factors || {};
+                const details = [
+                    `score=${Number(row.score || 0).toFixed(2)}`,
+                    `recent=${Number(factors.recent_count_72h || 0)}`,
+                    `diversity=${Number(factors.diversity_bonus || 0).toFixed(2)}`,
+                    `seasonal=${Number(factors.seasonal_bonus || 0).toFixed(2)}`,
+                    `penalty=${Number(factors.saturation_penalty || 0).toFixed(2)}`,
+                    `status=${row.execution_status || "pending"}`,
+                ];
+                const when = row.run_at ? String(row.run_at).replace("T", " ").slice(0, 16) : "unscheduled";
+                const title = `${escapeHtml(row.topic || "topic")} | slot ${escapeHtml(row.slot_index ?? "?")} | ${escapeHtml(when)} UTC`;
+                const subtitle = escapeHtml(details.join(" | "));
+                const item = createListItem(title, subtitle);
+                const inspect = document.createElement("button");
+                inspect.type = "button";
+                inspect.textContent = "Inspect Plan";
+                inspect.onclick = async () => {
+                    try {
+                        const payload = await requestJson(`/admin/api/scheduler-plan/${encodeURIComponent(row.plan_key)}`);
+                        state.schedulerPlanDetail = payload;
+                        renderSchedulerPlanDetail();
+                    } catch (err) {
+                        alert(err.message);
+                    }
+                };
+                const rowButtons = document.createElement("div");
+                rowButtons.className = "button-row";
+                rowButtons.appendChild(inspect);
+                item.appendChild(rowButtons);
+                if (row.execution_error) {
+                    const err = document.createElement("small");
+                    err.className = "candidate-source";
+                    err.textContent = `error: ${row.execution_error}`;
+                    item.appendChild(err);
+                }
+                schedulerListTarget.appendChild(item);
+            });
+        }
+    }
+
+    const schedulerSeries = state.scheduler_outcome_timeseries || [];
+    drawLineChart(
+        "chart-scheduler-outcomes",
+        schedulerSeries.map((row) => Number(row.sent || 0)),
+        schedulerSeries.map((row) => Number(row.failed || 0)),
+        "#57a9ff",
+        "#ff6464",
+        {
+            title: "Scheduler sent vs failed over time",
+            seriesLabels: ["Sent", "Failed"],
+            xLabels: schedulerSeries.map((row) => row.bucket || ""),
+        }
+    );
+
+    const commandSeries = state.command_failure_timeseries || [];
+    drawLineChart(
+        "chart-command-errors",
+        commandSeries.map((row) => Number(row.total || 0)),
+        commandSeries.map((row) => Number(row.errors || 0)),
+        "#f6b93b",
+        "#ff6464",
+        {
+            title: "Command calls vs failures over time",
+            seriesLabels: ["Calls", "Failures"],
+            xLabels: commandSeries.map((row) => row.bucket || ""),
+        }
+    );
+
+    if (schedulerSeries.length === 0) {
+        drawBarChart("chart-scheduler-outcomes", [], [], "rgba(87,169,255,0.95)", "rgba(87,169,255,0.28)", {
+            title: "Selected scheduler outcomes",
+        });
+    }
+
+    if (commandSeries.length === 0) {
+        drawBarChart("chart-command-errors", [], [], "rgba(246,185,59,0.95)", "rgba(246,185,59,0.30)", {
+            title: "Command error rate",
+            valueSuffix: "%",
+        });
+    }
+
+    if (commandMetricTarget) {
+        commandMetricTarget.innerHTML = "";
+        const total = (state.command_error_rates || []).reduce((sum, row) => sum + Number(row.total_count || 0), 0);
+        const totalErrors = (state.command_error_rates || []).reduce((sum, row) => sum + Number(row.error_count || 0), 0);
+        const overallRate = total > 0 ? `${((totalErrors / total) * 100).toFixed(1)}%` : "0.0%";
+        [
+            { label: "Command Calls", value: total },
+            { label: "Errors", value: totalErrors },
+            { label: "Error Rate", value: overallRate },
+        ].forEach((metric) => {
+            const node = document.createElement("div");
+            node.className = "metric";
+            node.innerHTML = `<b>${escapeHtml(metric.value)}</b><span>${escapeHtml(metric.label)}</span>`;
+            commandMetricTarget.appendChild(node);
+        });
+    }
+
+    if (commandListTarget) {
+        commandListTarget.innerHTML = "";
+        const rows = state.command_error_rates || [];
+        if (!rows.length) {
+            commandListTarget.appendChild(createListItem("No command usage", "No command telemetry found in the current window."));
+        } else {
+            rows.forEach((row) => {
+                const errorPct = `${(Number(row.error_rate || 0) * 100).toFixed(1)}%`;
+                const latency = row.avg_latency_ms != null ? `${Math.round(Number(row.avg_latency_ms || 0))}ms` : "n/a";
+                commandListTarget.appendChild(
+                    createListItem(
+                        `/${escapeHtml(row.command_name || "unknown")}`,
+                        escapeHtml(`calls=${row.total_count} | errors=${row.error_count} | error_rate=${errorPct} | avg_latency=${latency}`)
+                    )
+                );
+            });
+        }
+    }
+
+};
+
+const renderSchedulerPlanDetail = () => {
+    const summaryTarget = document.getElementById("scheduler-plan-summary");
+    const auditTarget = document.getElementById("scheduler-plan-post-audit");
+    const detailTarget = document.getElementById("scheduler-plan-detail");
+    if (!summaryTarget || !detailTarget || !auditTarget) {
+        return;
+    }
+    const payload = state.schedulerPlanDetail;
+    auditTarget.innerHTML = "";
+    detailTarget.innerHTML = "";
+    if (!payload || !payload.rows || !payload.rows.length) {
+        summaryTarget.textContent = "Select a scheduler row to inspect its full plan.";
+        return;
+    }
+    const summary = payload.summary || {};
+    summaryTarget.textContent = `${payload.plan_key} | selected=${summary.selected || 0} | sent=${summary.sent || 0} | failed=${summary.failed || 0}`;
+    payload.rows.forEach((row) => {
+        const factors = row.score_factors || {};
+        const detailParts = [
+            `score=${Number(row.score || 0).toFixed(2)}`,
+            `selected=${Number(row.selected || 0) === 1 ? "yes" : "no"}`,
+            `status=${row.execution_status || "pending"}`,
+            `latency=${row.execution_latency_ms != null ? `${Math.round(Number(row.execution_latency_ms || 0))}ms` : "n/a"}`,
+            `recent=${Number(factors.recent_count_72h || 0)}`,
+            `diversity=${Number(factors.diversity_bonus || 0).toFixed(2)}`,
+        ];
+        const title = `${row.topic} | slot ${row.slot_index}`;
+        const item = createListItem(title, detailParts.join(" | "));
+        const audit = row.post_audit;
+        if (audit) {
+            const auditMeta = document.createElement("small");
+            auditMeta.className = "candidate-source";
+            auditMeta.textContent = `post_audit id=${audit.id} | topic=${audit.topic} | thread=${audit.thread_id} | message=${audit.telegram_message_id} | posted_at=${audit.posted_at}`;
+            item.appendChild(auditMeta);
+        }
+        detailTarget.appendChild(item);
+    });
+};
+
 const renderStatus = () => {
     const target = document.getElementById("status-list");
     const metricTarget = document.getElementById("dashboard-metrics");
+    renderSchemaStatus();
     target.innerHTML = "";
 
     let ok = 0;
@@ -704,6 +1053,18 @@ const renderStatus = () => {
             ok += 1;
         } else if (status.startsWith("blocked:")) {
             blocked += 1;
+            const primaryAuditRow = payload.rows.find((row) => row.post_audit) || null;
+            if (primaryAuditRow && primaryAuditRow.post_audit) {
+                const audit = primaryAuditRow.post_audit;
+                auditTarget.appendChild(
+                    createListItem(
+                        `Linked post_audit row #${audit.id}`,
+                        `topic=${audit.topic} | thread=${audit.thread_id} | message=${audit.telegram_message_id} | content_type=${audit.content_type} | content_id=${audit.content_id} | posted_at=${audit.posted_at}`
+                    )
+                );
+            } else {
+                auditTarget.appendChild(createListItem("Linked post_audit row", "No delivered post_audit row is linked to this plan yet."));
+            }
         } else {
             error += 1;
         }
@@ -716,24 +1077,17 @@ const renderStatus = () => {
         const createdAt = formatRunTime(row.created_at);
         const item = document.createElement("div");
         item.className = `list-item source-matrix-row ${statusClass}`;
-        item.innerHTML = `
-            <div class="source-matrix-top">
-                <div class="source-matrix-heading">
-                    <span class="item-kicker">${row.run_type || "unknown"}</span>
-                    <div class="source-matrix-title-wrap">
-                        <span class="item-title">${row.source_name || "unknown"}</span>
-                        ${sourceUrl}
-                    </div>
-                    <span class="item-kicker-subtle">Last run ${createdAt}</span>
-                </div>
-                <span class="status-pill ${statusClass}">${row.status || "unknown"}</span>
-            </div>
-            <div class="source-matrix-body">
-                <span>Fetched <strong>${fetched}</strong></span>
-                <span>Saved <strong>${saved}</strong></span>
-                <span>Ratio <strong>${ratio}</strong></span>
-            </div>
-        `;
+                    </div >
+    <span class="item-kicker-subtle">Last run ${createdAt}</span>
+                </div >
+    <span class="status-pill ${statusClass}">${row.status || "unknown"}</span>
+            </div >
+    <div class="source-matrix-body">
+        <span>Fetched <strong>${fetched}</strong></span>
+        <span>Saved <strong>${saved}</strong></span>
+        <span>Ratio <strong>${ratio}</strong></span>
+    </div>
+`;
         target.appendChild(item);
     });
 
@@ -751,11 +1105,11 @@ const renderStatus = () => {
     metrics.forEach((metric) => {
         const node = document.createElement("div");
         node.className = "metric";
-        node.innerHTML = `<b>${metric.value}</b><span>${metric.label}</span>`;
+        node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
         metricTarget.appendChild(node);
     });
 
-    const labels = state.source_status.map((row) => `${row.run_type}:${row.source_name}`);
+    const labels = state.source_status.map((row) => `${ row.run_type }:${ row.source_name } `);
     const ratioValues = state.source_status.map((row) => {
         const fetched = Number(row.fetched_count || 0);
         const saved = Number(row.saved_count || 0);
@@ -776,6 +1130,9 @@ const renderStatus = () => {
         title: "Recent ingestion throughput",
         seriesLabels: ["Fetched", "Saved"],
     });
+
+    renderOperationalSummary();
+    renderDecisionTelemetry();
 };
 
 const renderLlmAndReddit = () => {
@@ -798,7 +1155,7 @@ const renderLlmAndReddit = () => {
         ].forEach((metric) => {
             const node = document.createElement("div");
             node.className = "metric";
-            node.innerHTML = `<b>${metric.value}</b><span>${metric.label}</span>`;
+            node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
             llmMetrics.appendChild(node);
         });
 
@@ -817,7 +1174,7 @@ const renderLlmAndReddit = () => {
             llmSkipList.appendChild(createListItem("No skip reasons", "No skipped LLM actions in the last 24 hours."));
         } else {
             rows.forEach((row) => {
-                llmSkipList.appendChild(createListItem(String(row.reason || "unknown"), `count=${Number(row.cnt || 0)}`));
+                llmSkipList.appendChild(createListItem(String(row.reason || "unknown"), `count = ${ Number(row.cnt || 0) } `));
             });
         }
     }
@@ -832,11 +1189,11 @@ const renderLlmAndReddit = () => {
             { label: "Cached", value: total },
             { label: "Relayed", value: relayed },
             { label: "Queued", value: queued },
-            { label: "Window", value: `${state.telemetry_hours || 24}h` },
+            { label: "Window", value: `${ state.telemetry_hours || 24 } h` },
         ].forEach((metric) => {
             const node = document.createElement("div");
             node.className = "metric";
-            node.innerHTML = `<b>${metric.value}</b><span>${metric.label}</span>`;
+            node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
             redditMetrics.appendChild(node);
         });
 
@@ -866,38 +1223,38 @@ const renderHealth = () => {
     const metrics = state.system_metrics || {};
     target.innerHTML = "";
     [
-        { label: "CPU Est", value: `${Number(metrics.cpu_percent_est || 0).toFixed(1)}%` },
-        { label: "Host Mem", value: metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}%` : "n/a" },
-        { label: "Process RSS", value: metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a" },
+        { label: "CPU Est", value: `${ Number(metrics.cpu_percent_est || 0).toFixed(1) }% ` },
+        { label: "Host Mem", value: metrics.memory_percent != null ? `${ Number(metrics.memory_percent).toFixed(1) }% ` : "n/a" },
+        { label: "Process RSS", value: metrics.process_rss_mb != null ? `${ Number(metrics.process_rss_mb).toFixed(1) } MB` : "n/a" },
         { label: "Uptime", value: fmtDuration(metrics.uptime_seconds || 0) },
     ].forEach((metric) => {
         const node = document.createElement("div");
         node.className = "metric";
-        node.innerHTML = `<b>${metric.value}</b><span>${metric.label}</span>`;
+        node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
         target.appendChild(node);
     });
 
     if (snapshot) {
-        snapshot.textContent = `CPU est ${Number(metrics.cpu_percent_est || 0).toFixed(1)}%, host memory ${metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}%` : "n/a"}, uptime ${fmtDuration(metrics.uptime_seconds || 0)}.`;
+        snapshot.textContent = `CPU est ${ Number(metrics.cpu_percent_est || 0).toFixed(1) }%, host memory ${ metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}%` : "n/a" }, uptime ${ fmtDuration(metrics.uptime_seconds || 0) }.`;
     }
     if (footprint) {
         const loadAvg = (metrics.load_avg || [0, 0, 0]).map((v) => Number(v || 0).toFixed(2)).join(" / ");
-        footprint.textContent = `Load avg ${loadAvg} | RSS ${metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a"}`;
+        footprint.textContent = `Load avg ${ loadAvg } | RSS ${ metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a" } `;
     }
     if (behavior) {
-        const cpuText = `${Number(metrics.cpu_percent_est || 0).toFixed(1)}% CPU`;
-        const memText = metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}% memory` : "memory n/a";
-        behavior.textContent = `Current readout: ${cpuText}, ${memText}, ${fmtDuration(metrics.uptime_seconds || 0)} uptime.`;
+        const cpuText = `${ Number(metrics.cpu_percent_est || 0).toFixed(1) }% CPU`;
+        const memText = metrics.memory_percent != null ? `${ Number(metrics.memory_percent).toFixed(1) }% memory` : "memory n/a";
+        behavior.textContent = `Current readout: ${ cpuText }, ${ memText }, ${ fmtDuration(metrics.uptime_seconds || 0) } uptime.`;
     }
     if (alerts) {
         alerts.innerHTML = "";
         [
-            { label: "CPU load", value: `${Number(metrics.cpu_percent_est || 0).toFixed(1)}%` },
-            { label: "Memory load", value: metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}%` : "n/a" },
-            { label: "Process RSS", value: metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a" },
+            { label: "CPU load", value: `${ Number(metrics.cpu_percent_est || 0).toFixed(1) }% ` },
+            { label: "Memory load", value: metrics.memory_percent != null ? `${ Number(metrics.memory_percent).toFixed(1) }% ` : "n/a" },
+            { label: "Process RSS", value: metrics.process_rss_mb != null ? `${ Number(metrics.process_rss_mb).toFixed(1) } MB` : "n/a" },
             { label: "Host uptime", value: fmtDuration(metrics.uptime_seconds || 0) },
         ].forEach((row) => {
-            alerts.appendChild(createListItem(`🛡️ ${row.label}`, row.value));
+            alerts.appendChild(createListItem(`🛡️ ${ row.label } `, row.value));
         });
     }
 
@@ -960,89 +1317,89 @@ const renderRedditCacheRows = () => {
     const limit = Number(state.reddit_cache_limit || 20);
     const total = Number(state.reddit_cache_total || 0);
     const totalPages = Math.max(1, Math.ceil(total / Math.max(1, limit)));
-    meta.textContent = `${rows.length} rows on page ${redditPage}/${totalPages} | total=${total}`;
+    meta.textContent = `${ rows.length } rows on page ${ redditPage }/${totalPages} | total=${total}`;
 
-    const pageInfo = document.getElementById("reddit-page-info");
-    const prevButton = document.getElementById("reddit-page-prev");
-    const nextButton = document.getElementById("reddit-page-next");
-    if (pageInfo) {
-        pageInfo.textContent = `page ${redditPage}/${totalPages}`;
-    }
-    if (prevButton) {
-        prevButton.disabled = redditPage <= 1;
-    }
-    if (nextButton) {
-        nextButton.disabled = redditPage >= totalPages;
-    }
+const pageInfo = document.getElementById("reddit-page-info");
+const prevButton = document.getElementById("reddit-page-prev");
+const nextButton = document.getElementById("reddit-page-next");
+if (pageInfo) {
+    pageInfo.textContent = `page ${redditPage}/${totalPages}`;
+}
+if (prevButton) {
+    prevButton.disabled = redditPage <= 1;
+}
+if (nextButton) {
+    nextButton.disabled = redditPage >= totalPages;
+}
 
-    if (!rows.length) {
-        target.appendChild(createListItem("No Reddit cache rows", "Try a broader filter."));
-        return;
-    }
+if (!rows.length) {
+    target.appendChild(createListItem("No Reddit cache rows", "Try a broader filter."));
+    return;
+}
 
-    rows.forEach((row) => {
-        const blocked = Number(row.blocked || 0) === 1;
-        const relayed = Number(row.relayed || 0) === 1;
-        const title = (row.title || row.body || "").replace(/\s+/g, " ").trim();
-        const subtitle = `[${row.content_type}] r/${row.subreddit} score=${row.score} relayed=${relayed ? "yes" : "no"} blocked=${blocked ? "yes" : "no"}`;
+rows.forEach((row) => {
+    const blocked = Number(row.blocked || 0) === 1;
+    const relayed = Number(row.relayed || 0) === 1;
+    const title = (row.title || row.body || "").replace(/\s+/g, " ").trim();
+    const subtitle = `[${row.content_type}] r/${row.subreddit} score=${row.score} relayed=${relayed ? "yes" : "no"} blocked=${blocked ? "yes" : "no"}`;
 
-        const force = document.createElement("button");
-        force.textContent = "Force Relay";
-        force.onclick = async () => {
-            try {
-                await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
-                    method: "POST",
-                    body: JSON.stringify({ force: true }),
-                });
-                await loadRedditCache();
-                await refreshTelemetry();
-            } catch (err) {
-                alert(err.message);
-            }
-        };
-
-        const safeRelay = document.createElement("button");
-        safeRelay.textContent = "Relay (Safe)";
-        safeRelay.onclick = async () => {
-            try {
-                await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
-                    method: "POST",
-                    body: JSON.stringify({ force: false }),
-                });
-                await loadRedditCache();
-                await refreshTelemetry();
-            } catch (err) {
-                alert(err.message);
-            }
-        };
-
-        const unblock = document.createElement("button");
-        unblock.textContent = "Unblock";
-        unblock.onclick = async () => {
-            try {
-                await requestJson(`/admin/api/reddit-cache/${row.id}/unblock`, {
-                    method: "POST",
-                    body: JSON.stringify({}),
-                });
-                await loadRedditCache();
-            } catch (err) {
-                alert(err.message);
-            }
-        };
-
-        const rowNode = createListItem(`#${row.id} ${title.slice(0, 180)}`, subtitle, [safeRelay, force, unblock]);
-        rowNode.classList.add("reddit");
-        if (blocked) {
-            rowNode.classList.add("blocked");
+    const force = document.createElement("button");
+    force.textContent = "Force Relay";
+    force.onclick = async () => {
+        try {
+            await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
+                method: "POST",
+                body: JSON.stringify({ force: true }),
+            });
+            await loadRedditCache();
+            await refreshTelemetry();
+        } catch (err) {
+            alert(err.message);
         }
+    };
 
-        const detail = document.createElement("div");
-        detail.className = "meta";
-        detail.innerHTML = `${row.author || "unknown"} | <a href="${row.permalink || "#"}" target="_blank" rel="noopener noreferrer">open permalink ↗</a> ${row.blocked_reason ? `| reason=${row.blocked_reason}` : ""}`;
-        rowNode.appendChild(detail);
+    const safeRelay = document.createElement("button");
+    safeRelay.textContent = "Relay (Safe)";
+    safeRelay.onclick = async () => {
+        try {
+            await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
+                method: "POST",
+                body: JSON.stringify({ force: false }),
+            });
+            await loadRedditCache();
+            await refreshTelemetry();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
 
-        target.appendChild(rowNode);
-    });
+    const unblock = document.createElement("button");
+    unblock.textContent = "Unblock";
+    unblock.onclick = async () => {
+        try {
+            await requestJson(`/admin/api/reddit-cache/${row.id}/unblock`, {
+                method: "POST",
+                body: JSON.stringify({}),
+            });
+            await loadRedditCache();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
+    const rowNode = createListItem(`#${row.id} ${title.slice(0, 180)}`, subtitle, [safeRelay, force, unblock]);
+    rowNode.classList.add("reddit");
+    if (blocked) {
+        rowNode.classList.add("blocked");
+    }
+
+    const detail = document.createElement("div");
+    detail.className = "meta";
+    detail.innerHTML = `${row.author || "unknown"} | <a href="${row.permalink || "#"}" target="_blank" rel="noopener noreferrer">open permalink ↗</a> ${row.blocked_reason ? `| reason=${row.blocked_reason}` : ""}`;
+    rowNode.appendChild(detail);
+
+    target.appendChild(rowNode);
+});
 };
 
 const loadRedditCache = async () => {
@@ -1437,6 +1794,18 @@ const refreshTelemetry = async () => {
     state.llm_skip_reasons = payload.llm_skip_reasons || [];
     state.reddit_cache_stats = payload.reddit_cache_stats || { total: 0, relayed: 0, by_type: [] };
     state.reddit_subreddit_counts = payload.reddit_subreddit_counts || [];
+    state.telemetry_summary = payload.summary || {};
+    state.telemetry_alerts = payload.alerts || [];
+    state.command_usage_counts = payload.command_usage_counts || [];
+    state.top_commands = payload.top_commands || [];
+    state.command_error_rates = payload.command_error_rates || [];
+    state.scheduler_topics = payload.scheduler_topics || [];
+    state.scheduler_outcomes = payload.scheduler_outcomes || [];
+    state.scheduler_breakdown = payload.scheduler_breakdown || [];
+    state.scheduler_trends = payload.scheduler_trends || [];
+    state.scheduler_outcome_timeseries = payload.scheduler_outcome_timeseries || [];
+    state.scheduled_upcoming = payload.scheduled_upcoming || [];
+    state.command_failure_timeseries = payload.command_failure_timeseries || [];
     state.telemetry_hours = Number(payload.hours || Number(hours));
     renderStatus();
     renderLlmAndReddit();
@@ -2179,16 +2548,18 @@ const bootstrap = async () => {
     setDashboardLoading(true, "Bootstrapping admin console");
     try {
         const payload = await requestJson("/admin/api/bootstrap");
-        state = payload;
+        state = { ...state, ...payload };
 
         state.system_metrics = payload.system_metrics || {};
         state.ai_config = payload.ai_config || {};
         state.admin_profiles = payload.admin_profiles || [];
         state.current_admin_profile = payload.current_admin_profile || null;
+        state.schema_status = payload.schema_status || null;
         healthHistory.cpu = [Number(state.system_metrics.cpu_percent_est || 0)];
         healthHistory.mem = [Number(state.system_metrics.memory_percent || 0)];
         healthHistory.load = [Number((state.system_metrics.load_avg || [0])[0] || 0)];
 
+        renderSchemaStatus();
         renderStatus();
         renderLlmAndReddit();
         renderHealth();

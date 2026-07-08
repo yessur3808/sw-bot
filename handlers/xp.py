@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes, MessageHandler, CommandHandler, filters
 import db
+from telemetry import instrument_command_handler
 
 RANKS = [
     (0, "Youngling"), (100, "Padawan"), (500, "Jedi Knight"),
@@ -38,5 +39,5 @@ async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def register(app):
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, track_xp))
-    app.add_handler(CommandHandler("rank", rank_cmd))
-    app.add_handler(CommandHandler("leaderboard", leaderboard_cmd))
+    app.add_handler(CommandHandler("rank", instrument_command_handler("rank", rank_cmd)))
+    app.add_handler(CommandHandler("leaderboard", instrument_command_handler("leaderboard", leaderboard_cmd)))

@@ -30,6 +30,30 @@ _LOGIN_ATTEMPTS = {}
 _BOOT_TS = time.time()
 
 
+def _schema_status_payload():
+    suffix = "postgres" if config.DB_BACKEND in ("postgres", "postgresql") else "sqlite"
+    migration_files = sorted(ROOT.joinpath("migrations").glob(f"*.{suffix}.up.sql"))
+    available_versions = [path.name.split(".")[0] for path in migration_files]
+    applied_rows = db.schema_migration_versions()
+    applied_versions = [str(row.get("version") or "") for row in applied_rows if row.get("version")]
+    applied_set = set(applied_versions)
+    pending_versions = [version for version in available_versions if version not in applied_set]
+    if suffix == "postgres":
+        command = "DB_BACKEND=postgres DATABASE_URL='<database-url>' ./venv/bin/python scripts/db/migrate_schema.py up"
+    else:
+        command = "DB_BACKEND=sqlite ./venv/bin/python scripts/db/migrate_schema.py up"
+    return {
+        "backend": suffix,
+        "available_versions": available_versions,
+        "applied_versions": applied_versions,
+        "pending_versions": pending_versions,
+        "current_version": applied_versions[-1] if applied_versions else None,
+        "latest_available_version": available_versions[-1] if available_versions else None,
+        "is_up_to_date": len(pending_versions) == 0,
+        "migration_command": command,
+    }
+
+
 def _system_metrics_snapshot():
     cpu_count = max(1, (os.cpu_count() or 1))
     try:
@@ -114,6 +138,165 @@ def _coerce_datetime(value):
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def _seconds_since(value):
+    dt = _coerce_datetime(value)
+    if not dt:
+        return None
+    return max(0, int((datetime.now(timezone.utc) - dt).total_seconds()))
+
+
+def _expected_interval_seconds(name):
+    mapping = {
+        "posts": int(max(1, config.MIN_GAP_MINUTES) * 60),
+        "events": int(max(1, config.EVENT_INGEST_HOURS) * 3600),
+        "reddit_ingest": int(max(1, config.REDDIT_INGEST_INTERVAL_MINUTES) * 60),
+        "reddit_relay": int(max(1, config.REDDIT_RELAY_INTERVAL_MINUTES) * 60),
+        "dataset": int(max(1, config.DATASET_COLLECTOR_INTERVAL_MINUTES) * 60),
+        "heartbeat": int(max(1, config.ADMIN_EMERGENCY_ALERT_HOURS) * 3600),
+    }
+    return mapping.get(name)
+
+
+def _operational_summary(hours, run_type):
+    heartbeat_at = db.get_bot_health_state("bot_heartbeat_at")
+    latest_post_row = db.topic_thread_usage(limit=1)
+    latest_post_at = latest_post_row[0].get("latest_posted_at") if latest_post_row else None
+    latest_event_success = db.latest_successful_ingestion_at(run_type=run_type)
+    latest_reddit_activity = db.latest_reddit_cache_activity_at()
+    latest_dataset_activity = db.latest_dataset_candidate_activity_at(status="candidate")
+
+    pending_events = db.count_events_by_status("pending_review")
+    reddit_total = db.reddit_cache_count(relayed=False, blocked=False)
+    reddit_blocked = db.reddit_cache_count(blocked=True)
+    dataset_candidates = db.dataset_candidates_count(status="candidate")
+    top_commands = db.top_commands(hours=hours, limit=5)
+    upcoming_schedule = db.upcoming_scheduler_decisions(limit=6)
+
+    return {
+        "hours": int(hours),
+        "run_type": run_type,
+        "posts": {
+            "last_at": latest_post_at,
+            "seconds_since_last": _seconds_since(latest_post_at),
+            "expected_interval_seconds": _expected_interval_seconds("posts"),
+        },
+        "heartbeat": {
+            "last_at": heartbeat_at,
+            "seconds_since_last": _seconds_since(heartbeat_at),
+            "expected_interval_seconds": _expected_interval_seconds("heartbeat"),
+        },
+        "events": {
+            "last_success_at": latest_event_success,
+            "seconds_since_success": _seconds_since(latest_event_success),
+            "expected_interval_seconds": _expected_interval_seconds("events"),
+            "pending_review": pending_events,
+        },
+        "reddit": {
+            "last_activity_at": latest_reddit_activity,
+            "seconds_since_activity": _seconds_since(latest_reddit_activity),
+            "expected_ingest_seconds": _expected_interval_seconds("reddit_ingest"),
+            "expected_relay_seconds": _expected_interval_seconds("reddit_relay"),
+            "queue_open": reddit_total,
+            "blocked": reddit_blocked,
+        },
+        "datasets": {
+            "last_candidate_at": latest_dataset_activity,
+            "seconds_since_candidate": _seconds_since(latest_dataset_activity),
+            "expected_interval_seconds": _expected_interval_seconds("dataset"),
+            "candidate_queue": dataset_candidates,
+        },
+        "scheduler": {
+            "upcoming_count": len(upcoming_schedule),
+            "upcoming": [dict(row) for row in upcoming_schedule],
+            "outcomes": db.scheduler_outcome_counts(hours=hours),
+        },
+        "commands": {
+            "top": top_commands,
+            "total_24h": sum(int(row.get("cnt") or 0) for row in top_commands),
+            "error_rates": db.command_error_rates(hours=hours, limit=8),
+        },
+    }
+
+
+def _build_operational_alerts(summary):
+    alerts = []
+
+    def add_alert(level, key, title, detail):
+        alerts.append({
+            "level": level,
+            "key": key,
+            "title": title,
+            "detail": detail,
+        })
+
+    heartbeat = summary.get("heartbeat") or {}
+    heartbeat_age = heartbeat.get("seconds_since_last")
+    heartbeat_expected = heartbeat.get("expected_interval_seconds") or 0
+    if heartbeat_age is None:
+        add_alert("warn", "heartbeat-missing", "Heartbeat missing", "No bot heartbeat has been recorded yet.")
+    elif heartbeat_age > heartbeat_expected:
+        add_alert("critical", "heartbeat-stale", "Heartbeat stale", f"Last heartbeat is older than the {int(heartbeat_expected / 3600)}h downtime threshold.")
+
+    posts = summary.get("posts") or {}
+    post_age = posts.get("seconds_since_last")
+    post_expected = int((posts.get("expected_interval_seconds") or 0) * 2)
+    if post_age is None:
+        add_alert("warn", "posts-missing", "No posts recorded", "The post audit table has no recent post entries.")
+    elif post_expected and post_age > post_expected:
+        add_alert("warn", "posts-stale", "Posting cadence stale", "No recent post landed within twice the configured minimum gap window.")
+
+    events = summary.get("events") or {}
+    event_age = events.get("seconds_since_success")
+    event_expected = int((events.get("expected_interval_seconds") or 0) * 2)
+    if event_age is None:
+        add_alert("warn", "events-never-succeeded", "No successful event ingest", "No successful event ingestion run is recorded for the current scope.")
+    elif event_expected and event_age > event_expected:
+        add_alert("warn", "events-stale", "Event ingestion stale", "Successful event ingestion is older than twice the configured interval.")
+    if int(events.get("pending_review") or 0) >= 10:
+        add_alert("warn", "events-backlog", "Event review backlog", f"There are {int(events.get('pending_review') or 0)} events waiting for review.")
+
+    reddit = summary.get("reddit") or {}
+    reddit_age = reddit.get("seconds_since_activity")
+    reddit_expected = int((reddit.get("expected_ingest_seconds") or 0) * 2)
+    if reddit_age is None:
+        add_alert("warn", "reddit-idle", "Reddit cache idle", "No Reddit cache activity has been recorded yet.")
+    elif reddit_expected and reddit_age > reddit_expected:
+        add_alert("warn", "reddit-stale", "Reddit ingest stale", "Reddit cache activity is older than twice the configured ingest interval.")
+    if int(reddit.get("queue_open") or 0) >= 20:
+        add_alert("info", "reddit-queue", "Reddit relay queue growing", f"There are {int(reddit.get('queue_open') or 0)} unrelayed Reddit items queued.")
+    if int(reddit.get("blocked") or 0) >= 5:
+        add_alert("warn", "reddit-blocked", "Blocked Reddit items accumulating", f"There are {int(reddit.get('blocked') or 0)} blocked Reddit items requiring review.")
+
+    datasets = summary.get("datasets") or {}
+    if int(datasets.get("candidate_queue") or 0) >= 20:
+        add_alert("info", "dataset-backlog", "Dataset candidate backlog", f"There are {int(datasets.get('candidate_queue') or 0)} dataset candidates pending action.")
+
+    if not alerts:
+        add_alert("ok", "all-clear", "All clear", "No operational alert thresholds are currently breached.")
+    return alerts
+
+
+def _scheduler_trend_points(rows):
+    points = {}
+    for row in rows or []:
+        status = str(row.get("execution_status") or "pending")
+        points[status] = points.get(status, 0) + 1
+    return [{"status": key, "cnt": value} for key, value in sorted(points.items(), key=lambda item: item[0])]
+
+
+def _attach_post_audit(rows):
+    out = []
+    for row in rows or []:
+        payload = dict(row)
+        payload["post_audit"] = db.latest_post_audit_for_delivery(
+            telegram_message_id=payload.get("executed_message_id"),
+            content_type=payload.get("executed_content_type"),
+            content_id=payload.get("executed_content_id"),
+        )
+        out.append(payload)
+    return out
 
 
 def _session_expired(row):
@@ -520,6 +703,7 @@ def create_admin_app():
         payload = {
             "user_id": user_id,
             "csrf_token": session.get("csrf_token"),
+            "schema_status": _schema_status_payload(),
             "settings": runtime_settings.export_runtime_settings(),
             "sources": sources,
             "pending_events": [dict(row) for row in pending],
@@ -618,6 +802,8 @@ def create_admin_app():
         except Exception:
             hours = 24
 
+        summary = _operational_summary(hours=hours, run_type=run_type)
+        scheduler_breakdown = _attach_post_audit(db.scheduler_selected_breakdown(hours=hours, limit=24))
         payload = {
             "hours": hours,
             "run_type": run_type,
@@ -626,8 +812,39 @@ def create_admin_app():
             "reddit_cache_stats": db.reddit_cache_stats(hours=hours),
             "reddit_subreddit_counts": db.reddit_subreddit_counts(hours=hours),
             "recent_runs": db.ingestion_runs_window(hours=hours, run_type=run_type),
+            "command_usage_counts": db.command_usage_counts(hours=hours, limit=30),
+            "top_commands": db.top_commands(hours=hours, limit=8),
+            "command_error_rates": db.command_error_rates(hours=hours, limit=12),
+            "scheduler_topics": db.scheduler_topic_counts(hours=hours, selected_only=True),
+            "scheduler_outcomes": db.scheduler_outcome_counts(hours=hours),
+            "scheduler_breakdown": scheduler_breakdown,
+            "scheduler_trends": _scheduler_trend_points(scheduler_breakdown),
+            "scheduler_outcome_timeseries": db.scheduler_outcome_timeseries(hours=hours, bucket_minutes=60),
+            "scheduled_upcoming": [dict(row) for row in db.upcoming_scheduler_decisions(limit=10)],
+            "command_failure_timeseries": db.command_failure_timeseries(hours=hours, bucket_minutes=60),
+            "summary": summary,
+            "alerts": _build_operational_alerts(summary),
         }
         return jsonify(payload)
+
+    @app.get("/admin/api/scheduler-plan/<path:plan_key>")
+    def api_scheduler_plan_detail(plan_key):
+        require_admin()
+        rows = _attach_post_audit(db.scheduler_plan_detail(plan_key))
+        if not rows:
+            return jsonify({"plan_key": plan_key, "rows": [], "summary": {"selected": 0, "sent": 0, "failed": 0}})
+        selected = [row for row in rows if int(row.get("selected") or 0) == 1]
+        sent = sum(1 for row in selected if str(row.get("execution_status") or "") == "sent")
+        failed = sum(1 for row in selected if str(row.get("execution_status") or "") == "failed")
+        return jsonify({
+            "plan_key": plan_key,
+            "rows": rows,
+            "summary": {
+                "selected": len(selected),
+                "sent": sent,
+                "failed": failed,
+            },
+        })
 
     @app.get("/admin/api/datasets/<dataset_name>")
     def api_get_dataset(dataset_name):

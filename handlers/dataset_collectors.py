@@ -14,6 +14,7 @@ from telegram.ext import CommandHandler, ContextTypes
 
 import config
 import db
+from telemetry import instrument_command_handler
 from admin import runtime_settings
 
 
@@ -796,5 +797,5 @@ def reject_candidate(candidate_id):
 
 
 def register(app):
-    app.add_handler(CommandHandler("dataset_ingest_now", dataset_ingest_now_cmd))
-    app.add_handler(CommandHandler("dataset_candidates", dataset_candidates_cmd))
+    app.add_handler(CommandHandler("dataset_ingest_now", instrument_command_handler("dataset_ingest_now", dataset_ingest_now_cmd)))
+    app.add_handler(CommandHandler("dataset_candidates", instrument_command_handler("dataset_candidates", dataset_candidates_cmd)))
