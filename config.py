@@ -108,12 +108,12 @@ REDDIT_BANNED_WORDS = [
     if w.strip()
 ]
 
-DAILY_MIN_POSTS = int(os.getenv("DAILY_MIN_POSTS", 20))
-DAILY_MAX_POSTS = int(os.getenv("DAILY_MAX_POSTS", 40))
-MAX_PER_TOPIC_PER_DAY = int(os.getenv("MAX_PER_TOPIC_PER_DAY", 2))
-MIN_GAP_MINUTES = int(os.getenv("MIN_GAP_MINUTES", 60))
+DAILY_MIN_POSTS = int(os.getenv("DAILY_MIN_POSTS", 30))
+DAILY_MAX_POSTS = int(os.getenv("DAILY_MAX_POSTS", 45))
+MAX_PER_TOPIC_PER_DAY = int(os.getenv("MAX_PER_TOPIC_PER_DAY", 10))
+MIN_GAP_MINUTES = int(os.getenv("MIN_GAP_MINUTES", 2))
 STARTUP_RECOVERY_ENABLED = os.getenv("STARTUP_RECOVERY_ENABLED", "true").lower() == "true"
-STARTUP_RECOVERY_HOURS = float(os.getenv("STARTUP_RECOVERY_HOURS", 4))
+STARTUP_RECOVERY_HOURS = float(os.getenv("STARTUP_RECOVERY_HOURS", 0.5))
 GREETING_ENABLED = os.getenv("GREETING_ENABLED", "true").lower() == "true"
 GREETING_UTC_HOUR = int(os.getenv("GREETING_UTC_HOUR", 1))
 GREETING_UTC_MINUTE = int(os.getenv("GREETING_UTC_MINUTE", 30))
@@ -138,12 +138,7 @@ INSTAGRAM_WALLPAPER_FEEDS = [
 WALLPAPER_FEED_FETCH_LIMIT = int(os.getenv("WALLPAPER_FEED_FETCH_LIMIT", 30))
 
 POST_BOOST_ENABLED = os.getenv("POST_BOOST_ENABLED", "true").lower() == "true"
-POST_BOOST_MULTIPLIER = float(os.getenv("POST_BOOST_MULTIPLIER", 3.0))
 POST_BOOST_TOPIC_CAP_MULTIPLIER = float(os.getenv("POST_BOOST_TOPIC_CAP_MULTIPLIER", 3.0))
-BOOST_FRIDAY_EVENING_EXTRA = int(os.getenv("BOOST_FRIDAY_EVENING_EXTRA", 1))
-BOOST_WEEKEND_EXTRA = int(os.getenv("BOOST_WEEKEND_EXTRA", 1))
-BOOST_HOLIDAY_EXTRA = int(os.getenv("BOOST_HOLIDAY_EXTRA", 1))
-BOOST_STAR_WARS_DAY_EXTRA = int(os.getenv("BOOST_STAR_WARS_DAY_EXTRA", 2))
 _holidays_raw = os.getenv("HK_PUBLIC_HOLIDAYS", "")
 HK_PUBLIC_HOLIDAYS = {
     v.strip() for v in _holidays_raw.split(",") if v.strip()
@@ -163,7 +158,7 @@ REQUIRE_ROBOTS_FOR_SCRAPE = _event_setting("require_robots_for_scrape", "REQUIRE
 REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE = _event_setting("require_tos_allowlist_for_scrape", "REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE", True, _as_bool)
 
 OFFICIAL_SOURCE_ALLOWLIST = _event_setting("official_source_allowlist", "OFFICIAL_SOURCE_ALLOWLIST", "starwars.com,news.google.com", _as_str)
-RSS_SOURCE_ALLOWLIST = _event_setting("rss_source_allowlist", "RSS_SOURCE_ALLOWLIST", "starwars.com,news.google.com", _as_str)
+RSS_SOURCE_ALLOWLIST = _event_setting("rss_source_allowlist", "RSS_SOURCE_ALLOWLIST", "starwars.com,news.google.com,scmp.com,hongkongfp.com", _as_str)
 API_SOURCE_ALLOWLIST = _event_setting("api_source_allowlist", "API_SOURCE_ALLOWLIST", "", _as_str)
 SCRAPE_SOURCE_ALLOWLIST = _event_setting("scrape_source_allowlist", "SCRAPE_SOURCE_ALLOWLIST", "wookieepedia.com,starwars.fandom.com,starwars.com", _as_str)
 SCRAPE_TOS_ALLOWLIST = _event_setting("scrape_tos_allowlist", "SCRAPE_TOS_ALLOWLIST", "wookieepedia.com,starwars.fandom.com,starwars.com", _as_str)
@@ -182,16 +177,16 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
 LLM_MODEL = os.getenv("LLM_MODEL", "meta-llama/llama-3.1-8b-instruct:free").strip()
 LLM_API_KEY = os.getenv("LLM_API_KEY", "").strip()
 LLM_API_BASE_URL = os.getenv("LLM_API_BASE_URL", "").strip()
-LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", 18))
-LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", 140))
+LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", 10))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", 500))
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0.85))
 LLM_AUTONOMOUS_MODE = os.getenv("LLM_AUTONOMOUS_MODE", "true").lower() == "true"
 LLM_REPLY_DAILY_CAP = int(os.getenv("LLM_REPLY_DAILY_CAP", 40))
-LLM_REPLY_THREAD_DAILY_CAP = int(os.getenv("LLM_REPLY_THREAD_DAILY_CAP", 12))
-LLM_REPLY_COOLDOWN_SECONDS = int(os.getenv("LLM_REPLY_COOLDOWN_SECONDS", 180))
-LLM_RANDOM_REPLY_CHANCE = float(os.getenv("LLM_RANDOM_REPLY_CHANCE", 0.12))
-LLM_MIN_TRIGGER_SCORE = float(os.getenv("LLM_MIN_TRIGGER_SCORE", 0.65))
-LLM_MAX_INPUT_CHARS = int(os.getenv("LLM_MAX_INPUT_CHARS", 500))
+LLM_REPLY_THREAD_DAILY_CAP = int(os.getenv("LLM_REPLY_THREAD_DAILY_CAP", 500))
+LLM_REPLY_COOLDOWN_SECONDS = int(os.getenv("LLM_REPLY_COOLDOWN_SECONDS", 30))
+LLM_RANDOM_REPLY_CHANCE = float(os.getenv("LLM_RANDOM_REPLY_CHANCE", 0.85))
+LLM_MIN_TRIGGER_SCORE = float(os.getenv("LLM_MIN_TRIGGER_SCORE", 0.5))
+LLM_MAX_INPUT_CHARS = int(os.getenv("LLM_MAX_INPUT_CHARS", 1000))
 LLM_ALLOWED_THREAD_NAMES = {
     v.strip().lower()
     for v in os.getenv("LLM_ALLOWED_THREAD_NAMES", "general,memes,lore,movie,show").split(",")
@@ -213,6 +208,8 @@ HK_SOURCE_CONFIG = os.getenv(
     "rss|event|GoogleNews HK Star Wars Exhibition EN|https://news.google.com/rss/search?q=star+wars+hong+kong+exhibition&hl=en-HK&gl=HK&ceid=HK:en;"
     "rss|event|GoogleNews HK Star Wars Cosplay EN|https://news.google.com/rss/search?q=star+wars+hong+kong+cosplay+event&hl=en-HK&gl=HK&ceid=HK:en;"
     "rss|event|GoogleNews HK Star Wars ZH|https://news.google.com/rss/search?q=%E6%98%9F%E9%9A%9B%E5%A4%A7%E6%88%B0+%E9%A6%99%E6%B8%AF+%E6%B4%BB%E5%8B%95&hl=zh-HK&gl=HK&ceid=HK:zh-Hant|locale=zh-hant;"
+    "rss|news|SCMP Hong Kong|https://www.scmp.com/rss/2/feed|locale=en;"
+    "rss|news|HKFP Hong Kong|https://hongkongfp.com/feed/|locale=en;"
     "scrape|event|StarWars.com Events Category|https://www.starwars.com/news/category/events|parser=starwars_tag,locale=en",
 )
 
