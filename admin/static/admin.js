@@ -70,10 +70,15 @@ const requestJson = async (url, options = {}) => {
         "Content-Type": "application/json",
         ...(options.headers || {}),
     };
+    const method = String(options.method || "GET").toUpperCase();
     if (options.method && options.method !== "GET") {
         headers["X-CSRF-Token"] = csrfToken;
     }
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, {
+        ...options,
+        headers,
+        cache: method === "GET" ? "no-store" : options.cache,
+    });
     if (!response.ok) {
         let detail = "";
         try {
@@ -1580,13 +1585,34 @@ const renderDatasetCandidates = () => {
         reject.disabled = String(row.status || "") === "rejected";
         reject.onclick = async () => {
             try {
-                await requestJson(`/admin/api/dataset-candidates/${row.id}/reject`, {
+                reject.disabled = true;
+                reject.textContent = "Rejecting...";
+                const result = await requestJson(`/admin/api/dataset-candidates/${row.id}/reject`, {
                     method: "POST",
                     body: JSON.stringify({}),
                 });
+                if (!result?.ok) {
+                    throw new Error(result?.reason || "Reject failed");
+                }
+
+                // Optimistic UI update so the status change is visible immediately.
+                state.dataset_candidates_rows = (state.dataset_candidates_rows || []).map((entry) => {
+                    if (Number(entry?.id) !== rowId) {
+                        return entry;
+                    }
+                    return { ...entry, status: "rejected" };
+                });
+
+                const activeStatus = String(document.getElementById("candidate-filter-status")?.value || "candidate").trim().toLowerCase();
+                if (activeStatus === "candidate") {
+                    state.dataset_candidates_rows = (state.dataset_candidates_rows || []).filter((entry) => Number(entry?.id) !== rowId);
+                }
                 selectedCandidateIds.delete(rowId);
+                renderDatasetCandidates();
                 await loadDatasetCandidates();
             } catch (err) {
+                reject.disabled = String(row.status || "") === "rejected";
+                reject.textContent = "Reject";
                 alert(err.message);
             }
         };

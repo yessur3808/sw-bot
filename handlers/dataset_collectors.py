@@ -78,6 +78,90 @@ def _contains_star_wars(text):
     return "star wars" in low or "jedi" in low or "sith" in low or "skywalker" in low
 
 
+def _dedupe_values(values):
+    out = []
+    seen = set()
+    for raw in values or []:
+        value = _normalize_text(str(raw or ""))
+        if not value:
+            continue
+        key = value.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(value)
+    return out
+
+
+def _looks_like_english_sentence(text, min_words=4, require_question=False):
+    value = _normalize_text(text)
+    if not value:
+        return False
+    if len(value) < 18 or len(value) > 260:
+        return False
+    if require_question and not value.endswith("?"):
+        return False
+    alpha_ratio = sum(1 for ch in value if ch.isalpha()) / max(1, len(value))
+    if alpha_ratio < 0.55:
+        return False
+    words = re.findall(r"[A-Za-z][A-Za-z'\\-]{1,}", value)
+    if len(words) < max(1, int(min_words)):
+        return False
+    if value.isupper():
+        return False
+    return True
+
+
+def _normalize_question_text(text):
+    value = _normalize_text(text)
+    if not value:
+        return ""
+    value = value.rstrip(".!? ")
+    return f"{value}?"
+
+
+def _normalize_choice_options(options, question_text, min_count=3, max_count=4):
+    normalized_question = _normalize_text(question_text).lower()
+    cleaned = []
+    for raw in options or []:
+        opt = _normalize_text(str(raw or ""))
+        if len(opt) < 2 or len(opt) > 90:
+            continue
+        if opt.lower() == normalized_question:
+            continue
+        if not re.search(r"[A-Za-z]", opt):
+            continue
+        cleaned.append(opt)
+    unique = _dedupe_values(cleaned)
+    if len(unique) < int(min_count):
+        return []
+    return unique[: int(max_count)]
+
+
+def _validate_question_candidate(question_text, options, answer_text=None):
+    question = _normalize_question_text(question_text)
+    if not _looks_like_english_sentence(question, min_words=4, require_question=True):
+        return None
+
+    normalized_options = _normalize_choice_options(options, question, min_count=3, max_count=4)
+    if len(normalized_options) < 3:
+        return None
+
+    answer = _normalize_text(answer_text or "")
+    if answer:
+        answer_match = next((opt for opt in normalized_options if opt.lower() == answer.lower()), None)
+        if answer_match:
+            answer = answer_match
+        else:
+            return None
+
+    return {
+        "question": question,
+        "options": normalized_options,
+        "answer_text": answer,
+    }
+
+
 def _item_hash(*parts):
     raw = "|".join(_normalize_text(str(p)).lower() for p in parts if p is not None)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
@@ -410,34 +494,62 @@ def _trivia_candidates(entry):
             pick = rng.sample(distractors, 3)
             options = [correct] + pick
             rng.shuffle(options)
-            return [
-                {
-                    "text": f"Which of these appears as a Star Wars Databank entry in this source set?",
-                    "options": options,
-                    "answer_text": correct,
-                    "confidence": 0.74,
-                }
-            ]
+            validated = _validate_question_candidate(
+                "Which of these appears as a Star Wars Databank entry in this source set?",
+                options,
+                answer_text=correct,
+            )
+            if validated:
+                return [
+                    {
+                        "text": validated["question"],
+                        "options": validated["options"],
+                        "answer_text": validated["answer_text"],
+                        "confidence": 0.74,
+                    }
+                ]
 
     out = []
     blob = " ".join((entry.get("title") or "", entry.get("text") or ""))
     for match in TRIVIA_Q_PATTERN.findall(blob):
-        question = _normalize_text(match)
+        question = _normalize_question_text(match)
         if len(question) < 20:
             continue
         if "star wars" not in question.lower() and not _contains_star_wars(blob):
             continue
-        out.append({"text": question, "confidence": 0.57})
+        # Fallback options are intentionally generic but unique and grammatically stable.
+        validated = _validate_question_candidate(
+            question,
+            [
+                "Option A",
+                "Option B",
+                "Option C",
+                "Option D",
+            ],
+        )
+        if not validated:
+            continue
+        out.append({"text": validated["question"], "options": validated["options"], "confidence": 0.57})
         if len(out) >= 3:
             break
 
     if out:
         return out
 
-    # Create lightweight trivia prompts from strong noun phrases in headlines.
+    # Create lightweight trivia prompts from headlines with fixed, valid options.
     title = _normalize_text(entry.get("title") or "")
     if len(title) >= 16 and _contains_star_wars(title):
-        out.append({"text": f"Which statement best matches this headline: {title}?", "confidence": 0.5})
+        validated = _validate_question_candidate(
+            f"Which statement best matches this headline: {title}?",
+            [
+                "It confirms official canon details",
+                "It is likely fan speculation",
+                "It focuses on production updates",
+                "It is mostly unrelated context",
+            ],
+        )
+        if validated:
+            out.append({"text": validated["question"], "options": validated["options"], "confidence": 0.5})
     return out
 
 
@@ -447,8 +559,19 @@ def _poll_candidates(entry):
         return []
     if not _contains_star_wars(title):
         return []
-    prompt = f"Community pulse: what is your take on '{title}'?"
-    return [{"text": prompt, "confidence": 0.54}]
+    prompt = f"What do you think about this Star Wars update: {title}?"
+    validated = _validate_question_candidate(
+        prompt,
+        [
+            "Very excited",
+            "Mostly positive",
+            "Neutral",
+            "Not excited",
+        ],
+    )
+    if not validated:
+        return []
+    return [{"text": validated["question"], "options": validated["options"], "confidence": 0.54}]
 
 
 def _discussion_candidates(entry):
@@ -494,6 +617,8 @@ def ingest_dataset_sources():
     by_dataset = {k: 0 for k in DATASET_NAMES}
     errors = []
 
+    seen_candidate_signatures = set()
+
     for source in sources:
         dataset_name = str(source.get("dataset") or "").strip().lower()
         if dataset_name not in DATASET_NAMES:
@@ -512,6 +637,22 @@ def ingest_dataset_sources():
                     text = _normalize_text(candidate.get("text") or "")
                     if not text:
                         continue
+
+                    options = candidate.get("options") or []
+                    answer_text = candidate.get("answer_text")
+                    if dataset_name in ("trivia", "polls"):
+                        validated = _validate_question_candidate(text, options, answer_text=answer_text)
+                        if not validated:
+                            continue
+                        text = validated["question"]
+                        options = validated["options"]
+                        answer_text = validated["answer_text"]
+
+                    signature = _item_hash(dataset_name, text, json.dumps(options or [], ensure_ascii=False))
+                    if signature in seen_candidate_signatures:
+                        continue
+                    seen_candidate_signatures.add(signature)
+
                     key = _item_hash(dataset_name, text, entry.get("url"), entry.get("source_name"))
                     db.dataset_candidate_upsert(
                         {
@@ -522,8 +663,8 @@ def ingest_dataset_sources():
                             "source_tier": source.get("tier") or "rss",
                             "title": entry.get("title") or "",
                             "body_text": text[:MAX_TEXT_LEN],
-                            "options_json": candidate.get("options"),
-                            "answer_text": candidate.get("answer_text"),
+                            "options_json": options,
+                            "answer_text": answer_text,
                             "confidence": float(candidate.get("confidence") or 0.5),
                             "status": "candidate",
                             "source_meta": {
@@ -704,16 +845,19 @@ def _normalize_candidate_item(dataset_name, row):
     if dataset_name == "trivia":
         if not body:
             return None, "empty trivia"
-        if len(options) < 2:
-            return None, "trivia candidate missing options"
+        validated = _validate_question_candidate(body, options, answer_text=answer_text)
+        if not validated:
+            return None, "invalid trivia question/options"
+        question = validated["question"]
+        options = validated["options"]
+        answer_text = validated.get("answer_text") or options[0]
         correct_idx = 0
-        if answer_text:
-            for idx, value in enumerate(options):
-                if value.strip().lower() == answer_text.strip().lower():
-                    correct_idx = idx
-                    break
+        for idx, value in enumerate(options):
+            if value.strip().lower() == answer_text.strip().lower():
+                correct_idx = idx
+                break
         return {
-            "question": body if body.endswith("?") else f"{body}?",
+            "question": question,
             "options": options,
             "correct": correct_idx,
             "category": "source_collected_trivia",
@@ -722,12 +866,15 @@ def _normalize_candidate_item(dataset_name, row):
         }, None
 
     if dataset_name == "polls":
-        question = body if body.endswith("?") else f"{body}?"
-        if len(options) < 2:
-            options = ["Very excited", "Interested", "Neutral", "Not interested"]
+        validated = _validate_question_candidate(
+            body,
+            options or ["Very excited", "Interested", "Neutral", "Not interested"],
+        )
+        if not validated:
+            return None, "invalid poll question/options"
         return {
-            "question": question,
-            "options": options,
+            "question": validated["question"],
+            "options": validated["options"],
             "category": "source_collected_poll",
             "topics": ["auto-collected", "source-ingest"],
             "source": source_obj,
@@ -754,9 +901,21 @@ def _dedupe_key_for_item(dataset_name, item):
     if dataset_name == "quotes":
         return _normalize_text(item.get("quote") or "").lower()
     if dataset_name == "trivia":
-        return _normalize_text(item.get("question") or item.get("q") or "").lower()
+        q = _normalize_text(item.get("question") or item.get("q") or "").lower()
+        opts = [
+            _normalize_text(v).lower()
+            for v in (item.get("options") or [])
+            if _normalize_text(v)
+        ]
+        return f"{q}|{'|'.join(opts)}"
     if dataset_name == "polls":
-        return _normalize_text(item.get("question") or item.get("q") or "").lower()
+        q = _normalize_text(item.get("question") or item.get("q") or "").lower()
+        opts = [
+            _normalize_text(v).lower()
+            for v in (item.get("options") or [])
+            if _normalize_text(v)
+        ]
+        return f"{q}|{'|'.join(opts)}"
     if dataset_name == "discussions":
         return _normalize_text(item.get("prompt") or item.get("question") or "").lower()
     return ""

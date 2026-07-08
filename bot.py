@@ -253,6 +253,51 @@ def _day_boost_profile(now_utc):
     return boosted, multiplier
 
 
+def _minute_of_day(hour_value, minute_value):
+    hour = int(hour_value) % 24
+    minute = int(minute_value) % 60
+    return (hour * 60) + minute
+
+
+def _is_minute_in_window(minute_of_day, start_minute, end_minute):
+    if start_minute == end_minute:
+        return True
+    if start_minute < end_minute:
+        return start_minute <= minute_of_day < end_minute
+    return minute_of_day >= start_minute or minute_of_day < end_minute
+
+
+def _allowed_offsets_for_window(start_dt, window_start_minute, window_end_minute):
+    try:
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo(config.POSTING_WINDOW_TIMEZONE)
+    except Exception:
+        tz = timezone.utc
+
+    offsets = []
+    for offset in range(2, (24 * 60) - 19):
+        run_at_utc = start_dt + timedelta(minutes=offset)
+        run_local = run_at_utc.astimezone(tz)
+        minute_of_day = (run_local.hour * 60) + run_local.minute
+        if _is_minute_in_window(minute_of_day, window_start_minute, window_end_minute):
+            offsets.append(offset)
+    return offsets
+
+
+def _pick_offset_with_gap(allowed_offsets, used_offsets, min_gap, attempts=60):
+    if not allowed_offsets:
+        return None
+    for _ in range(max(1, int(attempts))):
+        offset = random.choice(allowed_offsets)
+        if all(abs(offset - existing) >= min_gap for existing in used_offsets):
+            return offset
+    for offset in sorted(allowed_offsets):
+        if all(abs(offset - existing) >= min_gap for existing in used_offsets):
+            return offset
+    return None
+
+
 def schedule_day_posts(job_queue, start_dt):
     plan = _build_topics_for_day()
     topics = plan.get("topics") or []
@@ -261,16 +306,54 @@ def schedule_day_posts(job_queue, start_dt):
 
     used_offsets = set()
     min_gap = max(5, config.MIN_GAP_MINUTES)
+    window_start = 2
+    window_end = (24 * 60) - 20
+
+    active_start = _minute_of_day(config.POSTING_WINDOW_START_HOUR, config.POSTING_WINDOW_START_MINUTE)
+    active_end = _minute_of_day(config.POSTING_WINDOW_END_HOUR, config.POSTING_WINDOW_END_MINUTE)
+    if config.POSTING_WINDOW_ENABLED:
+        allowed_offsets = _allowed_offsets_for_window(start_dt, active_start, active_end)
+    else:
+        allowed_offsets = list(range(window_start, window_end + 1))
+
+    if not allowed_offsets:
+        print(
+            "Scheduler posting window produced zero eligible slots in the next 24h. "
+            "Falling back to full-day scheduling window."
+        )
+        allowed_offsets = list(range(window_start, window_end + 1))
+
+    earliest_allowed = min(allowed_offsets)
+    latest_allowed = max(allowed_offsets)
+    span_minutes = max(1, latest_allowed - earliest_allowed)
+    max_slots_by_gap = max(1, (span_minutes // min_gap) + 1)
+    if len(topics) > max_slots_by_gap:
+        print(
+            "Scheduler cap applied: configured daily volume exceeds feasible slots for "
+            f"MIN_GAP_MINUTES={min_gap}. Scheduling {max_slots_by_gap} of {len(topics)} planned posts."
+        )
+    topics = topics[:max_slots_by_gap]
+
+    allowed_offsets_set = set(allowed_offsets)
+    early_window = max(1, min(180, int(getattr(config, "INITIAL_POST_WINDOW_MINUTES", 15))))
+    first_slot_min = earliest_allowed
+    first_slot_max = min(latest_allowed, first_slot_min + early_window - 1)
+    first_slot_offsets = [m for m in allowed_offsets if first_slot_min <= m <= first_slot_max]
+    if not first_slot_offsets:
+        first_slot_offsets = allowed_offsets
+
     run_times_by_slot = {}
     for slot_index, topic in enumerate(topics):
-        for _ in range(30):
-            offset_min = random.randint(20, (24 * 60) - 20)
-            if all(abs(offset_min - x) >= min_gap for x in used_offsets):
-                used_offsets.add(offset_min)
-                break
+        if slot_index == 0:
+            offset_min = _pick_offset_with_gap(first_slot_offsets, used_offsets, min_gap)
         else:
-            offset_min = (len(used_offsets) + 1) * min_gap
-            used_offsets.add(offset_min)
+            offset_min = _pick_offset_with_gap(allowed_offsets, used_offsets, min_gap)
+        if offset_min is None:
+            break
+
+        if offset_min not in allowed_offsets_set:
+            continue
+        used_offsets.add(offset_min)
 
         run_at = start_dt + timedelta(minutes=offset_min)
         run_times_by_slot[slot_index] = run_at
@@ -288,18 +371,23 @@ def schedule_day_posts(job_queue, start_dt):
 
     scheduled_for_date = start_dt.date().isoformat()
     for row in plan.get("decision_rows") or []:
-        selected = bool(row.get("selected"))
-        run_at = run_times_by_slot.get(int(row.get("slot_index", 0))) if selected else None
+        slot_index = int(row.get("slot_index", 0))
+        originally_selected = bool(row.get("selected"))
+        selected = originally_selected and slot_index in run_times_by_slot
+        run_at = run_times_by_slot.get(slot_index) if selected else None
+        reason = row.get("reason") or ("selected" if selected else "candidate")
+        if originally_selected and not selected:
+            reason = "deferred-gap-cap"
         db.log_scheduler_decision(
             plan_key=row.get("plan_key") or plan.get("plan_key"),
-            slot_index=int(row.get("slot_index", 0)),
+            slot_index=slot_index,
             topic=row.get("topic"),
             score=float(row.get("score") or 0.0),
             selected=selected,
             scheduled_for_date=scheduled_for_date,
             run_at=(run_at.isoformat() if run_at else None),
             score_factors=row.get("score_factors") or {},
-            reason=row.get("reason") or ("selected" if selected else "candidate"),
+            reason=reason,
         )
 
 
