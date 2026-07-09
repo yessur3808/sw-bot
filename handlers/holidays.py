@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 import requests
@@ -34,7 +35,10 @@ def _extract_dtstart_token(raw_dtstart):
 def fetch_hk_public_holidays(source_url=HK_HOLIDAY_SOURCE_URL, timeout=15):
     response = requests.get(source_url, timeout=timeout, headers={"User-Agent": "sw-bot-holidays/1.0"})
     response.raise_for_status()
-    payload = response.json()
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = json.loads(response.content.decode("utf-8-sig"))
 
     calendars = payload.get("vcalendar") if isinstance(payload, dict) else None
     if not isinstance(calendars, list) or not calendars:

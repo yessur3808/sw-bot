@@ -96,6 +96,7 @@ THREAD_EVENTS=<thread-id>
 
 `THREAD_EVENTS` is optional; if omitted, event posts use `THREAD_GENERAL`.
 Set `THREAD_CHAT` to isolate non-event posts (greeting, leaderboard, quote/fact/poll/discussion, and LLM general thread behavior) away from the events topic.
+Keep the thread IDs unique unless you intentionally want multiple content types routed to the same Telegram topic.
 
 Optional admin UI variables for web access:
 

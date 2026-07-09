@@ -164,15 +164,15 @@ def _resolve_fact_thread(fact_text):
     lore_tid = get_thread_id("lore")
     movie_tid = get_thread_id("movie")
     show_tid = get_thread_id("show")
-    chat_tid = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general")
+    chat_tid = get_thread_id("general")
 
     if topic == "show":
         # User rule: show goes to show thread, fallback to movie.
         return topic, (show_tid or movie_tid or lore_tid or chat_tid or THREADS["general"])
     if topic == "movie":
-        return topic, (movie_tid or lore_tid or chat_tid or THREADS["general"])
+        return topic, (movie_tid)
     if topic == "general":
-        return topic, (chat_tid or lore_tid or THREADS["general"])
+        return topic, (chat_tid or THREADS["general"])
     return topic, (lore_tid or chat_tid or THREADS["general"])
 
 async def daily_quote(context: ContextTypes.DEFAULT_TYPE):

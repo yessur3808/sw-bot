@@ -30,7 +30,7 @@ async def daily_trivia(context: ContextTypes.DEFAULT_TYPE):
 
     message = await context.bot.send_poll(
         chat_id=GROUP_ID,
-        message_thread_id=THREADS["lore"],
+        message_thread_id=THREADS["general"],
         question="🧠 " + question,
         options=options,
         type="quiz",
@@ -40,7 +40,7 @@ async def daily_trivia(context: ContextTypes.DEFAULT_TYPE):
     raw = f"{question}|{'|'.join([str(v) for v in options])}|{correct}"
     db.log_post_audit(
         topic="trivia",
-        thread_id=THREADS["lore"],
+        thread_id=THREADS["general"],
         telegram_message_id=message.message_id,
         content_type="trivia",
         content_id=f"trivia:{db.compute_text_hash(raw)[:16]}",
