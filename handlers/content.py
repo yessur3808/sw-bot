@@ -264,7 +264,8 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
     if len(clean_options) < 2:
         return
 
-    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
+    # Community polls should target General first.
+    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore") or THREADS["general"]
     message = await context.bot.send_poll(
         chat_id=GROUP_ID,
         message_thread_id=thread_id,
@@ -307,7 +308,8 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
     if src:
         lines.append(f"Source: {src}")
 
-    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
+    # Community discussions should target General first.
+    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore") or THREADS["general"]
     text = "\n".join(lines)
     message = await context.bot.send_message(
         chat_id=GROUP_ID,
