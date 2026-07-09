@@ -1,4 +1,5 @@
 import hashlib
+import html
 import json
 import re
 import random
@@ -41,6 +42,14 @@ FACT_KEYWORDS = (
     "known",
 )
 
+LOW_SIGNAL_TRIVIA_TOKENS = (
+    "can you",
+    "how well do you know",
+    "in x minutes",
+    "finish these",
+    "quote quiz",
+)
+
 QUOTE_PATTERN = re.compile(r'["\u201c]([^"\u201d]{18,260})["\u201d]')
 TRIVIA_Q_PATTERN = re.compile(r"([^?.!]{18,220}\?)")
 SPEAKER_PATTERN = re.compile(r"(?:-|\u2014)\s*([A-Z][A-Za-z0-9 .'-]{2,60})$")
@@ -71,6 +80,15 @@ def _save_dataset(dataset_name, payload):
 
 def _normalize_text(value):
     return " ".join((value or "").strip().split())
+
+
+def _normalize_feed_text(value):
+    raw = str(value or "")
+    if not raw:
+        return ""
+    text = BeautifulSoup(raw, "html.parser").get_text(" ", strip=True)
+    text = html.unescape(text)
+    return _normalize_text(text)
 
 
 def _contains_star_wars(text):
@@ -120,6 +138,33 @@ def _normalize_question_text(text):
     return f"{value}?"
 
 
+def _looks_like_noisy_question(value):
+    text = _normalize_text(value)
+    if not text:
+        return True
+
+    low = text.lower()
+    noisy_tokens = (
+        "target=",
+        "href=",
+        "oc=",
+        "rss/articles/",
+        "google.com/rss/articles",
+        "http://",
+        "https://",
+        "www.",
+    )
+    if any(token in low for token in noisy_tokens):
+        return True
+
+    # Drop long opaque slug-like chunks from redirect links and trackers.
+    if re.search(r"[A-Za-z0-9_-]{35,}", text):
+        return True
+    if text.count("/") >= 2 and text.count(" ") < 4:
+        return True
+    return False
+
+
 def _normalize_choice_options(options, question_text, min_count=3, max_count=4):
     normalized_question = _normalize_text(question_text).lower()
     cleaned = []
@@ -140,6 +185,8 @@ def _normalize_choice_options(options, question_text, min_count=3, max_count=4):
 
 def _validate_question_candidate(question_text, options, answer_text=None):
     question = _normalize_question_text(question_text)
+    if _looks_like_noisy_question(question):
+        return None
     if not _looks_like_english_sentence(question, min_words=4, require_question=True):
         return None
 
@@ -160,6 +207,56 @@ def _validate_question_candidate(question_text, options, answer_text=None):
         "options": normalized_options,
         "answer_text": answer,
     }
+
+
+def _passes_candidate_quality_gate(dataset_name, text, options, entry):
+    clean_text = _normalize_text(text)
+    clean_title = _normalize_feed_text(entry.get("title") or "")
+    clean_blob = _normalize_feed_text(f"{clean_title} {entry.get('text') or ''}")
+    low_text = clean_text.lower()
+
+    if _looks_like_noisy_question(clean_text):
+        return False
+    if len(clean_text) < 18 or len(clean_text) > MAX_TEXT_LEN:
+        return False
+
+    if dataset_name == "facts":
+        if clean_text.endswith("?"):
+            return False
+        if not _contains_star_wars(clean_text):
+            return False
+        if not any(token in low_text for token in FACT_KEYWORDS):
+            return False
+
+    if dataset_name == "quotes":
+        if len(re.findall(r"[A-Za-z][A-Za-z'\-]+", clean_text)) < 4:
+            return False
+        if clean_text.count("\"") >= 4:
+            return False
+
+    if dataset_name == "trivia":
+        if not _validate_question_candidate(clean_text, options):
+            return False
+        if any(token in low_text for token in LOW_SIGNAL_TRIVIA_TOKENS):
+            return False
+        if len(_dedupe_values(options)) < 3:
+            return False
+        if not _contains_star_wars(clean_blob):
+            return False
+
+    if dataset_name == "polls":
+        if not _validate_question_candidate(clean_text, options):
+            return False
+        if not _contains_star_wars(clean_blob):
+            return False
+
+    if dataset_name == "discussions":
+        if len(clean_text) < 28:
+            return False
+        if not _contains_star_wars(clean_blob):
+            return False
+
+    return True
 
 
 def _item_hash(*parts):
@@ -324,9 +421,9 @@ def _fetch_source_entries(source, dataset_name, limit):
     if tier == "rss":
         parsed = feedparser.parse(url)
         for ent in (parsed.entries or [])[:limit]:
-            title = _normalize_text(getattr(ent, "title", ""))
+            title = _normalize_feed_text(getattr(ent, "title", ""))
             link = _normalize_text(getattr(ent, "link", ""))
-            summary = _normalize_text(getattr(ent, "summary", ""))
+            summary = _normalize_feed_text(getattr(ent, "summary", ""))
             if not title or not link:
                 continue
             out.append(
@@ -511,45 +608,33 @@ def _trivia_candidates(entry):
 
     out = []
     blob = " ".join((entry.get("title") or "", entry.get("text") or ""))
+    blob = _normalize_feed_text(blob)
+
+    option_matches = []
+    for pattern in (
+        r"(?:^|\s)(?:[A-D][\).:-])\s*([^\n\r]{2,90})",
+        r"(?:^|\s)(?:[1-4][\).:-])\s*([^\n\r]{2,90})",
+    ):
+        option_matches.extend(re.findall(pattern, blob, flags=re.IGNORECASE))
+    parsed_options = _dedupe_values(option_matches)
+
     for match in TRIVIA_Q_PATTERN.findall(blob):
         question = _normalize_question_text(match)
         if len(question) < 20:
             continue
         if "star wars" not in question.lower() and not _contains_star_wars(blob):
             continue
-        # Fallback options are intentionally generic but unique and grammatically stable.
+        if len(parsed_options) < 3:
+            continue
         validated = _validate_question_candidate(
             question,
-            [
-                "Option A",
-                "Option B",
-                "Option C",
-                "Option D",
-            ],
+            parsed_options[:4],
         )
         if not validated:
             continue
         out.append({"text": validated["question"], "options": validated["options"], "confidence": 0.57})
         if len(out) >= 3:
             break
-
-    if out:
-        return out
-
-    # Create lightweight trivia prompts from headlines with fixed, valid options.
-    title = _normalize_text(entry.get("title") or "")
-    if len(title) >= 16 and _contains_star_wars(title):
-        validated = _validate_question_candidate(
-            f"Which statement best matches this headline: {title}?",
-            [
-                "It confirms official canon details",
-                "It is likely fan speculation",
-                "It focuses on production updates",
-                "It is mostly unrelated context",
-            ],
-        )
-        if validated:
-            out.append({"text": validated["question"], "options": validated["options"], "confidence": 0.5})
     return out
 
 
@@ -647,6 +732,9 @@ def ingest_dataset_sources():
                         text = validated["question"]
                         options = validated["options"]
                         answer_text = validated["answer_text"]
+
+                    if not _passes_candidate_quality_gate(dataset_name, text, options, entry):
+                        continue
 
                     signature = _item_hash(dataset_name, text, json.dumps(options or [], ensure_ascii=False))
                     if signature in seen_candidate_signatures:
@@ -953,6 +1041,107 @@ def reject_candidate(candidate_id):
         return {"ok": False, "reason": "not-found"}
     db.set_dataset_candidate_status(candidate_id, "rejected")
     return {"ok": True}
+
+
+def _row_value(row, key, idx, default=None):
+    if hasattr(row, "get"):
+        return row.get(key, default)
+    try:
+        return row[idx]
+    except Exception:
+        return default
+
+
+def _parse_candidate_options(row):
+    options_raw = _row_value(row, "options_json", 8, [])
+    if isinstance(options_raw, list):
+        return [str(v).strip() for v in options_raw if str(v).strip()]
+    if isinstance(options_raw, str) and options_raw.strip():
+        try:
+            parsed = json.loads(options_raw)
+            if isinstance(parsed, list):
+                return [str(v).strip() for v in parsed if str(v).strip()]
+        except Exception:
+            return []
+    return []
+
+
+def _is_placeholder_option_set(options):
+    normalized = [_normalize_text(v).lower() for v in (options or []) if _normalize_text(v)]
+    if len(normalized) != 4:
+        return False
+    return normalized == ["option a", "option b", "option c", "option d"]
+
+
+def _malformed_candidate_reason(dataset_name, body_text, options):
+    text = _normalize_text(body_text)
+    if not text:
+        return "empty-body"
+
+    if _looks_like_noisy_question(text):
+        return "noisy-question"
+
+    if dataset_name in ("trivia", "polls") and _is_placeholder_option_set(options):
+        return "placeholder-options"
+
+    if dataset_name in ("trivia", "polls"):
+        for option in options or []:
+            if _looks_like_noisy_question(option):
+                return "noisy-options"
+
+    return None
+
+
+def cleanup_malformed_candidates(dry_run=True, limit=5000):
+    try:
+        max_scan = max(1, min(int(limit), 50000))
+    except Exception:
+        max_scan = 5000
+
+    rows = []
+    offset = 0
+    page_size = 300
+    while len(rows) < max_scan:
+        batch = db.list_dataset_candidates(status="candidate", limit=min(page_size, max_scan - len(rows)), offset=offset)
+        if not batch:
+            break
+        rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    malformed = []
+    for row in rows:
+        dataset_name = _normalize_text(str(_row_value(row, "dataset_name", 1, "") or "")).lower()
+        body_text = _normalize_text(str(_row_value(row, "body_text", 7, "") or ""))
+        options = _parse_candidate_options(row)
+        reason = _malformed_candidate_reason(dataset_name, body_text, options)
+        if not reason:
+            continue
+        candidate_id = int(_row_value(row, "id", 0, 0) or 0)
+        malformed.append(
+            {
+                "id": candidate_id,
+                "dataset": dataset_name,
+                "reason": reason,
+                "snippet": body_text[:160],
+            }
+        )
+
+    rejected = 0
+    if not dry_run:
+        for item in malformed:
+            db.set_dataset_candidate_status(item["id"], "rejected")
+            rejected += 1
+
+    return {
+        "ok": True,
+        "dry_run": bool(dry_run),
+        "scanned": len(rows),
+        "malformed": len(malformed),
+        "rejected": rejected,
+        "sample": malformed[:30],
+    }
 
 
 def register(app):

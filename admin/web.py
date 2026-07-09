@@ -1217,13 +1217,55 @@ def create_admin_app():
     def api_dataset_candidate_approve(candidate_id):
         user_id = require_admin()
         _require_csrf()
-        result = dataset_collectors_handler.approve_candidate(candidate_id)
-        db.add_admin_audit(
-            "dataset_candidate.approve",
-            actor_user_id=user_id,
-            actor_label="web",
-            details=json.dumps({"candidate_id": candidate_id, "result": result}),
-        )
+        payload = request.get_json(silent=True) or {}
+        run_async = bool(payload.get("async", True))
+        request_id = uuid.uuid4().hex[:10]
+
+        def _run_approve_candidate():
+            operation_started = time.perf_counter()
+            result = dataset_collectors_handler.approve_candidate(candidate_id)
+            operation_ms = round((time.perf_counter() - operation_started) * 1000.0, 1)
+
+            audit_started = time.perf_counter()
+            db.add_admin_audit(
+                "dataset_candidate.approve",
+                actor_user_id=user_id,
+                actor_label="web",
+                details=json.dumps({"candidate_id": candidate_id, "result": result}),
+            )
+            audit_ms = round((time.perf_counter() - audit_started) * 1000.0, 1)
+
+            total_ms = round(operation_ms + audit_ms, 1)
+            app.logger.info(
+                "dataset_candidate.approve request_id=%s candidate_id=%s result_ok=%s operation_ms=%s audit_ms=%s total_ms=%s",
+                request_id,
+                candidate_id,
+                bool(result.get("ok")),
+                operation_ms,
+                audit_ms,
+                total_ms,
+            )
+            return {
+                "result": result,
+                "timings_ms": {
+                    "operation": operation_ms,
+                    "audit": audit_ms,
+                    "total": total_ms,
+                },
+            }
+
+        if run_async:
+            task = _start_async_task("dataset_candidate_approve", user_id, _run_approve_candidate)
+            app.logger.info(
+                "dataset_candidate.approve queued request_id=%s candidate_id=%s task_id=%s",
+                request_id,
+                candidate_id,
+                task.get("id"),
+            )
+            return jsonify({"ok": True, "async": True, "task": task}), 202
+
+        run_payload = _run_approve_candidate()
+        result = run_payload.get("result") or {}
         status = 200 if result.get("ok") else 400
         return jsonify(result), status
 
@@ -1231,13 +1273,55 @@ def create_admin_app():
     def api_dataset_candidate_reject(candidate_id):
         user_id = require_admin()
         _require_csrf()
-        result = dataset_collectors_handler.reject_candidate(candidate_id)
-        db.add_admin_audit(
-            "dataset_candidate.reject",
-            actor_user_id=user_id,
-            actor_label="web",
-            details=json.dumps({"candidate_id": candidate_id, "result": result}),
-        )
+        payload = request.get_json(silent=True) or {}
+        run_async = bool(payload.get("async", True))
+        request_id = uuid.uuid4().hex[:10]
+
+        def _run_reject_candidate():
+            operation_started = time.perf_counter()
+            result = dataset_collectors_handler.reject_candidate(candidate_id)
+            operation_ms = round((time.perf_counter() - operation_started) * 1000.0, 1)
+
+            audit_started = time.perf_counter()
+            db.add_admin_audit(
+                "dataset_candidate.reject",
+                actor_user_id=user_id,
+                actor_label="web",
+                details=json.dumps({"candidate_id": candidate_id, "result": result}),
+            )
+            audit_ms = round((time.perf_counter() - audit_started) * 1000.0, 1)
+
+            total_ms = round(operation_ms + audit_ms, 1)
+            app.logger.info(
+                "dataset_candidate.reject request_id=%s candidate_id=%s result_ok=%s operation_ms=%s audit_ms=%s total_ms=%s",
+                request_id,
+                candidate_id,
+                bool(result.get("ok")),
+                operation_ms,
+                audit_ms,
+                total_ms,
+            )
+            return {
+                "result": result,
+                "timings_ms": {
+                    "operation": operation_ms,
+                    "audit": audit_ms,
+                    "total": total_ms,
+                },
+            }
+
+        if run_async:
+            task = _start_async_task("dataset_candidate_reject", user_id, _run_reject_candidate)
+            app.logger.info(
+                "dataset_candidate.reject queued request_id=%s candidate_id=%s task_id=%s",
+                request_id,
+                candidate_id,
+                task.get("id"),
+            )
+            return jsonify({"ok": True, "async": True, "task": task}), 202
+
+        run_payload = _run_reject_candidate()
+        result = run_payload.get("result") or {}
         status = 200 if result.get("ok") else 400
         return jsonify(result), status
 
@@ -1338,6 +1422,35 @@ def create_admin_app():
             actor_user_id=user_id,
             actor_label="web",
             details=json.dumps(summary),
+        )
+        return jsonify(summary)
+
+    @app.post("/admin/api/dataset-candidates/cleanup-malformed")
+    def api_dataset_candidates_cleanup_malformed():
+        user_id = require_admin()
+        _require_csrf()
+        payload = request.get_json(silent=True) or {}
+        dry_run = bool(payload.get("dry_run", True))
+        limit_raw = payload.get("limit", 5000)
+        try:
+            limit = max(1, min(int(limit_raw), 50000))
+        except Exception:
+            limit = 5000
+
+        summary = dataset_collectors_handler.cleanup_malformed_candidates(dry_run=dry_run, limit=limit)
+        db.add_admin_audit(
+            "dataset_candidate.cleanup_malformed",
+            actor_user_id=user_id,
+            actor_label="web",
+            details=json.dumps({
+                "dry_run": dry_run,
+                "limit": limit,
+                "summary": {
+                    "scanned": summary.get("scanned"),
+                    "malformed": summary.get("malformed"),
+                    "rejected": summary.get("rejected"),
+                },
+            }),
         )
         return jsonify(summary)
 

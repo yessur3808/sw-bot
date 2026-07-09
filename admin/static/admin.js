@@ -1813,10 +1813,23 @@ const renderDatasetCandidates = () => {
         approve.disabled = String(row.status || "") === "approved";
         approve.onclick = async () => {
             try {
-                const result = await requestJson(`/admin/api/dataset-candidates/${row.id}/approve`, {
+                approve.disabled = true;
+                approve.textContent = "Approving...";
+                const queued = await requestJson(`/admin/api/dataset-candidates/${row.id}/approve`, {
                     method: "POST",
-                    body: JSON.stringify({}),
+                    body: JSON.stringify({ async: true }),
+                    timeoutMs: 45000,
                 });
+                let result = queued;
+                if (queued?.async && queued?.task?.id) {
+                    const task = await pollTaskUntilDone(queued.task.id, {
+                        maxWaitMs: 120000,
+                    });
+                    result = task?.result?.result || task?.result || {};
+                }
+                if (!result?.ok) {
+                    throw new Error(result?.reason || "Approve failed");
+                }
                 selectedCandidateIds.delete(rowId);
                 await loadDatasetCandidates();
                 if ((result.dataset || "") === activeDataset) {
@@ -1824,6 +1837,9 @@ const renderDatasetCandidates = () => {
                 }
             } catch (err) {
                 alert(err.message);
+            } finally {
+                approve.disabled = String(row.status || "") === "approved";
+                approve.textContent = "Approve";
             }
         };
 
@@ -1834,10 +1850,18 @@ const renderDatasetCandidates = () => {
             try {
                 reject.disabled = true;
                 reject.textContent = "Rejecting...";
-                const result = await requestJson(`/admin/api/dataset-candidates/${row.id}/reject`, {
+                const queued = await requestJson(`/admin/api/dataset-candidates/${row.id}/reject`, {
                     method: "POST",
-                    body: JSON.stringify({}),
+                    body: JSON.stringify({ async: true }),
+                    timeoutMs: 45000,
                 });
+                let result = queued;
+                if (queued?.async && queued?.task?.id) {
+                    const task = await pollTaskUntilDone(queued.task.id, {
+                        maxWaitMs: 120000,
+                    });
+                    result = task?.result?.result || task?.result || {};
+                }
                 if (!result?.ok) {
                     throw new Error(result?.reason || "Reject failed");
                 }
