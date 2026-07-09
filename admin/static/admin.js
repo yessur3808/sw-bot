@@ -2098,6 +2098,24 @@ const refreshSourceStatus = async () => {
     renderStatus();
 };
 
+const loadPendingEvents = async () => {
+    const payload = await requestJson("/admin/api/pending-events");
+    state.pending_events = payload.rows || [];
+    renderEvents();
+};
+
+const loadAdminProfiles = async () => {
+    const payload = await requestJson("/admin/api/admin-profiles");
+    state.admin_profiles = payload.rows || [];
+    renderAdminDirectory();
+};
+
+const loadAudit = async () => {
+    const payload = await requestJson("/admin/api/audit");
+    state.audit = payload.rows || [];
+    renderAudit();
+};
+
 const refreshLiveData = async () => {
     const runAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     if (refreshLiveData.inFlight) {
@@ -2987,7 +3005,10 @@ const bootstrap = async () => {
         renderRecentTasks();
         setConnectionStatus("ok", "Connected", `Live dashboard ready ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
         void Promise.allSettled([
+            loadPendingEvents(),
+            loadAudit(),
             loadSources("hk"),
+            loadAdminProfiles(),
             loadDataset("facts"),
             refreshTelemetry(),
             refreshSourceStatus(),

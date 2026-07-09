@@ -768,6 +768,14 @@ def create_admin_app():
             abort(404, description="avatar-not-found")
         return send_file(avatar_path)
 
+    @app.get("/favicon.ico")
+    @app.get("/admin/favicon.ico")
+    def admin_favicon_asset():
+        avatar_path = ROOT / "sium8_1.png"
+        if not avatar_path.exists():
+            abort(404, description="favicon-not-found")
+        return send_file(avatar_path, mimetype="image/png")
+
     @app.post("/admin/login")
     def admin_login():
         user_id_raw = str(request.form.get("user_id") or "").strip()
@@ -823,34 +831,35 @@ def create_admin_app():
     @app.get("/admin/api/bootstrap")
     def api_bootstrap():
         user_id = require_admin()
-        pending = db.list_events_by_status("pending_review", limit=40)
-        current_profile = db.get_admin_profile(user_id)
-        sources = {
-            "hk": runtime_settings.source_overrides_for_ui("hk"),
-            "global": runtime_settings.source_overrides_for_ui("global"),
-        }
+        timings = {}
+
+        def timed(name, func):
+            started = time.perf_counter()
+            value = func()
+            elapsed_ms = round((time.perf_counter() - started) * 1000.0, 1)
+            timings[name] = elapsed_ms
+            if elapsed_ms >= 200.0:
+                app.logger.warning("admin bootstrap step %s took %sms", name, elapsed_ms)
+            return value
+
+        current_profile = timed("current_admin_profile", lambda: db.get_admin_profile(user_id))
         payload = {
             "user_id": user_id,
             "csrf_token": session.get("csrf_token"),
-            "schema_status": _schema_status_payload(),
-            "recent_tasks": _list_async_tasks(limit=12),
-            "settings": runtime_settings.export_runtime_settings(),
-            "sources": sources,
-            "pending_events": [dict(row) for row in pending],
-            "source_status": [dict(row) for row in db.latest_ingestion_run_per_source(limit=30)],
-            "recent_runs": [dict(row) for row in db.latest_ingestion_runs(limit=80)],
-            "audit": [dict(row) for row in db.list_admin_audit(limit=40)],
-            "llm_status_counts": db.llm_status_counts(hours=24),
-            "llm_skip_reasons": db.llm_skip_reason_counts(hours=24, limit=10),
-            "reddit_cache_stats": db.reddit_cache_stats(hours=24),
-            "reddit_subreddit_counts": db.reddit_subreddit_counts(hours=24),
-            "reddit_cache_rows": [dict(row) for row in db.list_reddit_cache(limit=30, offset=0)],
-            "system_metrics": _system_metrics_snapshot(),
-            "ai_config": _ai_config_payload(),
-            "admin_profiles": [dict(row) for row in db.list_admin_profiles()],
+            "schema_status": timed("schema_status", _schema_status_payload),
+            "settings": timed("settings", runtime_settings.export_runtime_settings),
+            "system_metrics": timed("system_metrics", _system_metrics_snapshot),
+            "ai_config": timed("ai_config", _ai_config_payload),
             "current_admin_profile": dict(current_profile) if current_profile else None,
+            "bootstrap_timings": timings,
         }
         return jsonify(payload)
+
+    @app.get("/admin/api/pending-events")
+    def api_pending_events():
+        require_admin()
+        pending = db.list_events_by_status("pending_review", limit=40)
+        return jsonify({"rows": [dict(row) for row in pending]})
 
     @app.get("/admin/api/admin-profiles")
     def api_admin_profiles():
