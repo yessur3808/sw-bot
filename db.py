@@ -340,6 +340,22 @@ def init_db():
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_reddit_cache_relayed_fetched ON reddit_ingest_cache(relayed, fetched_at DESC)")
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_reddit_cache_blocked_fetched ON reddit_ingest_cache(blocked, fetched_at DESC)")
             _execute(conn, """
+            CREATE TABLE IF NOT EXISTS public_holidays (
+                id BIGSERIAL PRIMARY KEY,
+                region TEXT NOT NULL,
+                holiday_date TEXT NOT NULL,
+                holiday_name TEXT NOT NULL,
+                source_name TEXT,
+                source_url TEXT,
+                source_meta TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(region, holiday_date)
+            );
+            """)
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_public_holidays_region_date ON public_holidays(region, holiday_date)")
+            _execute(conn, "CREATE INDEX IF NOT EXISTS idx_public_holidays_date ON public_holidays(holiday_date)")
+            _execute(conn, """
             CREATE TABLE IF NOT EXISTS dataset_ingest_candidates (
                 id BIGSERIAL PRIMARY KEY,
                 dataset_name TEXT NOT NULL,
@@ -596,6 +612,18 @@ def init_db():
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS public_holidays (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            region TEXT NOT NULL,
+            holiday_date TEXT NOT NULL,
+            holiday_name TEXT NOT NULL,
+            source_name TEXT,
+            source_url TEXT,
+            source_meta TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(region, holiday_date)
+        );
         CREATE INDEX IF NOT EXISTS idx_events_status_region_date ON events(status, region, event_date);
         CREATE INDEX IF NOT EXISTS idx_events_canonical_url ON events(canonical_url);
         CREATE INDEX IF NOT EXISTS idx_events_dedupe_key ON events(dedupe_key);
@@ -621,6 +649,8 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_reddit_cache_blocked_fetched ON reddit_ingest_cache(blocked, fetched_at DESC);
         CREATE INDEX IF NOT EXISTS idx_dataset_candidates_dataset_status ON dataset_ingest_candidates(dataset_name, status, created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_dataset_candidates_source ON dataset_ingest_candidates(source_name, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_public_holidays_region_date ON public_holidays(region, holiday_date);
+        CREATE INDEX IF NOT EXISTS idx_public_holidays_date ON public_holidays(holiday_date);
         """)
 
         # Best-effort compatibility when older sqlite DBs already exist without new columns.
@@ -2582,3 +2612,186 @@ def set_dataset_candidate_status(candidate_id, status):
             "UPDATE dataset_ingest_candidates SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
             (str(status).strip().lower(), candidate_id),
         )
+
+
+def replace_public_holidays(region, rows):
+    clean_region = str(region or "").strip().lower()
+    if not clean_region:
+        raise ValueError("region is required")
+    if not isinstance(rows, list) or not rows:
+        return 0
+
+    cleaned = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        holiday_date = str(row.get("holiday_date") or "").strip()
+        holiday_name = str(row.get("holiday_name") or "").strip()
+        if not holiday_date or not holiday_name:
+            continue
+        source_name = str(row.get("source_name") or "").strip()
+        source_url = str(row.get("source_url") or "").strip()
+        source_meta = row.get("source_meta")
+        if source_meta is not None and not isinstance(source_meta, str):
+            source_meta = json.dumps(source_meta, ensure_ascii=False, sort_keys=True)
+        cleaned.append(
+            {
+                "holiday_date": holiday_date,
+                "holiday_name": holiday_name,
+                "source_name": source_name,
+                "source_url": source_url,
+                "source_meta": source_meta,
+            }
+        )
+
+    if not cleaned:
+        return 0
+
+    dates = sorted({row["holiday_date"] for row in cleaned})
+    start_date = dates[0]
+    end_date = dates[-1]
+
+    with get_db() as conn:
+        _execute(
+            conn,
+            "DELETE FROM public_holidays WHERE region=? AND holiday_date>=? AND holiday_date<=?",
+            (clean_region, start_date, end_date),
+        )
+        for row in cleaned:
+            _execute(
+                conn,
+                """
+                INSERT INTO public_holidays(
+                    region, holiday_date, holiday_name, source_name, source_url, source_meta, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(region, holiday_date) DO UPDATE SET
+                    holiday_name=excluded.holiday_name,
+                    source_name=excluded.source_name,
+                    source_url=excluded.source_url,
+                    source_meta=excluded.source_meta,
+                    updated_at=CURRENT_TIMESTAMP
+                """,
+                (
+                    clean_region,
+                    row["holiday_date"],
+                    row["holiday_name"],
+                    row["source_name"],
+                    row["source_url"],
+                    row["source_meta"],
+                ),
+            )
+    return len(cleaned)
+
+
+def get_public_holiday(region, holiday_date):
+    clean_region = str(region or "").strip().lower()
+    date_iso = str(holiday_date or "").strip()
+    if not clean_region or not date_iso:
+        return None
+    with get_db() as conn:
+        row = _fetchone(
+            _execute(
+                conn,
+                """
+                SELECT id, region, holiday_date, holiday_name, source_name, source_url, source_meta, created_at, updated_at
+                FROM public_holidays
+                WHERE region=? AND holiday_date=?
+                LIMIT 1
+                """,
+                (clean_region, date_iso),
+            )
+        )
+    if not row:
+        return None
+    payload = dict(row) if hasattr(row, "keys") else {
+        "id": row[0],
+        "region": row[1],
+        "holiday_date": row[2],
+        "holiday_name": row[3],
+        "source_name": row[4],
+        "source_url": row[5],
+        "source_meta": row[6],
+        "created_at": row[7],
+        "updated_at": row[8],
+    }
+    raw_meta = payload.get("source_meta")
+    if isinstance(raw_meta, str) and raw_meta.strip():
+        try:
+            payload["source_meta"] = json.loads(raw_meta)
+        except Exception:
+            payload["source_meta"] = {}
+    elif raw_meta is None:
+        payload["source_meta"] = {}
+    return payload
+
+
+def list_public_holidays(region=None, year=None, limit=120, offset=0):
+    sql = """
+        SELECT id, region, holiday_date, holiday_name, source_name, source_url, source_meta, created_at, updated_at
+        FROM public_holidays
+        WHERE 1=1
+    """
+    args = []
+    if region:
+        sql += " AND region=?"
+        args.append(str(region).strip().lower())
+    if year:
+        year_text = str(year).strip()
+        if year_text.isdigit() and len(year_text) == 4:
+            sql += " AND holiday_date LIKE ?"
+            args.append(f"{year_text}-%")
+
+    sql += " ORDER BY holiday_date ASC LIMIT ? OFFSET ?"
+    args.extend([max(1, min(366, int(limit))), max(0, int(offset))])
+
+    with get_db() as conn:
+        rows = _fetchall(_execute(conn, sql, tuple(args)))
+
+    out = []
+    for row in rows:
+        payload = dict(row) if hasattr(row, "keys") else {
+            "id": row[0],
+            "region": row[1],
+            "holiday_date": row[2],
+            "holiday_name": row[3],
+            "source_name": row[4],
+            "source_url": row[5],
+            "source_meta": row[6],
+            "created_at": row[7],
+            "updated_at": row[8],
+        }
+        raw_meta = payload.get("source_meta")
+        if isinstance(raw_meta, str) and raw_meta.strip():
+            try:
+                payload["source_meta"] = json.loads(raw_meta)
+            except Exception:
+                payload["source_meta"] = {}
+        elif raw_meta is None:
+            payload["source_meta"] = {}
+        out.append(payload)
+    return out
+
+
+def count_public_holidays(region=None, year=None):
+    sql = "SELECT COUNT(*) FROM public_holidays WHERE 1=1"
+    args = []
+    if region:
+        sql += " AND region=?"
+        args.append(str(region).strip().lower())
+    if year:
+        year_text = str(year).strip()
+        if year_text.isdigit() and len(year_text) == 4:
+            sql += " AND holiday_date LIKE ?"
+            args.append(f"{year_text}-%")
+
+    with get_db() as conn:
+        row = _fetchone(_execute(conn, sql, tuple(args)))
+    if not row:
+        return 0
+    if hasattr(row, "get"):
+        try:
+            return int(row[0])
+        except Exception:
+            values = list(row.values())
+            return int(values[0]) if values else 0
+    return int(row[0])

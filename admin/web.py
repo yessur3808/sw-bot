@@ -16,6 +16,7 @@ from admin import runtime_settings
 from handlers import events as events_handler
 from handlers import reddit_ingest as reddit_ingest_handler
 from handlers import dataset_collectors as dataset_collectors_handler
+from handlers import holidays as holidays_handler
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -931,6 +932,63 @@ def create_admin_app():
         require_admin()
         limit_raw = request.args.get("limit", "12")
         return jsonify({"rows": _list_async_tasks(limit=limit_raw)})
+
+    @app.get("/admin/api/holidays")
+    def api_holidays_list():
+        require_admin()
+        region = str(request.args.get("region", "hk")).strip().lower() or "hk"
+        year_raw = str(request.args.get("year", "")).strip()
+        limit_raw = request.args.get("limit", "120")
+        offset_raw = request.args.get("offset", "0")
+
+        year = None
+        if year_raw.isdigit() and len(year_raw) == 4:
+            year = int(year_raw)
+
+        try:
+            limit = max(1, min(366, int(limit_raw)))
+        except Exception:
+            limit = 120
+        try:
+            offset = max(0, int(offset_raw))
+        except Exception:
+            offset = 0
+
+        rows = db.list_public_holidays(region=region, year=year, limit=limit, offset=offset)
+        total = db.count_public_holidays(region=region, year=year)
+        return jsonify({
+            "rows": rows,
+            "total": total,
+            "region": region,
+            "year": year,
+            "limit": limit,
+            "offset": offset,
+        })
+
+    @app.post("/admin/api/holidays/sync")
+    def api_holidays_sync():
+        user_id = require_admin()
+        _require_csrf()
+        payload = request.get_json(silent=True) or {}
+        run_async = bool(payload.get("async", True))
+        if run_async:
+            task = _start_async_task("holidays_sync", user_id, holidays_handler.sync_hk_public_holidays)
+            db.add_admin_audit(
+                "holidays.sync",
+                actor_user_id=user_id,
+                actor_label="web",
+                details=json.dumps({"mode": "async", "task_id": task["id"]}),
+            )
+            return jsonify({"ok": True, "async": True, "task": task}), 202
+
+        summary = holidays_handler.sync_hk_public_holidays()
+        db.add_admin_audit(
+            "holidays.sync",
+            actor_user_id=user_id,
+            actor_label="web",
+            details=json.dumps({"mode": "sync", "summary": summary}),
+        )
+        return jsonify({"ok": True, "async": False, "summary": summary})
 
     @app.get("/admin/api/telemetry")
     def api_telemetry():

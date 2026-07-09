@@ -7,7 +7,7 @@ from telegram.ext import Application, CommandHandler
 import config, db
 from admin import runtime_settings
 from admin.server import start_admin_ui
-from handlers import xp, trivia, memes, wallpapers, content, events, auto_engage, reddit_ingest, dataset_collectors
+from handlers import xp, trivia, memes, wallpapers, content, events, auto_engage, reddit_ingest, dataset_collectors, holidays
 from telemetry import instrument_command_handler, mark_scheduler_execution_outcome, scheduler_execution_logged
 
 
@@ -71,6 +71,7 @@ async def help_cmd(update, context):
                 "/reddit_digest [limit] - Preview unrelayed Reddit cache items",
                 "/dataset_ingest_now - Trigger one-shot original-source dataset collection",
                 "/dataset_candidates [dataset] [limit] - Preview collected dataset candidates",
+                "/sync_holidays - Refresh Hong Kong public holidays from official source",
             ]
         )
 
@@ -663,6 +664,12 @@ def main():
     events.register(app)
     reddit_ingest.register(app)
     dataset_collectors.register(app)
+    holidays.register(app)
+
+    try:
+        holidays.sync_hk_public_holidays()
+    except Exception as exc:
+        print(f"WARNING: public holiday startup sync failed: {type(exc).__name__}: {exc}")
 
     collisions = _thread_collision_map()
     if collisions:
@@ -712,6 +719,7 @@ def main():
             interval=max(10, runtime_settings.get("dataset_collector_interval_minutes")) * 60,
             first=25,
         )
+    jq.run_repeating(holidays.sync_holidays_job, interval=24 * 3600, first=90)
     jq.run_once(first_run_introduction, when=8)
     jq.run_once(startup_recovery_post, when=10)
     async def heartbeat_job(context):

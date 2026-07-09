@@ -458,7 +458,7 @@ def register(app):
                 | filters.CAPTION
                 | filters.PHOTO
                 | filters.ANIMATION
-                | filters.STICKER
+                | filters.Sticker.ALL
                 | filters.VIDEO
                 | filters.Document.ALL
                 | filters.VOICE

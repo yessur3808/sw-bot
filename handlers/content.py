@@ -347,6 +347,14 @@ def _greeting_for_today(local_dt):
 
     if local_dt.month == 5 and local_dt.day == 4:
         return "may4", random.choice(MAY_THE_FOURTH_GREETINGS)
+    holiday = db.get_public_holiday("hk", date_iso)
+    if holiday:
+        holiday_name = str(holiday.get("holiday_name") or "").strip()
+        if holiday_name:
+            return "hk_holiday", f"Happy {holiday_name} in Hong Kong. May the Force be with you. 🎊"
+        return "hk_holiday", random.choice(HK_HOLIDAY_GREETINGS)
+
+    # Fallback for environments that have not synced holidays to DB yet.
     if date_iso in HK_PUBLIC_HOLIDAYS:
         return "hk_holiday", random.choice(HK_HOLIDAY_GREETINGS)
     if weekday == 4:

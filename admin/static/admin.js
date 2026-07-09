@@ -37,6 +37,10 @@ let state = {
     system_metrics: {},
     schema_status: null,
     recent_tasks: [],
+    holidays_rows: [],
+    holidays_total: 0,
+    holidays_region: "hk",
+    holidays_year: null,
     ai_config: {},
     admin_profiles: [],
     current_admin_profile: null,
@@ -771,9 +775,63 @@ const switchMainTab = (tabId) => {
     } else if (tabId === "admins") {
         renderCurrentAdminProfile();
         renderAdminDirectory();
+    } else if (tabId === "holidays") {
+        loadHolidays().catch(() => { });
     } else if (tabId === "dataset-candidates") {
         loadDatasetCandidates().catch(() => { });
     }
+};
+
+const holidayFilters = () => {
+    const region = String(document.getElementById("holiday-filter-region")?.value || "hk").trim().toLowerCase() || "hk";
+    const yearRaw = String(document.getElementById("holiday-filter-year")?.value || "").trim();
+    const limit = 200;
+    const out = { region, limit };
+    if (yearRaw && /^\d{4}$/.test(yearRaw)) {
+        out.year = yearRaw;
+    }
+    return out;
+};
+
+const renderHolidayRows = () => {
+    const target = document.getElementById("holiday-list");
+    const meta = document.getElementById("holiday-meta");
+    if (!target || !meta) {
+        return;
+    }
+
+    const rows = state.holidays_rows || [];
+    const total = Number(state.holidays_total || 0);
+    const region = String(state.holidays_region || "hk");
+    const year = state.holidays_year;
+    meta.textContent = `${rows.length}/${total} records | region=${region}${year ? ` | year=${year}` : ""}`;
+    target.innerHTML = "";
+
+    if (!rows.length) {
+        target.appendChild(createListItem("No holidays found", "Try removing year filter or syncing latest source data."));
+        return;
+    }
+
+    rows.forEach((row) => {
+        const dateValue = String(row.holiday_date || "").trim() || "unknown-date";
+        const nameValue = String(row.holiday_name || "Unnamed holiday");
+        const sourceName = String(row.source_name || "source");
+        const sourceUrl = String(row.source_url || "");
+        const subtitle = sourceUrl
+            ? `${sourceName} | <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">open source ↗</a>`
+            : sourceName;
+        target.appendChild(createListItem(`${escapeHtml(dateValue)} | ${escapeHtml(nameValue)}`, subtitle));
+    });
+};
+
+const loadHolidays = async () => {
+    const query = buildQuery(holidayFilters());
+    const payload = await requestJson(`/admin/api/holidays?${query}`);
+    state.holidays_rows = payload.rows || [];
+    state.holidays_total = Number(payload.total || 0);
+    state.holidays_region = payload.region || "hk";
+    state.holidays_year = payload.year || null;
+    renderHolidayRows();
 };
 
 const fmtDuration = (seconds) => {
@@ -2664,6 +2722,58 @@ const initActions = () => {
                 await pollSystemMetrics();
             } catch (err) {
                 alert(err.message);
+            }
+        };
+    }
+
+    const holidayApply = document.getElementById("holiday-filter-apply");
+    if (holidayApply) {
+        holidayApply.onclick = async () => {
+            try {
+                await loadHolidays();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+    }
+
+    const holidaySync = document.getElementById("holiday-sync-now");
+    if (holidaySync) {
+        holidaySync.onclick = async () => {
+            const originalText = holidaySync.textContent;
+            const meta = document.getElementById("holiday-meta");
+            try {
+                holidaySync.disabled = true;
+                holidaySync.textContent = "Syncing...";
+                if (meta) {
+                    meta.textContent = "Syncing holiday feed...";
+                }
+                const payload = await requestJson("/admin/api/holidays/sync", {
+                    method: "POST",
+                    body: JSON.stringify({ async: true }),
+                });
+                const taskId = payload?.task?.id;
+                if (!taskId) {
+                    throw new Error("Missing task id from holiday sync response");
+                }
+                const task = await pollTaskUntilDone(taskId, {
+                    intervalMs: 1200,
+                    onUpdate: (current) => {
+                        if (meta) {
+                            meta.textContent = `Syncing holiday feed (${current.status})...`;
+                        }
+                    },
+                });
+                await loadHolidays();
+                const summary = task.result || {};
+                if (meta) {
+                    meta.textContent = `Holiday sync complete | fetched=${Number(summary.fetched || 0)} | saved=${Number(summary.saved || 0)}`;
+                }
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                holidaySync.disabled = false;
+                holidaySync.textContent = originalText;
             }
         };
     }

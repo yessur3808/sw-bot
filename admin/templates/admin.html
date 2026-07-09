@@ -70,6 +70,7 @@
             <button class="tab" data-tab="ai">🧠 AI Models</button>
             <button class="tab" data-tab="admins">🛡️ Admins</button>
             <button class="tab" data-tab="events">🛰️ Event Review</button>
+            <button class="tab" data-tab="holidays">📅 Holidays</button>
             <button class="tab" data-tab="reddit">👽 Reddit Cache</button>
             <button class="tab" data-tab="datasets">📚 Datasets</button>
             <button class="tab" data-tab="dataset-candidates">🧪 Dataset Candidates</button>
@@ -405,6 +406,47 @@
                 <div id="events-summary" class="help"></div>
                 <div id="pending-events" class="list event-queue"></div>
             </article>
+        </section>
+
+        <section class="panel" data-panel="holidays">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Public Holidays</h2>
+                    <p class="help">Database-backed holiday records used by greeting logic.</p>
+                    <div class="filter-row">
+                        <label>Region
+                            <select id="holiday-filter-region">
+                                <option value="hk" selected>hk</option>
+                            </select>
+                        </label>
+                        <label>Year
+                            <input id="holiday-filter-year" type="number" min="2020" max="2100" placeholder="e.g. 2026">
+                        </label>
+                        <button id="holiday-filter-apply" type="button">Refresh</button>
+                    </div>
+                    <div class="button-row">
+                        <button id="holiday-sync-now" type="button">Sync Holidays Now</button>
+                    </div>
+                    <div id="holiday-meta" class="help"></div>
+                    <div id="holiday-list" class="list"></div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Holiday Source</h2>
+                    <div class="list-item">
+                        <p>Origin</p>
+                        <small>1823.gov.hk JSON calendar feed is synced into the local database.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Greeting behavior</p>
+                        <small>Holiday greetings now look up records from DB instead of relying only on static env
+                            values.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Fallback</p>
+                        <small>If sync has not run yet, legacy env holiday values can still be used as fallback.</small>
+                    </div>
+                </article>
+            </div>
         </section>
 
         <section class="panel" data-panel="datasets">
