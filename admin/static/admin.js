@@ -78,25 +78,43 @@ const requestJson = async (url, options = {}) => {
         ...(options.headers || {}),
     };
     const method = String(options.method || "GET").toUpperCase();
+    const timeoutMs = Number.isFinite(Number(options.timeoutMs)) ? Math.max(1000, Number(options.timeoutMs)) : 15000;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    let timeoutId = null;
     if (options.method && options.method !== "GET") {
         headers["X-CSRF-Token"] = csrfToken;
     }
-    const response = await fetch(url, {
-        ...options,
-        headers,
-        cache: method === "GET" ? "no-store" : options.cache,
-    });
-    if (!response.ok) {
-        let detail = "";
-        try {
-            const body = await response.json();
-            detail = body.error || body.description || "";
-        } catch (_) {
-            detail = await response.text();
+    try {
+        if (controller) {
+            timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
         }
-        throw new Error(detail || `Request failed: ${response.status}`);
+        const response = await fetch(url, {
+            ...options,
+            headers,
+            signal: controller ? controller.signal : options.signal,
+            cache: method === "GET" ? "no-store" : options.cache,
+        });
+        if (!response.ok) {
+            let detail = "";
+            try {
+                const body = await response.json();
+                detail = body.error || body.description || "";
+            } catch (_) {
+                detail = await response.text();
+            }
+            throw new Error(detail || `Request failed: ${response.status}`);
+        }
+        return response.json();
+    } catch (err) {
+        if (err?.name === "AbortError") {
+            throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s: ${url}`);
+        }
+        throw err;
+    } finally {
+        if (timeoutId) {
+            window.clearTimeout(timeoutId);
+        }
     }
-    return response.json();
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1260,8 +1278,15 @@ const renderSchedulerPlanDetail = () => {
 const renderStatus = () => {
     const target = document.getElementById("status-list");
     const metricTarget = document.getElementById("dashboard-metrics");
+    const auditTarget = document.getElementById("scheduler-plan-post-audit");
     renderSchemaStatus();
+    if (!target || !metricTarget) {
+        return;
+    }
     target.innerHTML = "";
+    if (auditTarget) {
+        auditTarget.innerHTML = "";
+    }
 
     let ok = 0;
     let blocked = 0;
@@ -1273,8 +1298,8 @@ const renderStatus = () => {
             ok += 1;
         } else if (status.startsWith("blocked:")) {
             blocked += 1;
-            const primaryAuditRow = payload.rows.find((row) => row.post_audit) || null;
-            if (primaryAuditRow && primaryAuditRow.post_audit) {
+            const primaryAuditRow = state.source_status.find((statusRow) => statusRow.post_audit) || null;
+            if (primaryAuditRow && primaryAuditRow.post_audit && auditTarget) {
                 const audit = primaryAuditRow.post_audit;
                 auditTarget.appendChild(
                     createListItem(
@@ -1282,7 +1307,7 @@ const renderStatus = () => {
                         `topic=${audit.topic} | thread=${audit.thread_id} | message=${audit.telegram_message_id} | content_type=${audit.content_type} | content_id=${audit.content_id} | posted_at=${audit.posted_at}`
                     )
                 );
-            } else {
+            } else if (auditTarget) {
                 auditTarget.appendChild(createListItem("Linked post_audit row", "No delivered post_audit row is linked to this plan yet."));
             }
         } else {
@@ -1297,17 +1322,23 @@ const renderStatus = () => {
         const createdAt = formatRunTime(row.created_at);
         const item = document.createElement("div");
         item.className = `list-item source-matrix-row ${statusClass}`;
-                    </div >
-    <span class="item-kicker-subtle">Last run ${createdAt}</span>
-                </div >
-    <span class="status-pill ${statusClass}">${row.status || "unknown"}</span>
-            </div >
-    <div class="source-matrix-body">
-        <span>Fetched <strong>${fetched}</strong></span>
-        <span>Saved <strong>${saved}</strong></span>
-        <span>Ratio <strong>${ratio}</strong></span>
-    </div>
-`;
+        item.innerHTML = `
+            <div class="source-matrix-top">
+                <div>
+                    <div class="source-matrix-title">
+                        <strong>${escapeHtml(row.source_name || "unknown")}</strong>
+                        ${sourceUrl}
+                    </div>
+                    <span class="item-kicker-subtle">Last run ${escapeHtml(createdAt)}</span>
+                </div>
+                <span class="status-pill ${statusClass}">${escapeHtml(row.status || "unknown")}</span>
+            </div>
+            <div class="source-matrix-body">
+                <span>Fetched <strong>${fetched}</strong></span>
+                <span>Saved <strong>${saved}</strong></span>
+                <span>Ratio <strong>${ratio}</strong></span>
+            </div>
+        `;
         target.appendChild(item);
     });
 
@@ -1325,11 +1356,11 @@ const renderStatus = () => {
     metrics.forEach((metric) => {
         const node = document.createElement("div");
         node.className = "metric";
-        node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
+        node.innerHTML = `<b>${escapeHtml(metric.value)}</b><span>${escapeHtml(metric.label)}</span>`;
         metricTarget.appendChild(node);
     });
 
-    const labels = state.source_status.map((row) => `${ row.run_type }:${ row.source_name } `);
+    const labels = state.source_status.map((row) => `${row.run_type}:${row.source_name} `);
     const ratioValues = state.source_status.map((row) => {
         const fetched = Number(row.fetched_count || 0);
         const saved = Number(row.saved_count || 0);
@@ -1375,7 +1406,7 @@ const renderLlmAndReddit = () => {
         ].forEach((metric) => {
             const node = document.createElement("div");
             node.className = "metric";
-            node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
+            node.innerHTML = `<b>${escapeHtml(metric.value)}</b><span>${escapeHtml(metric.label)}</span>`;
             llmMetrics.appendChild(node);
         });
 
@@ -1394,7 +1425,7 @@ const renderLlmAndReddit = () => {
             llmSkipList.appendChild(createListItem("No skip reasons", "No skipped LLM actions in the last 24 hours."));
         } else {
             rows.forEach((row) => {
-                llmSkipList.appendChild(createListItem(String(row.reason || "unknown"), `count = ${ Number(row.cnt || 0) } `));
+                llmSkipList.appendChild(createListItem(String(row.reason || "unknown"), `count = ${Number(row.cnt || 0)} `));
             });
         }
     }
@@ -1409,11 +1440,11 @@ const renderLlmAndReddit = () => {
             { label: "Cached", value: total },
             { label: "Relayed", value: relayed },
             { label: "Queued", value: queued },
-            { label: "Window", value: `${ state.telemetry_hours || 24 } h` },
+            { label: "Window", value: `${state.telemetry_hours || 24} h` },
         ].forEach((metric) => {
             const node = document.createElement("div");
             node.className = "metric";
-            node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
+            node.innerHTML = `<b>${escapeHtml(metric.value)}</b><span>${escapeHtml(metric.label)}</span>`;
             redditMetrics.appendChild(node);
         });
 
@@ -1443,38 +1474,38 @@ const renderHealth = () => {
     const metrics = state.system_metrics || {};
     target.innerHTML = "";
     [
-        { label: "CPU Est", value: `${ Number(metrics.cpu_percent_est || 0).toFixed(1) }% ` },
-        { label: "Host Mem", value: metrics.memory_percent != null ? `${ Number(metrics.memory_percent).toFixed(1) }% ` : "n/a" },
-        { label: "Process RSS", value: metrics.process_rss_mb != null ? `${ Number(metrics.process_rss_mb).toFixed(1) } MB` : "n/a" },
+        { label: "CPU Est", value: `${Number(metrics.cpu_percent_est || 0).toFixed(1)}% ` },
+        { label: "Host Mem", value: metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}% ` : "n/a" },
+        { label: "Process RSS", value: metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a" },
         { label: "Uptime", value: fmtDuration(metrics.uptime_seconds || 0) },
     ].forEach((metric) => {
         const node = document.createElement("div");
         node.className = "metric";
-        node.innerHTML = `< b > ${ metric.value }</b > <span>${metric.label}</span>`;
+        node.innerHTML = `<b>${escapeHtml(metric.value)}</b><span>${escapeHtml(metric.label)}</span>`;
         target.appendChild(node);
     });
 
     if (snapshot) {
-        snapshot.textContent = `CPU est ${ Number(metrics.cpu_percent_est || 0).toFixed(1) }%, host memory ${ metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}%` : "n/a" }, uptime ${ fmtDuration(metrics.uptime_seconds || 0) }.`;
+        snapshot.textContent = `CPU est ${Number(metrics.cpu_percent_est || 0).toFixed(1)}%, host memory ${metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}%` : "n/a"}, uptime ${fmtDuration(metrics.uptime_seconds || 0)}.`;
     }
     if (footprint) {
         const loadAvg = (metrics.load_avg || [0, 0, 0]).map((v) => Number(v || 0).toFixed(2)).join(" / ");
-        footprint.textContent = `Load avg ${ loadAvg } | RSS ${ metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a" } `;
+        footprint.textContent = `Load avg ${loadAvg} | RSS ${metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a"} `;
     }
     if (behavior) {
-        const cpuText = `${ Number(metrics.cpu_percent_est || 0).toFixed(1) }% CPU`;
-        const memText = metrics.memory_percent != null ? `${ Number(metrics.memory_percent).toFixed(1) }% memory` : "memory n/a";
-        behavior.textContent = `Current readout: ${ cpuText }, ${ memText }, ${ fmtDuration(metrics.uptime_seconds || 0) } uptime.`;
+        const cpuText = `${Number(metrics.cpu_percent_est || 0).toFixed(1)}% CPU`;
+        const memText = metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}% memory` : "memory n/a";
+        behavior.textContent = `Current readout: ${cpuText}, ${memText}, ${fmtDuration(metrics.uptime_seconds || 0)} uptime.`;
     }
     if (alerts) {
         alerts.innerHTML = "";
         [
-            { label: "CPU load", value: `${ Number(metrics.cpu_percent_est || 0).toFixed(1) }% ` },
-            { label: "Memory load", value: metrics.memory_percent != null ? `${ Number(metrics.memory_percent).toFixed(1) }% ` : "n/a" },
-            { label: "Process RSS", value: metrics.process_rss_mb != null ? `${ Number(metrics.process_rss_mb).toFixed(1) } MB` : "n/a" },
+            { label: "CPU load", value: `${Number(metrics.cpu_percent_est || 0).toFixed(1)}% ` },
+            { label: "Memory load", value: metrics.memory_percent != null ? `${Number(metrics.memory_percent).toFixed(1)}% ` : "n/a" },
+            { label: "Process RSS", value: metrics.process_rss_mb != null ? `${Number(metrics.process_rss_mb).toFixed(1)} MB` : "n/a" },
             { label: "Host uptime", value: fmtDuration(metrics.uptime_seconds || 0) },
         ].forEach((row) => {
-            alerts.appendChild(createListItem(`🛡️ ${ row.label } `, row.value));
+            alerts.appendChild(createListItem(`🛡️ ${row.label} `, row.value));
         });
     }
 
@@ -1537,89 +1568,89 @@ const renderRedditCacheRows = () => {
     const limit = Number(state.reddit_cache_limit || 20);
     const total = Number(state.reddit_cache_total || 0);
     const totalPages = Math.max(1, Math.ceil(total / Math.max(1, limit)));
-    meta.textContent = `${ rows.length } rows on page ${ redditPage }/${totalPages} | total=${total}`;
+    meta.textContent = `${rows.length} rows on page ${redditPage}/${totalPages} | total=${total}`;
 
-const pageInfo = document.getElementById("reddit-page-info");
-const prevButton = document.getElementById("reddit-page-prev");
-const nextButton = document.getElementById("reddit-page-next");
-if (pageInfo) {
-    pageInfo.textContent = `page ${redditPage}/${totalPages}`;
-}
-if (prevButton) {
-    prevButton.disabled = redditPage <= 1;
-}
-if (nextButton) {
-    nextButton.disabled = redditPage >= totalPages;
-}
-
-if (!rows.length) {
-    target.appendChild(createListItem("No Reddit cache rows", "Try a broader filter."));
-    return;
-}
-
-rows.forEach((row) => {
-    const blocked = Number(row.blocked || 0) === 1;
-    const relayed = Number(row.relayed || 0) === 1;
-    const title = (row.title || row.body || "").replace(/\s+/g, " ").trim();
-    const subtitle = `[${row.content_type}] r/${row.subreddit} score=${row.score} relayed=${relayed ? "yes" : "no"} blocked=${blocked ? "yes" : "no"}`;
-
-    const force = document.createElement("button");
-    force.textContent = "Force Relay";
-    force.onclick = async () => {
-        try {
-            await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
-                method: "POST",
-                body: JSON.stringify({ force: true }),
-            });
-            await loadRedditCache();
-            await refreshTelemetry();
-        } catch (err) {
-            alert(err.message);
-        }
-    };
-
-    const safeRelay = document.createElement("button");
-    safeRelay.textContent = "Relay (Safe)";
-    safeRelay.onclick = async () => {
-        try {
-            await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
-                method: "POST",
-                body: JSON.stringify({ force: false }),
-            });
-            await loadRedditCache();
-            await refreshTelemetry();
-        } catch (err) {
-            alert(err.message);
-        }
-    };
-
-    const unblock = document.createElement("button");
-    unblock.textContent = "Unblock";
-    unblock.onclick = async () => {
-        try {
-            await requestJson(`/admin/api/reddit-cache/${row.id}/unblock`, {
-                method: "POST",
-                body: JSON.stringify({}),
-            });
-            await loadRedditCache();
-        } catch (err) {
-            alert(err.message);
-        }
-    };
-
-    const rowNode = createListItem(`#${row.id} ${title.slice(0, 180)}`, subtitle, [safeRelay, force, unblock]);
-    rowNode.classList.add("reddit");
-    if (blocked) {
-        rowNode.classList.add("blocked");
+    const pageInfo = document.getElementById("reddit-page-info");
+    const prevButton = document.getElementById("reddit-page-prev");
+    const nextButton = document.getElementById("reddit-page-next");
+    if (pageInfo) {
+        pageInfo.textContent = `page ${redditPage}/${totalPages}`;
+    }
+    if (prevButton) {
+        prevButton.disabled = redditPage <= 1;
+    }
+    if (nextButton) {
+        nextButton.disabled = redditPage >= totalPages;
     }
 
-    const detail = document.createElement("div");
-    detail.className = "meta";
-    detail.innerHTML = `${row.author || "unknown"} | <a href="${row.permalink || "#"}" target="_blank" rel="noopener noreferrer">open permalink ↗</a> ${row.blocked_reason ? `| reason=${row.blocked_reason}` : ""}`;
-    rowNode.appendChild(detail);
+    if (!rows.length) {
+        target.appendChild(createListItem("No Reddit cache rows", "Try a broader filter."));
+        return;
+    }
 
-    target.appendChild(rowNode);
-});
+    rows.forEach((row) => {
+        const blocked = Number(row.blocked || 0) === 1;
+        const relayed = Number(row.relayed || 0) === 1;
+        const title = (row.title || row.body || "").replace(/\s+/g, " ").trim();
+        const subtitle = `[${row.content_type}] r/${row.subreddit} score=${row.score} relayed=${relayed ? "yes" : "no"} blocked=${blocked ? "yes" : "no"}`;
+
+        const force = document.createElement("button");
+        force.textContent = "Force Relay";
+        force.onclick = async () => {
+            try {
+                await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
+                    method: "POST",
+                    body: JSON.stringify({ force: true }),
+                });
+                await loadRedditCache();
+                await refreshTelemetry();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        const safeRelay = document.createElement("button");
+        safeRelay.textContent = "Relay (Safe)";
+        safeRelay.onclick = async () => {
+            try {
+                await requestJson(`/admin/api/reddit-cache/${row.id}/relay`, {
+                    method: "POST",
+                    body: JSON.stringify({ force: false }),
+                });
+                await loadRedditCache();
+                await refreshTelemetry();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        const unblock = document.createElement("button");
+        unblock.textContent = "Unblock";
+        unblock.onclick = async () => {
+            try {
+                await requestJson(`/admin/api/reddit-cache/${row.id}/unblock`, {
+                    method: "POST",
+                    body: JSON.stringify({}),
+                });
+                await loadRedditCache();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        const rowNode = createListItem(`#${row.id} ${title.slice(0, 180)}`, subtitle, [safeRelay, force, unblock]);
+        rowNode.classList.add("reddit");
+        if (blocked) {
+            rowNode.classList.add("blocked");
+        }
+
+        const detail = document.createElement("div");
+        detail.className = "meta";
+        detail.innerHTML = `${row.author || "unknown"} | <a href="${row.permalink || "#"}" target="_blank" rel="noopener noreferrer">open permalink ↗</a> ${row.blocked_reason ? `| reason=${row.blocked_reason}` : ""}`;
+        rowNode.appendChild(detail);
+
+        target.appendChild(rowNode);
+    });
 };
 
 const loadRedditCache = async () => {
@@ -2011,6 +2042,10 @@ const loadDatasetCandidates = async () => {
 };
 
 const pollSystemMetrics = async () => {
+    if (pollSystemMetrics.inFlight) {
+        return;
+    }
+    pollSystemMetrics.inFlight = true;
     try {
         const payload = await requestJson("/admin/api/system-metrics");
         state.system_metrics = payload || {};
@@ -2022,8 +2057,12 @@ const pollSystemMetrics = async () => {
     } catch (err) {
         setConnectionStatus("error", "Connection issue", err.message || "Unable to load live metrics");
         throw err;
+    } finally {
+        pollSystemMetrics.inFlight = false;
     }
 };
+
+pollSystemMetrics.inFlight = false;
 
 const refreshTelemetry = async () => {
     const hours = document.getElementById("filter-hours")?.value || "24";
@@ -2060,6 +2099,10 @@ const refreshSourceStatus = async () => {
 
 const refreshLiveData = async () => {
     const runAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (refreshLiveData.inFlight) {
+        return;
+    }
+    refreshLiveData.inFlight = true;
     try {
         await refreshSourceStatus();
         await refreshTelemetry();
@@ -2069,8 +2112,12 @@ const refreshLiveData = async () => {
         setConnectionStatus("ok", "Connected", `Live data updated ${runAt}`);
     } catch (err) {
         setConnectionStatus("error", "Connection issue", err.message || "Live refresh failed");
+    } finally {
+        refreshLiveData.inFlight = false;
     }
 };
+
+refreshLiveData.inFlight = false;
 
 const renderEvents = () => {
     const target = document.getElementById("pending-events");
@@ -2937,14 +2984,17 @@ const bootstrap = async () => {
         renderCurrentAdminProfile();
         renderAdminDirectory();
         renderRecentTasks();
-        loadSources("hk");
-        await loadDataset("facts");
-        await refreshTelemetry();
-        await refreshSourceStatus();
-        await loadRedditCache();
-        await loadRecentTasks(12);
-        await loadDatasetCandidates();
-        await pollSystemMetrics();
+        setConnectionStatus("ok", "Connected", `Live dashboard ready ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+        void Promise.allSettled([
+            loadSources("hk"),
+            loadDataset("facts"),
+            refreshTelemetry(),
+            refreshSourceStatus(),
+            loadRedditCache(),
+            loadRecentTasks(12),
+            loadDatasetCandidates(),
+            pollSystemMetrics(),
+        ]);
 
         if (healthPollId) {
             clearInterval(healthPollId);
@@ -2958,8 +3008,6 @@ const bootstrap = async () => {
         liveRefreshId = setInterval(() => {
             refreshLiveData().catch(() => { });
         }, 30000);
-
-        setConnectionStatus("ok", "Connected", `Live dashboard ready ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
     } catch (err) {
         setConnectionStatus("error", "Connection issue", err.message || "Bootstrap failed");
         throw err;
