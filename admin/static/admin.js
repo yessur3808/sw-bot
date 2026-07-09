@@ -2104,12 +2104,6 @@ const loadPendingEvents = async () => {
     renderEvents();
 };
 
-const loadAdminProfiles = async () => {
-    const payload = await requestJson("/admin/api/admin-profiles");
-    state.admin_profiles = payload.rows || [];
-    renderAdminDirectory();
-};
-
 const loadAudit = async () => {
     const payload = await requestJson("/admin/api/audit");
     state.audit = payload.rows || [];
