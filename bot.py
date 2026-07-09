@@ -13,6 +13,8 @@ from telemetry import instrument_command_handler, mark_scheduler_execution_outco
 
 _conflict_shutdown_requested = False
 
+SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS = 30 * 60
+
 TOPIC_BASE_WEIGHTS = {
     "meme": 1.0,
     "wallpaper": 0.94,
@@ -101,6 +103,20 @@ async def weekly_leaderboard(context):
 
 async def run_scheduled_topic(context):
     topic = context.job.data.get("topic")
+    scheduled_run_at = context.job.data.get("scheduled_run_at")
+    if scheduled_run_at:
+        try:
+            scheduled_dt = datetime.fromisoformat(str(scheduled_run_at).replace("Z", "+00:00"))
+            if scheduled_dt.tzinfo is None:
+                scheduled_dt = scheduled_dt.replace(tzinfo=timezone.utc)
+            lateness_seconds = max(0, int((datetime.now(timezone.utc) - scheduled_dt.astimezone(timezone.utc)).total_seconds()))
+            if lateness_seconds > 0:
+                print(
+                    f"Scheduler slot late by {lateness_seconds}s: topic={topic} "
+                    f"plan={context.job.data.get('plan_key')} slot={context.job.data.get('slot_index')}"
+                )
+        except Exception:
+            pass
     producer_map = {
         "meme": memes.daily_meme,
         "wallpaper": wallpapers.daily_wallpaper,
@@ -367,6 +383,9 @@ def schedule_day_posts(job_queue, start_dt):
                 "plan_key": plan.get("plan_key"),
                 "slot_index": slot_index,
                 "scheduled_run_at": run_at.isoformat(),
+            },
+            job_kwargs={
+                "misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS,
             },
         )
 
