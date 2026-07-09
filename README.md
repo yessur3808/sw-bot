@@ -173,9 +173,10 @@ The bot can now auto-reply with short clever thread responses and meme reactions
 
 Behavior summary:
 
-- Responds only in configured thread IDs (`LLM_ALLOWED_THREAD_NAMES` mapping).
+- Supports scope modes for topic routing (`allowlist`, `all`, `hybrid`).
+- In `hybrid` mode, replies are allowed in all forum topics except denylisted topics.
 - Uses trigger scoring + random chance for natural pacing.
-- Enforces daily caps, per-thread caps, cooldown, and duplicate suppression.
+- Enforces global daily cap, cooldown, and duplicate suppression.
 - Falls back to safe canned lines if provider/API is unavailable.
 - Writes full action telemetry to `llm_action_audit` for monitoring.
 
@@ -188,16 +189,18 @@ LLM_MODEL=meta-llama/llama-3.1-8b-instruct:free
 LLM_API_KEY=<provider-api-key>
 LLM_AUTONOMOUS_MODE=true
 LLM_REPLY_DAILY_CAP=40
-LLM_REPLY_THREAD_DAILY_CAP=12
 LLM_REPLY_COOLDOWN_SECONDS=180
 LLM_RANDOM_REPLY_CHANCE=0.12
 LLM_MIN_TRIGGER_SCORE=0.65
+LLM_THREAD_SCOPE_MODE=hybrid
 LLM_ALLOWED_THREAD_NAMES=general,memes,lore,movie,show
+LLM_DENIED_THREAD_NAMES=
+LLM_DENIED_THREAD_IDS=
 ```
 
 Runtime tuning:
 
-- Use Admin UI `Runtime Settings` to tune limits live (`enable_llm_autonomy`, caps, cooldown, trigger score).
+- Use Admin UI `Runtime Settings` to tune autonomy, global cap/cooldown, trigger score/chance, and scope/denylist values live.
 
 ## Reddit Ingest Cache + Relay
 

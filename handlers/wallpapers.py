@@ -127,12 +127,15 @@ async def daily_wallpaper(context: ContextTypes.DEFAULT_TYPE):
         "instagram": _instagram_candidates,
     }
     thread_id = config.get_thread_id("wallpapers") or config.get_chat_thread_id() or config.THREADS["wallpapers"]
+    provider_counts = {}
 
     for provider in config.WALLPAPER_PROVIDER_PRIORITY:
         fetch = provider_map.get(provider)
         if not fetch:
             continue
-        for candidate in fetch():
+        candidates = fetch()
+        provider_counts[provider] = len(candidates)
+        for candidate in candidates:
             wallpaper_id = candidate.get("id")
             photo = candidate.get("photo")
             caption = candidate.get("caption") or "📱 Wallpaper of the day"
@@ -161,3 +164,7 @@ async def daily_wallpaper(context: ContextTypes.DEFAULT_TYPE):
                     content_id=wallpaper_id,
                 )
                 return
+
+    if provider_counts:
+        detail = ", ".join(f"{name}:{count}" for name, count in provider_counts.items())
+        mark_scheduler_execution_outcome(context, "no_content", error=f"wallpaper provider exhaustion ({detail})")

@@ -337,6 +337,45 @@ button:hover {
     border-left: 3px solid var(--ok);
 }
 
+.recent-tasks-card {
+    max-width: 100%;
+}
+
+.recent-task-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.recent-task-header h2 {
+    margin-bottom: 0;
+}
+
+.recent-task-filter-btn {
+    font-size: 0.72rem;
+    padding: 6px 10px;
+    border-radius: 999px;
+}
+
+.recent-task-filter-btn.active {
+    border-color: var(--accent);
+    background: rgba(255, 226, 122, 0.14);
+}
+
+.recent-task-item {
+    padding: 9px 10px;
+}
+
+.recent-task-item p {
+    font-size: 0.9rem;
+}
+
+.recent-task-item small {
+    font-size: 0.74rem;
+}
+
 .event-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

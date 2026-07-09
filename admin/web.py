@@ -1,7 +1,9 @@
 import json
 import os
 import secrets
+import threading
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -28,6 +30,129 @@ DATASET_FILES = {
 
 _LOGIN_ATTEMPTS = {}
 _BOOT_TS = time.time()
+_ASYNC_TASKS = {}
+_ASYNC_TASK_ORDER = []
+_ASYNC_TASK_LOCK = threading.Lock()
+_ASYNC_TASK_MAX = 200
+_ASYNC_TASK_TTL_SECONDS = 6 * 3600
+
+
+def _utc_now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _task_snapshot(task):
+    if not task:
+        return None
+    return {
+        "id": task.get("id"),
+        "kind": task.get("kind"),
+        "status": task.get("status"),
+        "created_at": task.get("created_at"),
+        "started_at": task.get("started_at"),
+        "finished_at": task.get("finished_at"),
+        "actor_user_id": task.get("actor_user_id"),
+        "result": task.get("result"),
+        "error": task.get("error"),
+    }
+
+
+def _prune_async_tasks_locked():
+    now_ts = time.time()
+    keep_ids = []
+    for task_id in _ASYNC_TASK_ORDER:
+        task = _ASYNC_TASKS.get(task_id)
+        if not task:
+            continue
+        status = str(task.get("status") or "")
+        finished_at = _coerce_datetime(task.get("finished_at"))
+        if status in ("succeeded", "failed") and finished_at:
+            age_seconds = max(0, int(now_ts - finished_at.timestamp()))
+            if age_seconds > _ASYNC_TASK_TTL_SECONDS:
+                _ASYNC_TASKS.pop(task_id, None)
+                continue
+        keep_ids.append(task_id)
+
+    while len(keep_ids) > _ASYNC_TASK_MAX:
+        oldest = keep_ids.pop(0)
+        _ASYNC_TASKS.pop(oldest, None)
+
+    _ASYNC_TASK_ORDER[:] = keep_ids
+
+
+def _start_async_task(kind, actor_user_id, fn, *args, **kwargs):
+    task_id = uuid.uuid4().hex
+    task = {
+        "id": task_id,
+        "kind": str(kind or "task").strip() or "task",
+        "status": "queued",
+        "created_at": _utc_now_iso(),
+        "started_at": None,
+        "finished_at": None,
+        "actor_user_id": actor_user_id,
+        "result": None,
+        "error": None,
+    }
+    with _ASYNC_TASK_LOCK:
+        _ASYNC_TASKS[task_id] = task
+        _ASYNC_TASK_ORDER.append(task_id)
+        _prune_async_tasks_locked()
+
+    def _runner():
+        with _ASYNC_TASK_LOCK:
+            current = _ASYNC_TASKS.get(task_id)
+            if not current:
+                return
+            current["status"] = "running"
+            current["started_at"] = _utc_now_iso()
+        try:
+            result = fn(*args, **kwargs)
+            with _ASYNC_TASK_LOCK:
+                current = _ASYNC_TASKS.get(task_id)
+                if not current:
+                    return
+                current["status"] = "succeeded"
+                current["result"] = result
+                current["finished_at"] = _utc_now_iso()
+        except Exception as exc:
+            with _ASYNC_TASK_LOCK:
+                current = _ASYNC_TASKS.get(task_id)
+                if not current:
+                    return
+                current["status"] = "failed"
+                current["error"] = str(exc)
+                current["finished_at"] = _utc_now_iso()
+        finally:
+            with _ASYNC_TASK_LOCK:
+                _prune_async_tasks_locked()
+
+    threading.Thread(target=_runner, daemon=True).start()
+    return _task_snapshot(task)
+
+
+def _get_async_task(task_id):
+    with _ASYNC_TASK_LOCK:
+        _prune_async_tasks_locked()
+        return _task_snapshot(_ASYNC_TASKS.get(task_id))
+
+
+def _list_async_tasks(limit=12):
+    try:
+        limit_int = max(1, min(100, int(limit)))
+    except Exception:
+        limit_int = 12
+
+    with _ASYNC_TASK_LOCK:
+        _prune_async_tasks_locked()
+        rows = []
+        for task_id in reversed(_ASYNC_TASK_ORDER):
+            task = _ASYNC_TASKS.get(task_id)
+            if not task:
+                continue
+            rows.append(_task_snapshot(task))
+            if len(rows) >= limit_int:
+                break
+    return rows
 
 
 def _schema_status_payload():
@@ -563,11 +688,13 @@ def create_admin_app():
             "temperature": config.LLM_TEMPERATURE,
             "autonomous_mode": bool(config.LLM_AUTONOMOUS_MODE),
             "reply_daily_cap": config.LLM_REPLY_DAILY_CAP,
-            "reply_thread_daily_cap": config.LLM_REPLY_THREAD_DAILY_CAP,
             "reply_cooldown_seconds": config.LLM_REPLY_COOLDOWN_SECONDS,
             "random_reply_chance": config.LLM_RANDOM_REPLY_CHANCE,
             "min_trigger_score": config.LLM_MIN_TRIGGER_SCORE,
             "max_input_chars": config.LLM_MAX_INPUT_CHARS,
+            "thread_scope_mode": config.LLM_THREAD_SCOPE_MODE,
+            "denied_thread_names": sorted(config.LLM_DENIED_THREAD_NAMES),
+            "denied_thread_ids": sorted(config.LLM_DENIED_THREAD_IDS),
             "available_integrations": [
                 {"name": "OpenRouter", "url": "https://openrouter.ai/models"},
                 {"name": "OpenAI", "url": "https://platform.openai.com/docs/models"},
@@ -704,6 +831,7 @@ def create_admin_app():
             "user_id": user_id,
             "csrf_token": session.get("csrf_token"),
             "schema_status": _schema_status_payload(),
+            "recent_tasks": _list_async_tasks(limit=12),
             "settings": runtime_settings.export_runtime_settings(),
             "sources": sources,
             "pending_events": [dict(row) for row in pending],
@@ -789,6 +917,20 @@ def create_admin_app():
     def api_system_metrics():
         require_admin()
         return jsonify(_system_metrics_snapshot())
+
+    @app.get("/admin/api/tasks/<task_id>")
+    def api_task_status(task_id):
+        require_admin()
+        task = _get_async_task(str(task_id or "").strip())
+        if not task:
+            return jsonify({"ok": False, "error": "task-not-found"}), 404
+        return jsonify(task)
+
+    @app.get("/admin/api/tasks")
+    def api_task_list():
+        require_admin()
+        limit_raw = request.args.get("limit", "12")
+        return jsonify({"rows": _list_async_tasks(limit=limit_raw)})
 
     @app.get("/admin/api/telemetry")
     def api_telemetry():
@@ -932,29 +1074,50 @@ def create_admin_app():
         _require_csrf()
         payload = request.get_json(silent=True) or {}
         run_type = str(payload.get("run_type") or "all").strip().lower()
+        run_async = bool(payload.get("async", True))
         if run_type not in ("all", "hk", "global"):
             return jsonify({"ok": False, "error": "invalid run_type"}), 400
+        if run_async:
+            task = _start_async_task("events_ingest", user_id, events_handler.ingest_now, run_type)
+            db.add_admin_audit(
+                "ingest.manual",
+                actor_user_id=user_id,
+                actor_label="web",
+                details=json.dumps({"run_type": run_type, "mode": "async", "task_id": task["id"]}),
+            )
+            return jsonify({"ok": True, "async": True, "task": task}), 202
         summary = events_handler.ingest_now(run_type)
         db.add_admin_audit(
             "ingest.manual",
             actor_user_id=user_id,
             actor_label="web",
-            details=json.dumps({"run_type": run_type, "summary": summary}),
+            details=json.dumps({"run_type": run_type, "mode": "sync", "summary": summary}),
         )
-        return jsonify({"ok": True, "summary": summary})
+        return jsonify({"ok": True, "async": False, "summary": summary})
 
     @app.post("/admin/api/dataset-ingest-now")
     def api_dataset_ingest_now():
         user_id = require_admin()
         _require_csrf()
+        payload = request.get_json(silent=True) or {}
+        run_async = bool(payload.get("async", True))
+        if run_async:
+            task = _start_async_task("dataset_ingest", user_id, dataset_collectors_handler.ingest_dataset_sources)
+            db.add_admin_audit(
+                "dataset_ingest.manual",
+                actor_user_id=user_id,
+                actor_label="web",
+                details=json.dumps({"mode": "async", "task_id": task["id"]}),
+            )
+            return jsonify({"ok": True, "async": True, "task": task}), 202
         summary = dataset_collectors_handler.ingest_dataset_sources()
         db.add_admin_audit(
             "dataset_ingest.manual",
             actor_user_id=user_id,
             actor_label="web",
-            details=json.dumps({"summary": summary}),
+            details=json.dumps({"mode": "sync", "summary": summary}),
         )
-        return jsonify({"ok": True, "summary": summary})
+        return jsonify({"ok": True, "async": False, "summary": summary})
 
     @app.get("/admin/api/dataset-candidates")
     def api_dataset_candidates():

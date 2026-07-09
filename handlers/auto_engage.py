@@ -49,18 +49,101 @@ def _safe_text(message):
     return (message.text or message.caption or "").strip()
 
 
-def _allowed_thread(thread_id):
-    if thread_id is None:
-        return False
+def _canonical_thread_name(name):
+    normalized = str(name or "").strip().lower()
+    aliases = {
+        "meme": "memes",
+        "wallpaper": "wallpapers",
+        "event": "events",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _thread_id_from_name(name):
+    resolved_name = _canonical_thread_name(name)
+    if resolved_name == "general":
+        return config.get_chat_thread_id()
+    return config.get_thread_id(resolved_name)
+
+
+def _allowed_thread_ids_from_names(names):
     allowed_ids = set()
-    for name in config.LLM_ALLOWED_THREAD_NAMES:
-        if name == "general":
-            resolved = config.get_chat_thread_id()
-        else:
-            resolved = config.get_thread_id(name)
+    for name in names:
+        resolved = _thread_id_from_name(name)
         if resolved and int(resolved) > 0:
             allowed_ids.add(int(resolved))
-    return thread_id in allowed_ids
+    return allowed_ids
+
+
+def _parse_runtime_thread_names(raw_value):
+    names = set()
+    for chunk in str(raw_value or "").split(","):
+        normalized = _canonical_thread_name(chunk)
+        if normalized:
+            names.add(normalized)
+    return names
+
+
+def _parse_runtime_thread_ids(raw_value):
+    ids = set()
+    for chunk in str(raw_value or "").split(","):
+        value = chunk.strip()
+        if not value:
+            continue
+        if value.lstrip("-").isdigit():
+            ids.add(int(value))
+    return ids
+
+
+def _runtime_str(name, default):
+    value = runtime_settings.get(name)
+    text = str(value or "").strip()
+    return text if text else str(default)
+
+
+def _scope_mode():
+    mode = _runtime_str("llm_thread_scope_mode", config.LLM_THREAD_SCOPE_MODE).lower()
+    if mode not in {"allowlist", "all", "hybrid"}:
+        return "allowlist"
+    return mode
+
+
+def _denied_thread_ids():
+    denied_ids = set(config.LLM_DENIED_THREAD_IDS)
+    denied_names = set(config.LLM_DENIED_THREAD_NAMES)
+
+    runtime_names = _parse_runtime_thread_names(
+        _runtime_str("llm_denied_thread_names", ",".join(sorted(config.LLM_DENIED_THREAD_NAMES)))
+    )
+    runtime_ids = _parse_runtime_thread_ids(
+        _runtime_str("llm_denied_thread_ids", ",".join(str(v) for v in sorted(config.LLM_DENIED_THREAD_IDS)))
+    )
+
+    denied_names.update(runtime_names)
+    denied_ids.update(runtime_ids)
+    denied_ids.update(_allowed_thread_ids_from_names(denied_names))
+    return denied_ids
+
+
+def _allowed_thread(thread_id):
+    if thread_id is None:
+        return False, "non-thread-message"
+
+    mode = _scope_mode()
+    denied_ids = _denied_thread_ids() if mode == "hybrid" else set()
+    if mode == "hybrid" and int(thread_id) in denied_ids:
+        return False, "thread-denylist"
+
+    if mode == "all":
+        return True, "ok"
+
+    if mode == "hybrid":
+        return True, "ok"
+
+    allowed_ids = _allowed_thread_ids_from_names(config.LLM_ALLOWED_THREAD_NAMES)
+    if int(thread_id) not in allowed_ids:
+        return False, "thread-allowlist"
+    return True, "ok"
 
 
 def _normalize_line(v, max_len=220):
@@ -156,12 +239,35 @@ async def auto_engage(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     thread_id = message.message_thread_id
-    if not _allowed_thread(thread_id):
+    is_allowed_thread, thread_reason = _allowed_thread(thread_id)
+    if not is_allowed_thread:
+        db.log_llm_action(
+            action_type="reply",
+            status="skipped",
+            reason=thread_reason,
+            chat_id=chat.id,
+            thread_id=thread_id,
+            user_id=user.id,
+            source_message_id=message.message_id,
+        )
         return
 
     text = _safe_text(message)
     if not text:
-        return
+        if message.sticker:
+            text = f"[sticker:{message.sticker.emoji or 'none'}]"
+        elif message.photo:
+            text = "[photo]"
+        elif message.animation:
+            text = "[animation]"
+        elif message.video:
+            text = "[video]"
+        elif message.document:
+            text = "[document]"
+        elif message.voice:
+            text = "[voice]"
+        else:
+            return
 
     max_chars = _runtime_cap("llm_max_input_chars", 80)
     text = text[:max_chars]
@@ -208,24 +314,11 @@ async def auto_engage(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     daily_cap = _runtime_cap("llm_reply_daily_cap", 1)
-    thread_cap = _runtime_cap("llm_reply_thread_daily_cap", 1)
     if db.count_llm_actions_today(status="sent") >= daily_cap:
         db.log_llm_action(
             action_type="reply",
             status="skipped",
             reason="daily-cap",
-            chat_id=chat.id,
-            thread_id=thread_id,
-            user_id=user.id,
-            source_message_id=message.message_id,
-            trigger_score=trigger_score,
-        )
-        return
-    if db.count_llm_actions_today(status="sent", thread_id=thread_id) >= thread_cap:
-        db.log_llm_action(
-            action_type="reply",
-            status="skipped",
-            reason="thread-cap",
             chat_id=chat.id,
             thread_id=thread_id,
             user_id=user.id,
@@ -358,4 +451,19 @@ async def auto_engage(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def register(app):
-    app.add_handler(MessageHandler((filters.TEXT | filters.CAPTION) & ~filters.COMMAND, auto_engage))
+    app.add_handler(
+        MessageHandler(
+            (
+                filters.TEXT
+                | filters.CAPTION
+                | filters.PHOTO
+                | filters.ANIMATION
+                | filters.STICKER
+                | filters.VIDEO
+                | filters.Document.ALL
+                | filters.VOICE
+            )
+            & ~filters.COMMAND,
+            auto_engage,
+        )
+    )

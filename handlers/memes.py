@@ -74,11 +74,15 @@ async def daily_meme(context: ContextTypes.DEFAULT_TYPE):
         "imgflip": _imgflip_candidates,
     }
 
+    provider_counts = {}
+
     for provider in MEME_PROVIDER_PRIORITY:
         fetch = provider_map.get(provider)
         if not fetch:
             continue
-        for candidate in fetch():
+        candidates = fetch()
+        provider_counts[provider] = len(candidates)
+        for candidate in candidates:
             meme_id = candidate.get("id")
             meme_url = candidate.get("url")
             if not meme_id or not meme_url:
@@ -108,3 +112,7 @@ async def daily_meme(context: ContextTypes.DEFAULT_TYPE):
                 content_id=meme_id,
             )
             return
+
+    if provider_counts:
+        detail = ", ".join(f"{name}:{count}" for name, count in provider_counts.items())
+        mark_scheduler_execution_outcome(context, "no_content", error=f"meme provider exhaustion ({detail})")

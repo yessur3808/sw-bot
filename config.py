@@ -189,15 +189,27 @@ LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", 500))
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0.85))
 LLM_AUTONOMOUS_MODE = os.getenv("LLM_AUTONOMOUS_MODE", "true").lower() == "true"
 LLM_REPLY_DAILY_CAP = int(os.getenv("LLM_REPLY_DAILY_CAP", 40))
+# Deprecated: retained for backward compatibility only. Thread-level hard caps are no longer enforced.
 LLM_REPLY_THREAD_DAILY_CAP = int(os.getenv("LLM_REPLY_THREAD_DAILY_CAP", 500))
 LLM_REPLY_COOLDOWN_SECONDS = int(os.getenv("LLM_REPLY_COOLDOWN_SECONDS", 30))
 LLM_RANDOM_REPLY_CHANCE = float(os.getenv("LLM_RANDOM_REPLY_CHANCE", 0.85))
 LLM_MIN_TRIGGER_SCORE = float(os.getenv("LLM_MIN_TRIGGER_SCORE", 0.5))
 LLM_MAX_INPUT_CHARS = int(os.getenv("LLM_MAX_INPUT_CHARS", 1000))
+LLM_THREAD_SCOPE_MODE = os.getenv("LLM_THREAD_SCOPE_MODE", "allowlist").strip().lower() or "allowlist"
 LLM_ALLOWED_THREAD_NAMES = {
     v.strip().lower()
     for v in os.getenv("LLM_ALLOWED_THREAD_NAMES", "general,memes,lore,movie,show").split(",")
     if v.strip()
+}
+LLM_DENIED_THREAD_NAMES = {
+    v.strip().lower()
+    for v in os.getenv("LLM_DENIED_THREAD_NAMES", "").split(",")
+    if v.strip()
+}
+LLM_DENIED_THREAD_IDS = {
+    int(v.strip())
+    for v in os.getenv("LLM_DENIED_THREAD_IDS", "").split(",")
+    if v.strip().lstrip("-").isdigit()
 }
 
 _admin_raw = os.getenv("ADMIN_USER_IDS", "")

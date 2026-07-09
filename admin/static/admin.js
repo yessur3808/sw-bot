@@ -36,6 +36,7 @@ let state = {
     command_failure_timeseries: [],
     system_metrics: {},
     schema_status: null,
+    recent_tasks: [],
     ai_config: {},
     admin_profiles: [],
     current_admin_profile: null,
@@ -54,6 +55,8 @@ let candidateFilterTimer = null;
 let candidateViewMode = "compact";
 let expandedCandidateIds = new Set();
 const candidateViewStorageKey = "admin.datasetCandidates.viewMode";
+const recentTasksHideCompletedStorageKey = "admin.recentTasks.hideCompleted";
+let recentTasksHideCompleted = false;
 let connectionState = {
     tone: "loading",
     label: "Connecting...",
@@ -90,6 +93,34 @@ const requestJson = async (url, options = {}) => {
         throw new Error(detail || `Request failed: ${response.status}`);
     }
     return response.json();
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const pollTaskUntilDone = async (taskId, options = {}) => {
+    const intervalMs = Math.max(250, Number(options.intervalMs || 1200));
+    const maxWaitMs = Math.max(5000, Number(options.maxWaitMs || 10 * 60 * 1000));
+    const onUpdate = typeof options.onUpdate === "function" ? options.onUpdate : null;
+    const startedAt = Date.now();
+
+    while (true) {
+        const task = await requestJson(`/admin/api/tasks/${encodeURIComponent(taskId)}`);
+        if (onUpdate) {
+            onUpdate(task);
+        }
+
+        if (task.status === "succeeded") {
+            return task;
+        }
+        if (task.status === "failed") {
+            throw new Error(task.error || "Task failed");
+        }
+        if ((Date.now() - startedAt) > maxWaitMs) {
+            throw new Error("Task polling timed out");
+        }
+
+        await sleep(intervalMs);
+    }
 };
 
 const renderConnectionStatus = () => {
@@ -233,7 +264,7 @@ const renderAiConfig = () => {
         integration.textContent = cfg.api_base_url ? `API base URL: ${cfg.api_base_url}` : "Using the provider default API endpoint.";
     }
     if (notes) {
-        notes.textContent = `Reply cap ${cfg.reply_daily_cap ?? "n/a"} / day, cooldown ${cfg.reply_cooldown_seconds ?? "n/a"}s. Use the provider cards below to compare or integrate other APIs.`;
+        notes.textContent = `Reply cap ${cfg.reply_daily_cap ?? "n/a"} / day, cooldown ${cfg.reply_cooldown_seconds ?? "n/a"}s, scope ${cfg.thread_scope_mode || "allowlist"}. Use the provider cards below to compare or integrate other APIs.`;
     }
     if (catalog) {
         catalog.innerHTML = "";
@@ -764,6 +795,132 @@ const fmtRelativeAge = (seconds) => {
         return "unknown";
     }
     return `${fmtDuration(seconds)} ago`;
+};
+
+const readStoredRecentTasksHideCompleted = () => {
+    try {
+        return window.localStorage.getItem(recentTasksHideCompletedStorageKey) === "1";
+    } catch (_) {
+        return false;
+    }
+};
+
+const writeStoredRecentTasksHideCompleted = (value) => {
+    try {
+        window.localStorage.setItem(recentTasksHideCompletedStorageKey, value ? "1" : "0");
+    } catch (_) {
+        // Ignore storage failures.
+    }
+};
+
+const taskKindLabel = (kind) => {
+    const raw = String(kind || "task").trim().toLowerCase();
+    if (raw === "events_ingest") {
+        return "Events Ingest";
+    }
+    if (raw === "dataset_ingest") {
+        return "Dataset Collect";
+    }
+    return raw || "task";
+};
+
+const taskStatusLabel = (status) => {
+    const raw = String(status || "unknown").trim().toLowerCase();
+    if (raw === "queued") {
+        return "Queued";
+    }
+    if (raw === "running") {
+        return "Running";
+    }
+    if (raw === "succeeded") {
+        return "Succeeded";
+    }
+    if (raw === "failed") {
+        return "Failed";
+    }
+    return raw || "Unknown";
+};
+
+const taskStatusClass = (status) => {
+    const raw = String(status || "").trim().toLowerCase();
+    if (raw === "succeeded") {
+        return "is-ok";
+    }
+    if (raw === "failed") {
+        return "is-critical";
+    }
+    if (raw === "running" || raw === "queued") {
+        return "is-info";
+    }
+    return "is-warn";
+};
+
+const renderRecentTasks = () => {
+    const target = document.getElementById("recent-tasks-list");
+    const meta = document.getElementById("recent-tasks-meta");
+    const filterButton = document.getElementById("recent-tasks-clear-completed");
+    if (!target || !meta) {
+        return;
+    }
+
+    const rows = state.recent_tasks || [];
+    const successCount = rows.filter((row) => String(row.status || "").toLowerCase() === "succeeded").length;
+    const failedCount = rows.filter((row) => String(row.status || "").toLowerCase() === "failed").length;
+    const runningCount = rows.filter((row) => {
+        const s = String(row.status || "").toLowerCase();
+        return s === "running" || s === "queued";
+    }).length;
+
+    const visibleRows = recentTasksHideCompleted
+        ? rows.filter((row) => String(row.status || "").toLowerCase() !== "succeeded")
+        : rows;
+
+    if (filterButton) {
+        filterButton.textContent = recentTasksHideCompleted ? "Show Completed" : "Clear Completed";
+        filterButton.classList.toggle("active", recentTasksHideCompleted);
+        filterButton.disabled = recentTasksHideCompleted ? rows.length === visibleRows.length : successCount === 0;
+    }
+
+    meta.textContent = `${visibleRows.length}/${rows.length} shown | running=${runningCount} | succeeded=${successCount} | failed=${failedCount}`;
+    target.innerHTML = "";
+
+    if (!rows.length) {
+        target.appendChild(createListItem("No recent tasks", "Background jobs will appear here after you run ingestion actions."));
+        return;
+    }
+
+    if (!visibleRows.length) {
+        target.appendChild(createListItem("No running or failed tasks", "All recent tasks are completed. Use Show Completed to view them."));
+        return;
+    }
+
+    visibleRows.slice(0, 10).forEach((task) => {
+        const status = String(task.status || "unknown");
+        const statusClass = taskStatusClass(status);
+        const createdAt = formatRunTime(task.created_at);
+        const finishedAt = formatRunTime(task.finished_at || task.started_at);
+        const title = `${taskKindLabel(task.kind)} | ${createdAt}`;
+        const subtitleParts = [
+            `status=${taskStatusLabel(status)}`,
+            `id=${String(task.id || "").slice(0, 10)}`,
+        ];
+        if (task.finished_at || task.started_at) {
+            subtitleParts.push(`updated=${finishedAt}`);
+        }
+        if (status.toLowerCase() === "failed" && task.error) {
+            subtitleParts.push(`error=${task.error}`);
+        }
+
+        const item = createListItem(escapeHtml(title), escapeHtml(subtitleParts.join(" | ")));
+        item.classList.add("ops-alert", statusClass, "recent-task-item");
+        target.appendChild(item);
+    });
+};
+
+const loadRecentTasks = async (limit = 12) => {
+    const payload = await requestJson(`/admin/api/tasks?${buildQuery({ limit })}`);
+    state.recent_tasks = payload.rows || [];
+    renderRecentTasks();
 };
 
 const alertToneIcon = (level) => {
@@ -1849,6 +2006,7 @@ const refreshLiveData = async () => {
         await refreshSourceStatus();
         await refreshTelemetry();
         await loadRedditCache();
+        await loadRecentTasks(12);
         await pollSystemMetrics();
         setConnectionStatus("ok", "Connected", `Live data updated ${runAt}`);
     } catch (err) {
@@ -2239,22 +2397,52 @@ const loadRawIntoBuilder = () => {
     renderSourceBuilder();
 };
 
-const runIngest = async (runType) => {
+const runIngest = async (runType, triggerButton = null) => {
     const status = document.getElementById("manual-control-status");
+    const originalButtonText = triggerButton ? triggerButton.textContent : "";
     if (status) {
-        status.textContent = `Running ${runType} ingestion...`;
+        status.textContent = `Queueing ${runType} ingestion...`;
     }
-    const payload = await requestJson("/admin/api/ingest-now", {
-        method: "POST",
-        body: JSON.stringify({ run_type: runType }),
-    });
-    document.getElementById("ingest-result").textContent = JSON.stringify(payload.summary, null, 2);
 
-    const refreshed = await requestJson("/admin/api/source-status");
-    state.source_status = refreshed.rows;
-    renderStatus();
-    if (status) {
-        status.textContent = `Completed ${runType} ingestion and refreshed source status.`;
+    if (triggerButton) {
+        triggerButton.disabled = true;
+        triggerButton.textContent = "Running...";
+    }
+
+    try {
+        const payload = await requestJson("/admin/api/ingest-now", {
+            method: "POST",
+            body: JSON.stringify({ run_type: runType, async: true }),
+        });
+
+        const taskId = payload?.task?.id;
+        if (!taskId) {
+            throw new Error("Missing task id from ingest response");
+        }
+
+        const task = await pollTaskUntilDone(taskId, {
+            intervalMs: 1200,
+            onUpdate: (current) => {
+                if (status) {
+                    status.textContent = `Running ${runType} ingestion (${current.status})...`;
+                }
+            },
+        });
+
+        const summary = task.result || {};
+        document.getElementById("ingest-result").textContent = JSON.stringify(summary, null, 2);
+
+        const refreshed = await requestJson("/admin/api/source-status");
+        state.source_status = refreshed.rows;
+        renderStatus();
+        if (status) {
+            status.textContent = `Completed ${runType} ingestion and refreshed source status.`;
+        }
+    } finally {
+        if (triggerButton) {
+            triggerButton.disabled = false;
+            triggerButton.textContent = originalButtonText;
+        }
     }
 };
 
@@ -2294,6 +2482,17 @@ const initHealthTabs = () => {
 };
 
 const initActions = () => {
+    recentTasksHideCompleted = readStoredRecentTasksHideCompleted();
+
+    const recentTasksFilterButton = document.getElementById("recent-tasks-clear-completed");
+    if (recentTasksFilterButton) {
+        recentTasksFilterButton.onclick = () => {
+            recentTasksHideCompleted = !recentTasksHideCompleted;
+            writeStoredRecentTasksHideCompleted(recentTasksHideCompleted);
+            renderRecentTasks();
+        };
+    }
+
     const adminProfileForm = document.getElementById("admin-profile-form");
     if (adminProfileForm) {
         adminProfileForm.onsubmit = async (event) => {
@@ -2386,7 +2585,7 @@ const initActions = () => {
     document.querySelectorAll("[data-ingest]").forEach((button) => {
         button.onclick = async () => {
             try {
-                await runIngest(button.dataset.ingest);
+                await runIngest(button.dataset.ingest, button);
                 await refreshTelemetry();
             } catch (err) {
                 alert(err.message);
@@ -2511,15 +2710,45 @@ const initActions = () => {
     const runDatasetIngest = document.getElementById("run-dataset-ingest");
     if (runDatasetIngest) {
         runDatasetIngest.onclick = async () => {
+            const originalText = runDatasetIngest.textContent;
+            const meta = document.getElementById("dataset-candidates-meta");
             try {
-                await requestJson("/admin/api/dataset-ingest-now", {
+                runDatasetIngest.disabled = true;
+                runDatasetIngest.textContent = "Collecting...";
+                if (meta) {
+                    meta.textContent = "Collecting suggested dataset content...";
+                }
+
+                const payload = await requestJson("/admin/api/dataset-ingest-now", {
                     method: "POST",
-                    body: JSON.stringify({}),
+                    body: JSON.stringify({ async: true }),
                 });
+
+                const taskId = payload?.task?.id;
+                if (!taskId) {
+                    throw new Error("Missing task id from dataset ingest response");
+                }
+
+                const task = await pollTaskUntilDone(taskId, {
+                    intervalMs: 1200,
+                    onUpdate: (current) => {
+                        if (meta) {
+                            meta.textContent = `Collecting suggested dataset content (${current.status})...`;
+                        }
+                    },
+                });
+
                 await loadDatasetCandidates();
                 await refreshTelemetry();
+                const summary = task.result || {};
+                if (meta) {
+                    meta.textContent = `Collection complete | fetched=${Number(summary.fetched || 0)} | saved=${Number(summary.saved || 0)}`;
+                }
             } catch (err) {
                 alert(err.message);
+            } finally {
+                runDatasetIngest.disabled = false;
+                runDatasetIngest.textContent = originalText;
             }
         };
     }
@@ -2597,11 +2826,13 @@ const bootstrap = async () => {
         renderAiConfig();
         renderCurrentAdminProfile();
         renderAdminDirectory();
+        renderRecentTasks();
         loadSources("hk");
         await loadDataset("facts");
         await refreshTelemetry();
         await refreshSourceStatus();
         await loadRedditCache();
+        await loadRecentTasks(12);
         await loadDatasetCandidates();
         await pollSystemMetrics();
 
