@@ -12,6 +12,13 @@ except Exception:
 _ADMIN_THREAD = None
 
 
+def _display_admin_host():
+    host = str(config.ADMIN_UI_HOST or "").strip()
+    if host in ("0.0.0.0", "::", ""):
+        return "localhost"
+    return host
+
+
 def _run_server(app):
     if waitress_serve:
         waitress_serve(app, host=config.ADMIN_UI_HOST, port=config.ADMIN_UI_PORT, threads=8)
@@ -37,4 +44,4 @@ def start_admin_ui():
     thread = threading.Thread(target=_run_server, args=(app,), daemon=True)
     thread.start()
     _ADMIN_THREAD = thread
-    print(f"Admin UI running on http://{config.ADMIN_UI_HOST}:{config.ADMIN_UI_PORT}/admin")
+    print(f"Admin UI running on http://{_display_admin_host()}:{config.ADMIN_UI_PORT}/admin")
