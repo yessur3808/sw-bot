@@ -95,12 +95,13 @@ const requestJson = async (url, options = {}) => {
             cache: method === "GET" ? "no-store" : options.cache,
         });
         if (!response.ok) {
+            const bodyText = await response.text();
             let detail = "";
             try {
-                const body = await response.json();
-                detail = body.error || body.description || "";
+                const body = bodyText ? JSON.parse(bodyText) : null;
+                detail = body?.error || body?.description || "";
             } catch (_) {
-                detail = await response.text();
+                detail = bodyText;
             }
             throw new Error(detail || `Request failed: ${response.status}`);
         }
