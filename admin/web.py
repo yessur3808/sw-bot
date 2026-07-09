@@ -157,7 +157,8 @@ def _list_async_tasks(limit=12):
 
 
 def _schema_status_payload():
-    suffix = "postgres" if config.DB_BACKEND in ("postgres", "postgresql") else "sqlite"
+    backend = str(getattr(db, "DB_BACKEND", "sqlite") or "sqlite").strip().lower()
+    suffix = "postgres" if backend in ("postgres", "postgresql") else "sqlite"
     migration_files = sorted(ROOT.joinpath("migrations").glob(f"*.{suffix}.up.sql"))
     available_versions = [path.name.split(".")[0] for path in migration_files]
     applied_rows = db.schema_migration_versions()
