@@ -48,7 +48,11 @@ def _fetchone(cur):
 @contextmanager
 def get_db():
     if _use_postgres():
-        conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
+        conn = psycopg.connect(
+            DATABASE_URL,
+            row_factory=dict_row,
+            prepare_threshold=None,
+        )
     else:
         conn = sqlite3.connect(DB_PATH, timeout=30)
         conn.row_factory = sqlite3.Row
@@ -1451,6 +1455,29 @@ def set_event_status(event_id, status):
             "UPDATE events SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
             (status, event_id),
         )
+
+
+def reject_pending_events_before(cutoff_date_iso, region=None):
+    cutoff = str(cutoff_date_iso or "").strip()
+    if not cutoff:
+        return 0
+
+    query = (
+        "UPDATE events "
+        "SET status='rejected', auto_publish_allowed=0, updated_at=CURRENT_TIMESTAMP "
+        "WHERE status='pending_review' AND event_date IS NOT NULL AND event_date < ?"
+    )
+    args = [cutoff]
+    if region:
+        query += " AND region=?"
+        args.append(str(region).strip().lower())
+
+    with get_db() as conn:
+        cur = _execute(conn, query, tuple(args))
+        try:
+            return int(cur.rowcount or 0)
+        except Exception:
+            return 0
 
 
 def list_unpublished_auto(limit=20):

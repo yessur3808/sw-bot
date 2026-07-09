@@ -247,6 +247,27 @@ def _status_for_score(score):
     return "rejected", False
 
 
+def _status_for_score_and_date(score, release_date, today=None):
+    base_status, auto_allowed = _status_for_score(score)
+    if not release_date:
+        return base_status, auto_allowed
+
+    parsed = _parse_event_date(release_date)
+    if not parsed:
+        return base_status, auto_allowed
+
+    today_date = today or _today_in_release_timezone()
+    tomorrow_date = today_date + timedelta(days=1)
+    if parsed < tomorrow_date:
+        return "rejected", False
+    return base_status, auto_allowed
+
+
+def auto_reject_pending_before_tomorrow(region=None):
+    tomorrow = _today_in_release_timezone() + timedelta(days=1)
+    return db.reject_pending_events_before(tomorrow.isoformat(), region=region)
+
+
 def _build_item_key(url, title):
     canonical = _canonicalize_url(url)
     raw = f"{canonical}|{_normalize_text(title).lower()}"
@@ -852,7 +873,7 @@ def ingest_sources(region, sources):
                     "source_config_meta": source.get("meta") or {},
                     "extract_meta": raw.get("source_meta") or {},
                 }
-                status, auto_allowed = _status_for_score(score)
+                status, auto_allowed = _status_for_score_and_date(score, release_date)
                 item = {
                     "item_key": item_key,
                     "title": raw["title"],
@@ -918,11 +939,14 @@ def ingest_sources(region, sources):
 
 
 def ingest_now(region="all"):
+    auto_rejected = auto_reject_pending_before_tomorrow(region=None if region == "all" else region)
     summaries = []
     if region in ("all", "hk"):
         summaries.append(ingest_sources("hk", runtime_settings.get_sources("hk")))
     if region in ("all", "global"):
         summaries.append(ingest_sources("global", runtime_settings.get_sources("global")))
+    if summaries:
+        summaries[0]["auto_rejected_before_tomorrow"] = auto_rejected
     return summaries
 
 
@@ -1023,6 +1047,7 @@ async def review_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Admin only command.")
         return
 
+    auto_reject_pending_before_tomorrow()
     rows = db.list_events_by_status("pending_review", limit=10)
     if not rows:
         await update.message.reply_text("No pending review items.")
