@@ -4,6 +4,7 @@ import hashlib
 import json
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import config
 
@@ -47,6 +48,34 @@ except Exception:  # pragma: no cover - optional dependency
 DB_PATH = "starwars.db"
 DB_BACKEND = os.getenv("DB_BACKEND", "sqlite").strip().lower()
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+ROOT_DIR = Path(__file__).resolve().parent
+DATA_DIR = ROOT_DIR / "data"
+
+
+def _dataset_seed_path(dataset_name):
+    clean_name = str(dataset_name or "").strip().lower()
+    if not clean_name:
+        return None
+    return DATA_DIR / f"{clean_name}.json"
+
+
+def _load_dataset_seed(dataset_name):
+    path = _dataset_seed_path(dataset_name)
+    if not path or not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except Exception:
+        return []
+    return payload if isinstance(payload, list) else []
+
+
+def _is_missing_relation_error(exc):
+    if exc is None:
+        return False
+    message = str(exc).lower()
+    return "dataset_store" in message and ("does not exist" in message or "undefinedtable" in message or "relation" in message)
 
 
 def _use_postgres():
@@ -1839,28 +1868,34 @@ def get_dataset_items(dataset_name):
     clean_name = str(dataset_name or "").strip().lower()
     if not clean_name:
         raise ValueError("dataset_name is required")
-    with get_db() as conn:
-        row = _fetchone(_execute(
-            conn,
-            "SELECT dataset_value FROM dataset_store WHERE dataset_name=?",
-            (clean_name,),
-        ))
+    try:
+        with get_db() as conn:
+            row = _fetchone(_execute(
+                conn,
+                "SELECT dataset_value FROM dataset_store WHERE dataset_name=?",
+                (clean_name,),
+            ))
+    except Exception as exc:
+        if _is_missing_relation_error(exc):
+            return _load_dataset_seed(clean_name)
+        raise
     if not row:
-        return []
+        return _load_dataset_seed(clean_name)
     raw_value = row.get("dataset_value") if hasattr(row, "get") else row[0]
     if not raw_value:
-        return []
+        return _load_dataset_seed(clean_name)
     try:
         parsed = json.loads(raw_value)
     except Exception:
-        return []
-    return parsed if isinstance(parsed, list) else []
+        return _load_dataset_seed(clean_name)
+    return parsed if isinstance(parsed, list) else _load_dataset_seed(clean_name)
 
 
 def replace_dataset_items(dataset_name, payload, updated_by=None):
     clean_name = str(dataset_name or "").strip().lower()
     if not clean_name:
         raise ValueError("dataset_name is required")
+    init_db()
     payload_text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     with get_db() as conn:
         _execute(
