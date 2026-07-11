@@ -362,6 +362,7 @@ def init_db():
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_exec_status ON scheduler_decisions(execution_status, executed_at)")
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_command_usage_created ON command_usage_audit(created_at)")
             _execute(conn, "CREATE INDEX IF NOT EXISTS idx_command_usage_name_created ON command_usage_audit(command_name, created_at)")
+            _execute(conn, "ALTER TABLE post_audit ADD COLUMN IF NOT EXISTS post_payload TEXT")
             _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS execution_status TEXT")
             _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS executed_at TIMESTAMP")
             _execute(conn, "ALTER TABLE scheduler_decisions ADD COLUMN IF NOT EXISTS execution_error TEXT")
@@ -737,6 +738,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_exec_status ON scheduler_decisions(execution_status, executed_at);
         CREATE INDEX IF NOT EXISTS idx_command_usage_created ON command_usage_audit(created_at);
         CREATE INDEX IF NOT EXISTS idx_command_usage_name_created ON command_usage_audit(command_name, created_at);
+        ALTER TABLE post_audit ADD COLUMN IF NOT EXISTS post_payload TEXT;
         CREATE INDEX IF NOT EXISTS idx_llm_action_created ON llm_action_audit(created_at);
         CREATE INDEX IF NOT EXISTS idx_llm_action_thread_created ON llm_action_audit(thread_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_llm_action_fingerprint_created ON llm_action_audit(fingerprint, created_at);
