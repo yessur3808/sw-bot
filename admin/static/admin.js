@@ -44,6 +44,11 @@ let state = {
     ai_config: {},
     admin_profiles: [],
     current_admin_profile: null,
+    post_archive_rows: [],
+    post_archive_total: 0,
+    post_archive_limit: 24,
+    post_archive_offset: 0,
+    thread_mappings: [],
 };
 
 let activeDataset = "facts";
@@ -59,6 +64,7 @@ let candidateFilterTimer = null;
 let candidateViewMode = "compact";
 let expandedCandidateIds = new Set();
 const datasetCache = new Map();
+let archivePage = 1;
 const candidateViewStorageKey = "admin.datasetCandidates.viewMode";
 const recentTasksHideCompletedStorageKey = "admin.recentTasks.hideCompleted";
 let recentTasksHideCompleted = false;
@@ -170,6 +176,16 @@ const setDashboardLoading = (isLoading, detail = "Loading dashboard data") => {
     if (isLoading) {
         setConnectionStatus("loading", "Connecting...", detail);
     }
+};
+
+const renderAdminIdentity = () => {
+    const chip = document.getElementById("admin-identity-chip");
+    if (!chip) {
+        return;
+    }
+    const profile = normalizeAdminProfile(state.current_admin_profile || { user_id: state.user_id });
+    const display = String(profile.display_name || profile.username || profile.user_id || state.user_id || "Admin").trim();
+    chip.textContent = profile.display_name ? `${display}` : profile.username ? `${display}` : `Admin ${display}`;
 };
 
 const createListItem = (title, subtitle, actions = []) => {
@@ -321,6 +337,7 @@ const renderCurrentAdminProfile = () => {
     form.elements.notes.value = profile.notes || "";
     form.elements.is_active.checked = Boolean(profile.is_active);
     form.elements.is_primary.checked = Boolean(profile.is_primary);
+    renderAdminIdentity();
 };
 
 const renderAdminDirectory = () => {
@@ -795,6 +812,8 @@ const switchMainTab = (tabId) => {
     } else if (tabId === "admins") {
         renderCurrentAdminProfile();
         renderAdminDirectory();
+    } else if (tabId === "archive") {
+        loadArchive().catch(() => { });
     } else if (tabId === "holidays") {
         loadHolidays().catch(() => { });
     } else if (tabId === "dataset-candidates") {
@@ -2278,6 +2297,114 @@ const renderAudit = () => {
     });
 };
 
+const archiveFilters = () => {
+    const limitRaw = Number(document.getElementById("archive-filter-limit")?.value || 24);
+    const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 24));
+    return {
+        content_type: document.getElementById("archive-filter-content-type")?.value || "",
+        status: document.getElementById("archive-filter-status")?.value || "sent",
+        limit,
+        offset: Math.max(0, (archivePage - 1) * limit),
+    };
+};
+
+const decodeArchivePayload = (payload) => {
+    if (!payload) {
+        return {};
+    }
+    if (typeof payload === "object") {
+        return payload;
+    }
+    try {
+        const parsed = JSON.parse(String(payload));
+        return parsed && typeof parsed === "object" ? parsed : { text: String(payload) };
+    } catch (_) {
+        return { text: String(payload) };
+    }
+};
+
+const renderArchiveRows = () => {
+    const target = document.getElementById("archive-list");
+    const meta = document.getElementById("archive-meta");
+    const pageInfo = document.getElementById("archive-page-info");
+    if (!target || !meta) {
+        return;
+    }
+
+    const rows = state.post_archive_rows || [];
+    const total = Number(state.post_archive_total || 0);
+    const limit = Number(state.post_archive_limit || 24);
+    const offset = Number(state.post_archive_offset || 0);
+    const page = Math.max(1, Math.floor(offset / Math.max(1, limit)) + 1);
+
+    meta.textContent = `${rows.length}/${total} archived posts shown`;
+    if (pageInfo) {
+        pageInfo.textContent = `page ${page}`;
+    }
+    target.innerHTML = "";
+
+    if (!rows.length) {
+        target.appendChild(createListItem("No archived posts", "Try a wider filter or a different content type."));
+        return;
+    }
+
+    rows.forEach((row) => {
+        const payload = decodeArchivePayload(row.payload);
+        const postedAt = formatRunTime(row.posted_at);
+        const threadId = row.thread_id ?? "n/a";
+        const telegramId = row.telegram_message_id ?? "n/a";
+        const summary = row.summary || payload.summary || payload.text || payload.caption || payload.question || payload.prompt || payload.title || "Archived post";
+        const detailBits = [
+            `type=${row.content_type || "n/a"}`,
+            `topic=${row.topic || "n/a"}`,
+            `thread=${threadId}`,
+            `message=${telegramId}`,
+            `content=${row.content_id || "n/a"}`,
+            `posted=${postedAt}`,
+        ];
+
+        const card = document.createElement("div");
+        card.className = "list-item archive-card";
+        card.innerHTML = `
+            <p>${escapeHtml(summary)}</p>
+            <small>${escapeHtml(detailBits.join(" | "))}</small>
+            <div class="badge-row">
+                <span class="small-chip">${escapeHtml(row.content_type || "n/a")}</span>
+                <span class="small-chip">${escapeHtml(row.topic || "n/a")}</span>
+                <span class="small-chip">thread ${escapeHtml(threadId)}</span>
+            </div>
+            <div class="card-actions">
+                <button type="button" data-archive-action="requeue">Requeue</button>
+            </div>
+        `;
+
+        const actionButton = card.querySelector("[data-archive-action='requeue']");
+        actionButton.onclick = async () => {
+            try {
+                const result = await requestJson(`/admin/api/post-archive/${encodeURIComponent(row.id)}/requeue`, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "queue" }),
+                });
+                alert(result.ok ? `Queued post ${row.id} for repost` : `Unable to queue post ${row.id}`);
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        target.appendChild(card);
+    });
+};
+
+const loadArchive = async () => {
+    const query = buildQuery(archiveFilters());
+    const payload = await requestJson(`/admin/api/post-archive?${query}`);
+    state.post_archive_rows = payload.rows || [];
+    state.post_archive_total = Number(payload.total || 0);
+    state.post_archive_limit = Number(payload.limit || 24);
+    state.post_archive_offset = Number(payload.offset || 0);
+    renderArchiveRows();
+};
+
 const loadDataset = async (name, options = {}) => {
     const forceRefresh = Boolean(options.forceRefresh);
     activeDataset = name;
@@ -2297,6 +2424,79 @@ const loadDataset = async (name, options = {}) => {
     datasetCache.set(name, payload.data || []);
     document.getElementById("dataset-editor").value = JSON.stringify(payload.data, null, 2);
     return payload.data;
+};
+
+const renderThreadMappings = () => {
+    const target = document.getElementById("thread-mapping-list");
+    if (!target) {
+        return;
+    }
+    target.innerHTML = "";
+    const rows = state.thread_mappings || [];
+    if (!rows.length) {
+        target.appendChild(createListItem("No thread mappings", "Click Refresh Mappings to load the current topic-to-thread map."));
+        return;
+    }
+    rows.forEach((row) => {
+        const item = document.createElement("div");
+        const topicClass = ["list-item", "panel-surface", "thread-mapping-card"];
+        const topic = String(row.topic_name || row.topic || "").trim();
+        const label = String(row.thread_label || topic || "unknown").trim();
+        const description = String(row.description || "").trim();
+        const exampleUrl = String(row.example_url || "").trim();
+        const isEventSlot = topic === "events_hk" || topic === "events_global";
+        if (isEventSlot) {
+            topicClass.push("thread-mapping-card--event");
+        }
+        item.className = topicClass.join(" ");
+        item.innerHTML = `
+            <div class="thread-mapping-header">
+                <p>${escapeHtml(label)}</p>
+                <span class="chip ${isEventSlot ? "chip--event" : ""}">${escapeHtml(topic)}</span>
+            </div>
+            <small>${escapeHtml(description || `Resolved topic slot for ${topic}`)}</small>
+            <small>Example URL: ${escapeHtml(exampleUrl || "n/a")}</small>
+            <small>Thread ID: ${escapeHtml(String(row.thread_id ?? ""))}</small>
+            <div class="button-row">
+                <input data-thread-topic="${escapeHtml(topic)}" value="${escapeHtml(String(row.thread_id ?? ""))}" type="number" min="1" step="1" placeholder="Thread ID">
+                <input data-thread-label="${escapeHtml(topic)}" value="${escapeHtml(label)}" type="text" placeholder="Thread label">
+            </div>
+        `;
+        target.appendChild(item);
+    });
+};
+
+const loadThreadMappings = async () => {
+    const payload = await requestJson("/admin/api/thread-mappings");
+    state.thread_mappings = payload.rows || [];
+    renderThreadMappings();
+};
+
+const saveThreadMappings = async () => {
+    const rows = (state.thread_mappings || []).map((row) => {
+        const topic = String(row.topic_name || row.topic || "").trim();
+        const threadInput = document.querySelector(`[data-thread-topic="${CSS.escape(topic)}"]`);
+        const labelInput = document.querySelector(`[data-thread-label="${CSS.escape(topic)}"]`);
+        const threadId = threadInput ? Number(threadInput.value || 0) : Number(row.thread_id || 0);
+        if (!Number.isInteger(threadId) || threadId <= 0) {
+            throw new Error(`Thread ID for ${topic} must be a positive integer`);
+        }
+        const label = labelInput ? String(labelInput.value || "").trim() : String(row.thread_label || "").trim();
+        if (!label) {
+            throw new Error(`Thread label for ${topic} is required`);
+        }
+        return {
+            topic_name: topic,
+            thread_id: threadId,
+            thread_label: label,
+        };
+    });
+    const payload = await requestJson("/admin/api/thread-mappings", {
+        method: "POST",
+        body: JSON.stringify({ rows }),
+    });
+    await loadThreadMappings();
+    return payload;
 };
 
 const saveDataset = async () => {
@@ -2769,6 +2969,65 @@ const initActions = () => {
         };
     }
 
+    const refreshThreadMappingsButton = document.getElementById("refresh-thread-mappings");
+    if (refreshThreadMappingsButton) {
+        refreshThreadMappingsButton.onclick = async () => {
+            try {
+                await loadThreadMappings();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+    }
+
+    const saveThreadMappingsButton = document.getElementById("save-thread-mappings");
+    if (saveThreadMappingsButton) {
+        saveThreadMappingsButton.onclick = async () => {
+            try {
+                await saveThreadMappings();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+    }
+
+    const archiveApplyButton = document.getElementById("archive-filter-apply");
+    if (archiveApplyButton) {
+        archiveApplyButton.onclick = async () => {
+            archivePage = 1;
+            try {
+                await loadArchive();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+    }
+
+    const archivePrevButton = document.getElementById("archive-page-prev");
+    if (archivePrevButton) {
+        archivePrevButton.onclick = async () => {
+            archivePage = Math.max(1, archivePage - 1);
+            try {
+                await loadArchive();
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+    }
+
+    const archiveNextButton = document.getElementById("archive-page-next");
+    if (archiveNextButton) {
+        archiveNextButton.onclick = async () => {
+            archivePage += 1;
+            try {
+                await loadArchive();
+            } catch (err) {
+                archivePage = Math.max(1, archivePage - 1);
+                alert(err.message);
+            }
+        };
+    }
+
     const redditApplyButton = document.getElementById("reddit-filter-apply");
     if (redditApplyButton) {
         redditApplyButton.onclick = async () => {
@@ -3041,8 +3300,11 @@ const bootstrap = async () => {
         renderRedditCacheRows();
         renderDatasetCandidates();
         renderAiConfig();
+        renderAdminIdentity();
         renderCurrentAdminProfile();
         renderAdminDirectory();
+        renderThreadMappings();
+        renderArchiveRows();
         renderRecentTasks();
         setConnectionStatus("ok", "Connected", `Live dashboard ready ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
         void Promise.allSettled([
@@ -3053,6 +3315,8 @@ const bootstrap = async () => {
             loadDataset("facts"),
             refreshTelemetry(),
             refreshSourceStatus(),
+            loadThreadMappings(),
+            loadArchive(),
             loadRedditCache(),
             loadRecentTasks(12),
             loadDatasetCandidates(),

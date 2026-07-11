@@ -7,6 +7,36 @@ from datetime import date, datetime, timedelta, timezone
 
 import config
 
+SUPPORTED_THREAD_TOPICS = (
+    "general",
+    "memes",
+    "wallpapers",
+    "trivia",
+    "quotes",
+    "facts",
+    "polls",
+    "discussions",
+    "events_hk",
+    "events_global",
+    "gaming",
+    "lightsabers",
+)
+
+THREAD_TOPIC_LABELS = {
+    "general": "General channel",
+    "memes": "Memes",
+    "wallpapers": "Wallpapers",
+    "trivia": "Trivia",
+    "quotes": "Quotes",
+    "facts": "Facts",
+    "polls": "Polls",
+    "discussions": "Discussions",
+    "events_hk": "Hong Kong events",
+    "events_global": "Global events",
+    "gaming": "Gaming",
+    "lightsabers": "Lightsabers",
+}
+
 try:
     import psycopg
     from psycopg.rows import dict_row
@@ -163,6 +193,7 @@ def init_db():
                 content_type TEXT,
                 content_id TEXT,
                 text_hash TEXT,
+                post_payload TEXT,
                 status TEXT NOT NULL DEFAULT 'sent'
             );
             """)
@@ -207,6 +238,23 @@ def init_db():
             CREATE TABLE IF NOT EXISTS runtime_settings (
                 setting_key TEXT PRIMARY KEY,
                 setting_value TEXT NOT NULL,
+                updated_by BIGINT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+            _execute(conn, """
+            CREATE TABLE IF NOT EXISTS dataset_store (
+                dataset_name TEXT PRIMARY KEY,
+                dataset_value TEXT NOT NULL,
+                updated_by BIGINT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+            _execute(conn, """
+            CREATE TABLE IF NOT EXISTS thread_mappings (
+                topic_name TEXT PRIMARY KEY,
+                thread_id BIGINT,
+                thread_label TEXT,
                 updated_by BIGINT,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -470,6 +518,7 @@ def init_db():
             content_type TEXT,
             content_id TEXT,
             text_hash TEXT,
+            post_payload TEXT,
             status TEXT NOT NULL DEFAULT 'sent'
         );
         CREATE TABLE IF NOT EXISTS scheduler_decisions (
@@ -508,6 +557,19 @@ def init_db():
         CREATE TABLE IF NOT EXISTS runtime_settings (
             setting_key TEXT PRIMARY KEY,
             setting_value TEXT NOT NULL,
+            updated_by INTEGER,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS dataset_store (
+            dataset_name TEXT PRIMARY KEY,
+            dataset_value TEXT NOT NULL,
+            updated_by INTEGER,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS thread_mappings (
+            topic_name TEXT PRIMARY KEY,
+            thread_id INTEGER,
+            thread_label TEXT,
             updated_by INTEGER,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
@@ -703,14 +765,15 @@ def compute_text_hash(text):
 
 
 def log_post_audit(topic, thread_id, telegram_message_id, content_type, content_id, text, status="sent"):
+    payload = text if isinstance(text, str) else json.dumps(text or {}, ensure_ascii=False, sort_keys=True)
     with get_db() as conn:
         _execute(
             conn,
             """
             INSERT INTO post_audit (
                 topic, thread_id, telegram_message_id,
-                content_type, content_id, text_hash, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                content_type, content_id, text_hash, post_payload, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 topic,
@@ -719,9 +782,102 @@ def log_post_audit(topic, thread_id, telegram_message_id, content_type, content_
                 content_type,
                 content_id,
                 compute_text_hash(text),
+                payload,
                 status,
             ),
         )
+
+
+def list_post_audit_history(limit=50, offset=0, content_type=None, topic=None, status=None):
+    sql = """
+        SELECT id, posted_at, topic, thread_id, telegram_message_id, content_type,
+               content_id, text_hash, post_payload, status
+        FROM post_audit
+        WHERE 1=1
+    """
+    args = []
+    if content_type:
+        sql += " AND content_type=?"
+        args.append(str(content_type))
+    if topic:
+        sql += " AND topic=?"
+        args.append(str(topic))
+    if status:
+        sql += " AND status=?"
+        args.append(str(status))
+    sql += " ORDER BY posted_at DESC, id DESC LIMIT ? OFFSET ?"
+    args.extend([max(1, min(500, int(limit))), max(0, int(offset))])
+    with get_db() as conn:
+        rows = _fetchall(_execute(conn, sql, tuple(args)))
+    out = []
+    for row in rows:
+        if hasattr(row, "keys"):
+            out.append(dict(row))
+        else:
+            out.append({
+                "id": row[0],
+                "posted_at": row[1],
+                "topic": row[2],
+                "thread_id": row[3],
+                "telegram_message_id": row[4],
+                "content_type": row[5],
+                "content_id": row[6],
+                "text_hash": row[7],
+                "post_payload": row[8],
+                "status": row[9],
+            })
+    return out
+
+
+def count_post_audit_history(content_type=None, topic=None, status=None):
+    sql = "SELECT COUNT(*) FROM post_audit WHERE 1=1"
+    args = []
+    if content_type:
+        sql += " AND content_type=?"
+        args.append(str(content_type))
+    if topic:
+        sql += " AND topic=?"
+        args.append(str(topic))
+    if status:
+        sql += " AND status=?"
+        args.append(str(status))
+    with get_db() as conn:
+        row = _fetchone(_execute(conn, sql, tuple(args)))
+    if not row:
+        return 0
+    return int(row[0] if not hasattr(row, "get") else row[0])
+
+
+def get_post_audit(post_id):
+    with get_db() as conn:
+        row = _fetchone(
+            _execute(
+                conn,
+                """
+                SELECT id, posted_at, topic, thread_id, telegram_message_id, content_type,
+                       content_id, text_hash, post_payload, status
+                FROM post_audit
+                WHERE id=?
+                """,
+                (int(post_id),),
+            )
+        )
+    if not row:
+        return None
+    if hasattr(row, "keys"):
+        return dict(row)
+    return {
+        "id": row[0],
+        "posted_at": row[1],
+        "topic": row[2],
+        "thread_id": row[3],
+        "telegram_message_id": row[4],
+        "content_type": row[5],
+        "content_id": row[6],
+        "text_hash": row[7],
+        "post_payload": row[8],
+        "status": row[9],
+    }
 
 
 def log_scheduler_decision(
@@ -1673,6 +1829,122 @@ def already_posted(content_type, content_id):
             "INSERT INTO posted VALUES (?, ?)", (content_type, content_id)
         )
         return False
+
+
+def list_dataset_names():
+    return ["facts", "quotes", "polls", "trivia", "discussions"]
+
+
+def get_dataset_items(dataset_name):
+    clean_name = str(dataset_name or "").strip().lower()
+    if not clean_name:
+        raise ValueError("dataset_name is required")
+    with get_db() as conn:
+        row = _fetchone(_execute(
+            conn,
+            "SELECT dataset_value FROM dataset_store WHERE dataset_name=?",
+            (clean_name,),
+        ))
+    if not row:
+        return []
+    raw_value = row.get("dataset_value") if hasattr(row, "get") else row[0]
+    if not raw_value:
+        return []
+    try:
+        parsed = json.loads(raw_value)
+    except Exception:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def replace_dataset_items(dataset_name, payload, updated_by=None):
+    clean_name = str(dataset_name or "").strip().lower()
+    if not clean_name:
+        raise ValueError("dataset_name is required")
+    payload_text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    with get_db() as conn:
+        _execute(
+            conn,
+            """
+            INSERT INTO dataset_store(dataset_name, dataset_value, updated_by, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(dataset_name) DO UPDATE SET
+                dataset_value=excluded.dataset_value,
+                updated_by=excluded.updated_by,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (clean_name, payload_text, updated_by),
+        )
+
+
+def list_thread_mappings():
+    with get_db() as conn:
+        return _fetchall(
+            _execute(
+                conn,
+                "SELECT topic_name, thread_id, thread_label, updated_by, updated_at FROM thread_mappings ORDER BY topic_name ASC",
+            )
+        )
+
+
+def get_thread_mapping(topic_name):
+    clean_name = str(topic_name or "").strip().lower()
+    if not clean_name:
+        return None
+    with get_db() as conn:
+        return _fetchone(
+            _execute(
+                conn,
+                "SELECT topic_name, thread_id, thread_label, updated_by, updated_at FROM thread_mappings WHERE topic_name=?",
+                (clean_name,),
+            )
+        )
+
+
+def upsert_thread_mapping(topic_name, thread_id, thread_label=None, updated_by=None):
+    clean_name = str(topic_name or "").strip().lower()
+    if not clean_name:
+        raise ValueError("topic_name is required")
+    if clean_name not in SUPPORTED_THREAD_TOPICS:
+        raise ValueError(f"unsupported topic_name: {clean_name}")
+    clean_thread_id = None if thread_id is None else int(thread_id)
+    if clean_thread_id is not None and clean_thread_id <= 0:
+        raise ValueError("thread_id must be a positive integer")
+    clean_label = None if thread_label is None else str(thread_label)
+    if clean_label is not None and not clean_label.strip():
+        clean_label = None
+    if clean_label is None:
+        clean_label = THREAD_TOPIC_LABELS.get(clean_name)
+    with get_db() as conn:
+        _execute(
+            conn,
+            """
+            INSERT INTO thread_mappings(topic_name, thread_id, thread_label, updated_by, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(topic_name) DO UPDATE SET
+                thread_id=excluded.thread_id,
+                thread_label=excluded.thread_label,
+                updated_by=excluded.updated_by,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (clean_name, clean_thread_id, clean_label, updated_by),
+        )
+
+
+def resolve_thread_id(topic_name, default=None):
+    mapping = get_thread_mapping(topic_name)
+    if mapping:
+        value = mapping.get("thread_id") if hasattr(mapping, "get") else mapping[1]
+        try:
+            resolved = int(value)
+            if resolved > 0:
+                return resolved
+        except Exception:
+            pass
+    try:
+        return int(default) if default is not None and int(default) > 0 else None
+    except Exception:
+        return None
 
 
 def get_runtime_setting(setting_key, default_value=None):

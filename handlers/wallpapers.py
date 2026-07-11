@@ -126,7 +126,7 @@ async def daily_wallpaper(context: ContextTypes.DEFAULT_TYPE):
         "pinterest": _pinterest_candidates,
         "instagram": _instagram_candidates,
     }
-    thread_id = config.get_thread_id("wallpapers") or config.get_chat_thread_id() or config.THREADS["wallpapers"]
+    thread_id = db.resolve_thread_id("wallpapers", default=config.get_thread_id("wallpapers") or config.get_chat_thread_id() or config.THREADS["wallpapers"])
     provider_counts = {}
 
     for provider in config.WALLPAPER_PROVIDER_PRIORITY:

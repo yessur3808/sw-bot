@@ -89,8 +89,11 @@ def _today_in_release_timezone():
         return date.today()
 
 
-def _event_thread_id():
-    return config.get_thread_id("events") or config.get_thread_id("general")
+def _event_thread_id(region=None):
+    region_name = str(region or "").strip().lower()
+    if region_name == "global":
+        return config.get_thread_id("events_global") or config.get_thread_id("general")
+    return config.get_thread_id("events_hk") or config.get_thread_id("general")
 
 
 def _parse_event_date(raw_date):
@@ -961,6 +964,7 @@ async def publish_auto_approved(context: ContextTypes.DEFAULT_TYPE):
     for row in rows:
         if db.already_posted("event", row["item_key"]):
             continue
+        region = str(row.get("region") or "hk").strip().lower() or "hk"
         date_hint = f"\nDate: {row['event_date']}" if row["event_date"] else ""
         text = (
             f"📡 *Star Wars Update*\n\n"
@@ -972,14 +976,14 @@ async def publish_auto_approved(context: ContextTypes.DEFAULT_TYPE):
         )
         message = await context.bot.send_message(
             chat_id=config.GROUP_ID,
-            message_thread_id=_event_thread_id(),
+            message_thread_id=_event_thread_id(region),
             text=text,
             parse_mode="Markdown",
             disable_web_page_preview=False,
         )
         db.log_post_audit(
-            topic="event_update",
-            thread_id=_event_thread_id(),
+            topic=f"event_update:{region}",
+            thread_id=_event_thread_id(region),
             telegram_message_id=message.message_id,
             content_type="event",
             content_id=row["item_key"],
@@ -1014,27 +1018,43 @@ async def daily_event_digest(context: ContextTypes.DEFAULT_TYPE):
         return f"- {title} ({category})"
 
     parts = ["🗓️ *Daily Star Wars Event Digest*"]
+    sent_any = False
     if hk:
-        parts.append("\n*Hong Kong*\n" + "\n".join(_line(r) for r in hk))
+        hk_text = "\n*Hong Kong*\n" + "\n".join(_line(r) for r in hk)
+        message = await context.bot.send_message(
+            chat_id=config.GROUP_ID,
+            message_thread_id=_event_thread_id("hk"),
+            text="\n".join([parts[0], hk_text]),
+            parse_mode="Markdown",
+        )
+        db.log_post_audit(
+            topic="event_digest:hk",
+            thread_id=_event_thread_id("hk"),
+            telegram_message_id=message.message_id,
+            content_type="event_digest",
+            content_id=f"event_digest:hk:{date.today().isoformat()}",
+            text="\n".join([parts[0], hk_text]),
+        )
+        sent_any = True
     if global_items:
-        parts.append("\n*Global*\n" + "\n".join(_line(r) for r in global_items))
-    if len(parts) == 1:
+        global_text = "\n*Global*\n" + "\n".join(_line(r) for r in global_items)
+        message = await context.bot.send_message(
+            chat_id=config.GROUP_ID,
+            message_thread_id=_event_thread_id("global"),
+            text="\n".join([parts[0], global_text]),
+            parse_mode="Markdown",
+        )
+        db.log_post_audit(
+            topic="event_digest:global",
+            thread_id=_event_thread_id("global"),
+            telegram_message_id=message.message_id,
+            content_type="event_digest",
+            content_id=f"event_digest:global:{date.today().isoformat()}",
+            text="\n".join([parts[0], global_text]),
+        )
+        sent_any = True
+    if not sent_any:
         return
-
-    message = await context.bot.send_message(
-        chat_id=config.GROUP_ID,
-        message_thread_id=_event_thread_id(),
-        text="\n".join(parts),
-        parse_mode="Markdown",
-    )
-    db.log_post_audit(
-        topic="event_digest",
-        thread_id=_event_thread_id(),
-        telegram_message_id=message.message_id,
-        content_type="event_digest",
-        content_id=f"event_digest:{date.today().isoformat()}",
-        text="\n".join(parts),
-    )
 
 
 def _is_admin(update: Update):

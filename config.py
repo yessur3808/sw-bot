@@ -266,12 +266,50 @@ THREADS = {
     "movie": int(os.getenv("THREAD_MOVIE", 0)),
     "show": int(os.getenv("THREAD_SHOW", 0)),
     "general": int(os.getenv("THREAD_GENERAL", 0)),
-    "events": int(os.getenv("THREAD_EVENTS", os.getenv("THREAD_GENERAL", 0))),
+    "events_hk": int(os.getenv("THREAD_EVENTS_HK", os.getenv("THREAD_EVENTS", os.getenv("THREAD_GENERAL", 0)))),
+    "events_global": int(os.getenv("THREAD_EVENTS_GLOBAL", os.getenv("THREAD_EVENTS", os.getenv("THREAD_GENERAL", 0)))),
+    "gaming": int(os.getenv("THREAD_GAMING", 0)),
+    "lightsabers": int(os.getenv("THREAD_LIGHTSABERS", 0)),
+}
+
+
+THREAD_LABELS = {
+    "general": "General channel",
+    "memes": "Memes",
+    "wallpapers": "Wallpapers",
+    "trivia": "Trivia",
+    "quotes": "Quotes",
+    "facts": "Facts",
+    "polls": "Polls",
+    "discussions": "Discussions",
+    "events_hk": "Hong Kong events",
+    "events_global": "Global events",
+    "gaming": "Gaming",
+    "lightsabers": "Lightsabers",
+}
+
+
+THREAD_TOPIC_ALIASES = {
+    "events": "events_hk",
+    "hk_events": "events_hk",
+    "global_events": "events_global",
+    "lightsaber": "lightsabers",
+    "lightsaber_s": "lightsabers",
 }
 
 
 def get_thread_id(name):
-    value = THREADS.get(name, 0)
+    topic_name = str(name or "").strip().lower()
+    topic_name = THREAD_TOPIC_ALIASES.get(topic_name, topic_name)
+    value = THREADS.get(topic_name, 0)
+    try:
+        import db
+
+        mapped = db.resolve_thread_id(topic_name, default=value)
+        if mapped is not None:
+            return mapped
+    except Exception:
+        pass
     try:
         value = int(value)
     except Exception:
@@ -286,6 +324,11 @@ def get_chat_thread_id():
         or get_thread_id("lore")
         or get_thread_id("general")
     )
+
+
+def normalize_thread_topic(name):
+    topic_name = str(name or "").strip().lower()
+    return THREAD_TOPIC_ALIASES.get(topic_name, topic_name)
 
 
 def parse_source_meta(meta_raw):

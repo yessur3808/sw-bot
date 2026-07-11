@@ -17,6 +17,10 @@ from handlers import events as events_handler
 from handlers import reddit_ingest as reddit_ingest_handler
 from handlers import dataset_collectors as dataset_collectors_handler
 from handlers import holidays as holidays_handler
+from handlers import content as content_handler
+from handlers import trivia as trivia_handler
+from handlers import memes as memes_handler
+from handlers import wallpapers as wallpapers_handler
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -426,6 +430,81 @@ def _attach_post_audit(rows):
     return out
 
 
+def _decode_post_payload(row):
+    payload = row.get("post_payload") if hasattr(row, "get") else row[8]
+    if isinstance(payload, dict):
+        return payload
+    raw = str(payload or "").strip()
+    if not raw:
+        return {}
+    try:
+        decoded = json.loads(raw)
+    except Exception:
+        return {"text": raw}
+    return decoded if isinstance(decoded, dict) else {"text": raw}
+
+
+def _archive_card_summary(row):
+    payload = _decode_post_payload(row)
+    content_type = str(row.get("content_type") if hasattr(row, "get") else row[5]).strip()
+    topic = str(row.get("topic") if hasattr(row, "get") else row[2]).strip()
+    summary = payload.get("summary") or payload.get("text") or payload.get("caption") or payload.get("question") or payload.get("prompt") or payload.get("title") or payload.get("body") or ""
+    if not summary:
+        if content_type == "trivia":
+            question = payload.get("question") or payload.get("q") or "Trivia question"
+            options = payload.get("options") if isinstance(payload.get("options"), list) else []
+            summary = f"{question} | options: {', '.join(str(v) for v in options[:4] if str(v).strip())}"
+        elif content_type == "quote":
+            quote = payload.get("quote") or payload.get("text") or "Quote"
+            speaker = payload.get("speaker") or ""
+            summary = f"{quote}{f' — {speaker}' if speaker else ''}"
+        elif content_type == "poll":
+            question = payload.get("question") or payload.get("q") or "Poll"
+            options = payload.get("options") if isinstance(payload.get("options"), list) else []
+            summary = f"{question} | options: {', '.join(str(v) for v in options[:4] if str(v).strip())}"
+        elif content_type == "fact":
+            summary = payload.get("fact") or payload.get("text") or "Fact"
+        elif content_type == "discussion":
+            summary = payload.get("prompt") or payload.get("question") or payload.get("text") or "Discussion prompt"
+        elif content_type == "meme":
+            summary = payload.get("caption") or payload.get("url") or "Meme"
+        elif content_type == "wallpaper":
+            summary = payload.get("caption") or payload.get("photo") or "Wallpaper"
+        elif content_type == "event":
+            summary = payload.get("title") or payload.get("text") or "Event update"
+        else:
+            summary = payload.get("text") or payload.get("caption") or payload.get("url") or "Archived post"
+    return {
+        "summary": str(summary)[:500],
+        "topic": topic,
+        "content_type": content_type,
+        "payload": payload,
+    }
+
+
+def _repost_content_type(context, row, payload):
+    content_type = str(row.get("content_type") if hasattr(row, "get") else row[5]).strip().lower()
+    topic = str(row.get("topic") if hasattr(row, "get") else row[2]).strip()
+    thread_id = row.get("thread_id") if hasattr(row, "get") else row[3]
+    if content_type == "quote":
+        return content_handler.daily_quote(context)
+    if content_type == "fact":
+        return content_handler.daily_fact(context)
+    if content_type == "poll":
+        return content_handler.daily_vote_poll(context)
+    if content_type == "discussion":
+        return content_handler.daily_discussion_topic(context)
+    if content_type == "trivia":
+        return trivia_handler.daily_trivia(context)
+    if content_type == "meme":
+        return memes_handler.daily_meme(context)
+    if content_type == "wallpaper":
+        return wallpapers_handler.daily_wallpaper(context)
+    if content_type == "event":
+        return events_handler.publish_auto_approved(context)
+    raise ValueError(f"unsupported content_type={content_type} for repost")
+
+
 def _session_expired(row):
     expires_at = row.get("expires_at") if hasattr(row, "get") else row[5]
     dt = _coerce_datetime(expires_at)
@@ -537,22 +616,61 @@ def _require_csrf():
 
 
 def _load_dataset(dataset_name):
-    path = DATASET_FILES.get(dataset_name)
-    if not path:
+    clean_name = str(dataset_name or "").strip().lower()
+    if clean_name not in DATASET_FILES:
         abort(404, description="unknown-dataset")
-    if not path.exists():
+    stored = db.get_dataset_items(clean_name)
+    if stored:
+        return stored
+    path = DATASET_FILES.get(clean_name)
+    if not path or not path.exists():
         return []
     with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+        payload = json.load(handle)
+    db.replace_dataset_items(clean_name, payload)
+    return payload
 
 
-def _save_dataset(dataset_name, payload):
-    path = DATASET_FILES.get(dataset_name)
+def _save_dataset(dataset_name, payload, updated_by=None):
+    clean_name = str(dataset_name or "").strip().lower()
+    path = DATASET_FILES.get(clean_name)
     if not path:
         abort(404, description="unknown-dataset")
+    db.replace_dataset_items(clean_name, payload, updated_by=updated_by)
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
+
+
+def _thread_mapping_rows():
+    rows = []
+    persisted = {str(row.get("topic_name") or "").strip().lower(): row for row in db.list_thread_mappings()}
+    examples = {
+        "general": "https://t.me/c/4441702993/1",
+        "memes": "https://t.me/c/4441702993/2",
+        "wallpapers": "https://t.me/c/4441702993/3",
+        "events_hk": "https://t.me/c/4441702993/4",
+        "events_global": "https://t.me/c/4441702993/5",
+        "gaming": "https://t.me/c/4441702993/6",
+        "lightsabers": "https://t.me/c/4441702993/7",
+    }
+    for topic_name in db.SUPPORTED_THREAD_TOPICS:
+        row = persisted.get(topic_name, {})
+        rows.append({
+            "topic_name": topic_name,
+            "thread_label": row.get("thread_label") or db.THREAD_TOPIC_LABELS.get(topic_name),
+            "thread_id": row.get("thread_id"),
+            "example_url": examples.get(topic_name),
+            "description": {
+                "events_hk": "Hong Kong event announcements and digests.",
+                "events_global": "Global event announcements and digests.",
+                "gaming": "Games, releases, and gaming discussion.",
+                "lightsabers": "Lightsaber builds, duels, and gear.",
+            }.get(topic_name, ""),
+            "updated_by": row.get("updated_by"),
+            "updated_at": row.get("updated_at"),
+        })
+    return rows
 
 
 def _validate_dataset(dataset_name, payload):
@@ -1071,7 +1189,7 @@ def create_admin_app():
         valid, err = _validate_dataset(dataset_name, data)
         if not valid:
             return jsonify({"ok": False, "error": err}), 400
-        _save_dataset(dataset_name, data)
+        _save_dataset(dataset_name, data, updated_by=user_id)
         db.add_admin_audit(
             "dataset.update",
             actor_user_id=user_id,
@@ -1079,6 +1197,44 @@ def create_admin_app():
             details=json.dumps({"dataset": dataset_name, "items": len(data)}),
         )
         return jsonify({"ok": True, "size": len(data)})
+
+    @app.get("/admin/api/thread-mappings")
+    def api_thread_mappings():
+        require_admin()
+        return jsonify({"rows": _thread_mapping_rows(), "supported": list(db.SUPPORTED_THREAD_TOPICS)})
+
+    @app.post("/admin/api/thread-mappings")
+    def api_save_thread_mappings():
+        user_id = require_admin()
+        _require_csrf()
+        payload = request.get_json(silent=True) or {}
+        rows = payload.get("rows") or []
+        if not isinstance(rows, list):
+            return jsonify({"ok": False, "error": "rows must be list"}), 400
+        saved = 0
+        seen = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            topic_name = str(row.get("topic_name") or row.get("topic") or "").strip().lower()
+            if not topic_name:
+                continue
+            if topic_name in seen:
+                continue
+            if topic_name not in db.SUPPORTED_THREAD_TOPICS:
+                return jsonify({"ok": False, "error": f"unsupported topic: {topic_name}"}), 400
+            thread_id = row.get("thread_id")
+            thread_label = row.get("thread_label")
+            db.upsert_thread_mapping(topic_name, thread_id, thread_label=thread_label, updated_by=user_id)
+            seen.add(topic_name)
+            saved += 1
+        db.add_admin_audit(
+            "thread_mappings.update",
+            actor_user_id=user_id,
+            actor_label="web",
+            details=json.dumps({"rows": saved}),
+        )
+        return jsonify({"ok": True, "saved": saved})
 
     @app.post("/admin/api/settings")
     def api_save_settings():
@@ -1464,6 +1620,69 @@ def create_admin_app():
     def api_audit():
         require_admin()
         return jsonify({"rows": [dict(row) for row in db.list_admin_audit(limit=100)]})
+
+    @app.get("/admin/api/post-archive")
+    def api_post_archive():
+        require_admin()
+        content_type = str(request.args.get("content_type", "")).strip().lower() or None
+        topic = str(request.args.get("topic", "")).strip() or None
+        status = str(request.args.get("status", "sent")).strip().lower() or None
+        limit_raw = request.args.get("limit", "24")
+        offset_raw = request.args.get("offset", "0")
+        try:
+            limit = max(1, min(100, int(limit_raw)))
+        except Exception:
+            limit = 24
+        try:
+            offset = max(0, int(offset_raw))
+        except Exception:
+            offset = 0
+        rows = db.list_post_audit_history(limit=limit, offset=offset, content_type=content_type, topic=topic, status=status)
+        total = db.count_post_audit_history(content_type=content_type, topic=topic, status=status)
+        cards = []
+        for row in rows:
+            decoded = _archive_card_summary(row)
+            cards.append({
+                "id": row.get("id") if hasattr(row, "get") else row[0],
+                "posted_at": row.get("posted_at") if hasattr(row, "get") else row[1],
+                "topic": decoded["topic"],
+                "thread_id": row.get("thread_id") if hasattr(row, "get") else row[3],
+                "telegram_message_id": row.get("telegram_message_id") if hasattr(row, "get") else row[4],
+                "content_type": decoded["content_type"],
+                "content_id": row.get("content_id") if hasattr(row, "get") else row[6],
+                "summary": decoded["summary"],
+                "payload": decoded["payload"],
+                "status": row.get("status") if hasattr(row, "get") else row[9],
+            })
+        return jsonify({"rows": cards, "total": total, "limit": limit, "offset": offset})
+
+    @app.post("/admin/api/post-archive/<int:post_id>/requeue")
+    def api_post_archive_requeue(post_id):
+        user_id = require_admin()
+        _require_csrf()
+        payload = request.get_json(silent=True) or {}
+        action = str(payload.get("action") or "queue").strip().lower()
+        row = db.get_post_audit(post_id)
+        if not row:
+            return jsonify({"ok": False, "error": "post not found"}), 404
+        decoded = _archive_card_summary(row)
+        if action not in ("queue", "repost"):
+            return jsonify({"ok": False, "error": "invalid action"}), 400
+        db.queue_repost_post_audit(
+            source_post_audit_id=post_id,
+            topic=decoded["topic"],
+            thread_id=row.get("thread_id"),
+            content_type=decoded["content_type"],
+            content_id=row.get("content_id"),
+            post_payload=decoded["payload"],
+        )
+        db.add_admin_audit(
+            "post_archive.requeue",
+            actor_user_id=user_id,
+            actor_label="web",
+            details=json.dumps({"post_id": post_id, "action": action, "content_type": decoded["content_type"]}),
+        )
+        return jsonify({"ok": True, "queued": True, "post_id": post_id})
 
     @app.get("/admin/api/reddit-cache")
     def api_reddit_cache():

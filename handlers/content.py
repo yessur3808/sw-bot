@@ -10,20 +10,10 @@ try:
 except Exception:  # pragma: no cover
     ZoneInfo = None
 
-with open("data/quotes.json", encoding="utf-8") as f:
-    QUOTES = json.load(f)
-
-with open("data/facts.json", encoding="utf-8") as f:
-    FACTS = json.load(f)
-
-with open("data/polls.json", encoding="utf-8") as f:
-    POLLS = json.load(f)
-
-try:
-    with open("data/discussions.json", encoding="utf-8") as f:
-        DISCUSSIONS = json.load(f)
-except FileNotFoundError:
-    DISCUSSIONS = []
+QUOTES = db.get_dataset_items("quotes")
+FACTS = db.get_dataset_items("facts")
+POLLS = db.get_dataset_items("polls")
+DISCUSSIONS = db.get_dataset_items("discussions")
 
 
 MOVIE_KEYWORDS = (

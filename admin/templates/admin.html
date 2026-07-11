@@ -55,7 +55,7 @@
                     <small id="connection-status-detail">Loading dashboard data</small>
                 </span>
             </div>
-            <span class="chip">Admin {{ user_id }}</span>
+            <span id="admin-identity-chip" class="chip">Admin {{ user_id }}</span>
             <form method="post" action="{{ url_for('admin_logout') }}">
                 <button class="ghost" type="submit">Sign Out</button>
             </form>
@@ -69,6 +69,7 @@
             <button class="tab" data-tab="health">🤖 Bot Health</button>
             <button class="tab" data-tab="ai">🧠 AI Models</button>
             <button class="tab" data-tab="admins">🛡️ Admins</button>
+            <button class="tab" data-tab="archive">🗂️ Post Archive</button>
             <button class="tab" data-tab="events">🛰️ Event Review</button>
             <button class="tab" data-tab="holidays">📅 Holidays</button>
             <button class="tab" data-tab="reddit">👽 Reddit Cache</button>
@@ -336,6 +337,68 @@
             </div>
         </section>
 
+        <section class="panel" data-panel="archive">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Post Archive</h2>
+                    <p class="help">Browse posts already sent to Telegram, including the topic, thread, timestamp, and
+                        stored payload summary.</p>
+                    <div class="filter-row">
+                        <label>Content Type
+                            <select id="archive-filter-content-type">
+                                <option value="">all</option>
+                                <option value="meme">meme</option>
+                                <option value="wallpaper">wallpaper</option>
+                                <option value="trivia">trivia</option>
+                                <option value="quote">quote</option>
+                                <option value="fact">fact</option>
+                                <option value="poll">poll</option>
+                                <option value="discussion">discussion</option>
+                                <option value="event">event</option>
+                                <option value="event_digest">event_digest</option>
+                                <option value="greeting">greeting</option>
+                                <option value="llm_reply">llm_reply</option>
+                            </select>
+                        </label>
+                        <label>Status
+                            <select id="archive-filter-status">
+                                <option value="sent" selected>sent</option>
+                                <option value="failed">failed</option>
+                                <option value="skipped">skipped</option>
+                            </select>
+                        </label>
+                        <label>Limit
+                            <input id="archive-filter-limit" type="number" min="1" max="100" value="24">
+                        </label>
+                        <button id="archive-filter-apply" type="button">Apply</button>
+                    </div>
+                    <div id="archive-meta" class="help"></div>
+                    <div id="archive-list" class="archive-grid"></div>
+                    <div class="pagination-row">
+                        <button id="archive-page-prev" type="button">← Prev</button>
+                        <span id="archive-page-info" class="chip">page 1</span>
+                        <button id="archive-page-next" type="button">Next →</button>
+                    </div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Archive Actions</h2>
+                    <div class="list-item">
+                        <p>Requeue</p>
+                        <small>Moves a past post back into the repost queue using the stored payload.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Supported types</p>
+                        <small>All content types can be viewed, but only supported structured payloads are eligible for
+                            requeue.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Safety</p>
+                        <small>Actions are audited and deduped by the bot’s normal posting rules.</small>
+                    </div>
+                </article>
+            </div>
+        </section>
+
         <section class="panel" data-panel="reddit">
             <article class="card">
                 <h2>Reddit Cache Browser</h2>
@@ -582,6 +645,50 @@
                     <div class="list-item">
                         <p>Review</p>
                         <small>Use the admin audit trail to confirm changes after save.</small>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" data-panel="thread-mappings">
+            <div class="grid two">
+                <article class="card panel-surface">
+                    <h2>Thread Mappings</h2>
+                    <p class="help">Map each supported topic to an exact Telegram thread ID. Separate slots are shown
+                        for Hong Kong events, global events, gaming, and lightsabers. Database values override env
+                        defaults when set.</p>
+                    <div class="button-row">
+                        <button id="refresh-thread-mappings" type="button">Refresh Mappings</button>
+                        <button id="save-thread-mappings" type="button">Save Mappings</button>
+                    </div>
+                    <div id="thread-mapping-list" class="list"></div>
+                </article>
+                <article class="card panel-surface">
+                    <h2>Example Thread URLs</h2>
+                    <div class="list-item thread-group-accent">
+                        <p>Event slots</p><small>Hong Kong events and global events are grouped together at the top
+                            because they are routed separately.</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Hong Kong events</p><small>https://t.me/c/4441702993/4</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Global events</p><small>https://t.me/c/4441702993/5</small>
+                    </div>
+                    <div class="list-item">
+                        <p>General channel</p><small>https://t.me/c/4441702993/1</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Memes</p><small>https://t.me/c/4441702993/2</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Wallpapers</p><small>https://t.me/c/4441702993/3</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Gaming</p><small>https://t.me/c/4441702993/6</small>
+                    </div>
+                    <div class="list-item">
+                        <p>Lightsabers</p><small>https://t.me/c/4441702993/7</small>
                     </div>
                 </article>
             </div>

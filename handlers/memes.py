@@ -75,6 +75,7 @@ async def daily_meme(context: ContextTypes.DEFAULT_TYPE):
     }
 
     provider_counts = {}
+    thread_id = db.resolve_thread_id("memes", default=THREADS["memes"])
 
     for provider in MEME_PROVIDER_PRIORITY:
         fetch = provider_map.get(provider)
@@ -92,13 +93,13 @@ async def daily_meme(context: ContextTypes.DEFAULT_TYPE):
             caption = candidate.get("caption") or "😂 Daily meme drop"
             message = await context.bot.send_photo(
                 chat_id=GROUP_ID,
-                message_thread_id=THREADS["memes"],
+                message_thread_id=thread_id,
                 photo=meme_url,
                 caption=caption,
             )
             db.log_post_audit(
                 topic="meme",
-                thread_id=THREADS["memes"],
+                thread_id=thread_id,
                 telegram_message_id=message.message_id,
                 content_type="meme",
                 content_id=meme_id,
