@@ -759,7 +759,8 @@ button:hover {
         min-height: 320px;
     }
 
-    .dataset-editor-shell {
+    .dataset-editor-shell,
+    .source-editor-shell {
         width: 100%;
         background: linear-gradient(180deg, rgba(3, 13, 20, 0.98), rgba(6, 18, 27, 0.92));
         border: 1px solid rgba(255, 226, 122, 0.14);
@@ -768,7 +769,8 @@ button:hover {
         box-shadow: inset 0 0 0 1px rgba(116, 230, 255, 0.04), 0 18px 32px rgba(1, 8, 12, 0.22);
     }
 
-    .dataset-editor {
+    .dataset-editor,
+    .source-editor {
         display: block;
         width: 100%;
         min-height: 800px;
@@ -780,14 +782,11 @@ button:hover {
         resize: vertical;
     }
 
-    .dataset-editor:focus {
+    .dataset-editor:focus,
+    .source-editor:focus {
         outline: none;
         border-color: rgba(255, 226, 122, 0.45);
         box-shadow: 0 0 0 1px rgba(255, 226, 122, 0.2), 0 0 0 4px rgba(255, 226, 122, 0.08);
-    }
-
-    .source-editor-shell {
-        margin-top: 6px;
     }
 
     .source-editor {
