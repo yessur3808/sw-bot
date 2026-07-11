@@ -1,6 +1,6 @@
 import json, random
 from telegram.ext import ContextTypes
-from config import GROUP_ID, THREADS
+from config import GROUP_ID, get_thread_id
 import db
 from telemetry import mark_scheduler_execution_outcome
 
@@ -30,7 +30,7 @@ async def daily_trivia(context: ContextTypes.DEFAULT_TYPE):
 
     message = await context.bot.send_poll(
         chat_id=GROUP_ID,
-        message_thread_id=THREADS["general"],
+        message_thread_id=get_thread_id("general"),
         question="🧠 " + question,
         options=options,
         type="quiz",
@@ -40,7 +40,7 @@ async def daily_trivia(context: ContextTypes.DEFAULT_TYPE):
     raw = f"{question}|{'|'.join([str(v) for v in options])}|{correct}"
     db.log_post_audit(
         topic="trivia",
-        thread_id=THREADS["general"],
+        thread_id=get_thread_id("general"),
         telegram_message_id=message.message_id,
         content_type="trivia",
         content_id=f"trivia:{db.compute_text_hash(raw)[:16]}",

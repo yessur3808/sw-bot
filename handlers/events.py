@@ -90,7 +90,7 @@ def _today_in_release_timezone():
 
 
 def _event_thread_id():
-    return config.get_thread_id("events") or config.get_thread_id("general") or config.THREADS["general"]
+    return config.get_thread_id("events") or config.get_thread_id("general")
 
 
 def _parse_event_date(raw_date):

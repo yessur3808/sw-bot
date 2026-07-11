@@ -858,6 +858,7 @@ def create_admin_app():
     @app.get("/admin/api/pending-events")
     def api_pending_events():
         require_admin()
+        events_handler.auto_reject_pending_before_tomorrow()
         pending = db.list_events_by_status("pending_review", limit=40)
         return jsonify({"rows": [dict(row) for row in pending]})
 

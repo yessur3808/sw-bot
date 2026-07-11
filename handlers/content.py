@@ -168,12 +168,12 @@ def _resolve_fact_thread(fact_text):
 
     if topic == "show":
         # User rule: show goes to show thread, fallback to movie.
-        return topic, (show_tid or movie_tid or lore_tid or chat_tid or THREADS["general"])
+        return topic, (show_tid or movie_tid or lore_tid or chat_tid or get_thread_id("general"))
     if topic == "movie":
         return topic, (movie_tid)
     if topic == "general":
-        return topic, (chat_tid or THREADS["general"])
-    return topic, (lore_tid or chat_tid or THREADS["general"])
+        return topic, (chat_tid or get_thread_id("general"))
+    return topic, (lore_tid or chat_tid or get_thread_id("general"))
 
 async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
     item = random.choice(QUOTES)
@@ -192,7 +192,7 @@ async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
         extra += f"\nSource: {src}"
 
     text = f"💬 *Quote of the Day*\n\n{body}{extra}"
-    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
+    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general")
     message = await context.bot.send_message(
         chat_id=GROUP_ID,
         message_thread_id=thread_id,
@@ -265,7 +265,7 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Community polls should target General first.
-    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore") or THREADS["general"]
+    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore")
     message = await context.bot.send_poll(
         chat_id=GROUP_ID,
         message_thread_id=thread_id,
@@ -309,7 +309,7 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
         lines.append(f"Source: {src}")
 
     # Community discussions should target General first.
-    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore") or THREADS["general"]
+    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore")
     text = "\n".join(lines)
     message = await context.bot.send_message(
         chat_id=GROUP_ID,
@@ -376,7 +376,7 @@ async def daily_greeting(context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = f"🌟 *Community Greeting*\n\n{greeting}"
-    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general") or THREADS["general"]
+    thread_id = get_thread_id("chat") or get_thread_id("lore") or get_thread_id("general")
     message = await context.bot.send_message(
         chat_id=GROUP_ID,
         message_thread_id=thread_id,

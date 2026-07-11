@@ -84,7 +84,7 @@ async def weekly_leaderboard(context):
     text = "🏆 *Weekly Champions*\n\n"
     for i, r in enumerate(rows, 1):
         text += f"{i}. {r['username']} — {r['score']} XP\n"
-    thread_id = config.get_chat_thread_id() or config.THREADS["general"]
+    thread_id = config.get_chat_thread_id() or config.get_thread_id("general")
     message = await context.bot.send_message(
         chat_id=config.GROUP_ID,
         message_thread_id=thread_id,
@@ -139,6 +139,37 @@ async def run_scheduled_topic(context):
 
     if not scheduler_execution_logged(context):
         mark_scheduler_execution_outcome(context, "no_content", error=f"Producer returned without posting for topic={topic}")
+
+async def retry_scheduled_topic(context):
+    topic = context.job.data.get("topic")
+    if not topic:
+        return
+
+    producer_map = {
+        "meme": memes.daily_meme,
+        "wallpaper": wallpapers.daily_wallpaper,
+        "trivia": trivia.daily_trivia,
+        "quote": content.daily_quote,
+        "fact": content.daily_fact,
+        "poll": content.daily_vote_poll,
+        "discussion": content.daily_discussion_topic,
+    }
+    producer = producer_map.get(topic)
+    if not producer:
+        return
+
+    retry_state = context.job.data.get("retry_state") or {}
+    retry_state["attempts"] = int(retry_state.get("attempts", 0)) + 1
+    context.job.data["retry_state"] = retry_state
+
+    try:
+        await producer(context)
+    except Exception as exc:
+        mark_scheduler_execution_outcome(context, "failed", error=f"retry:{type(exc).__name__}: {exc}")
+        return
+
+    if not scheduler_execution_logged(context):
+        mark_scheduler_execution_outcome(context, "no_content", error=f"Retry producer returned without posting for topic={topic}")
 
 
 def _build_topics_for_day():
@@ -315,13 +346,37 @@ def _pick_offset_with_gap(allowed_offsets, used_offsets, min_gap, attempts=60):
     return None
 
 
+def _pick_spread_offsets(allowed_offsets, count, min_gap):
+    ordered = sorted({int(value) for value in allowed_offsets})
+    if not ordered or count <= 0:
+        return []
+
+    if count >= len(ordered):
+        return ordered[:count]
+
+    selected = []
+    total = len(ordered)
+
+    for slot_index in range(count):
+        band_start = int(round((slot_index * total) / count))
+        band_end = int(round(((slot_index + 1) * total) / count))
+        if band_end <= band_start:
+            band_end = min(total, band_start + 1)
+
+        band = ordered[band_start:band_end] or [ordered[min(total - 1, band_start)]]
+        center = (band[0] + band[-1]) / 2.0
+        chosen = min(band, key=lambda offset: (abs(offset - center), random.random()))
+        selected.append(chosen)
+
+    return selected
+
+
 def schedule_day_posts(job_queue, start_dt):
     plan = _build_topics_for_day()
     topics = plan.get("topics") or []
     if not topics:
         return
 
-    used_offsets = set()
     min_gap = max(5, config.MIN_GAP_MINUTES)
     window_start = 2
     window_end = (24 * 60) - 20
@@ -342,8 +397,8 @@ def schedule_day_posts(job_queue, start_dt):
 
     earliest_allowed = min(allowed_offsets)
     latest_allowed = max(allowed_offsets)
-    span_minutes = max(1, latest_allowed - earliest_allowed)
-    max_slots_by_gap = max(1, (span_minutes // min_gap) + 1)
+    feasible_slots = _pick_spread_offsets(allowed_offsets, len(allowed_offsets), min_gap)
+    max_slots_by_gap = max(1, len(feasible_slots) or 1)
     if len(topics) > max_slots_by_gap:
         print(
             "Scheduler cap applied: configured daily volume exceeds feasible slots for "
@@ -351,27 +406,14 @@ def schedule_day_posts(job_queue, start_dt):
         )
     topics = topics[:max_slots_by_gap]
 
-    allowed_offsets_set = set(allowed_offsets)
-    early_window = max(1, min(180, int(getattr(config, "INITIAL_POST_WINDOW_MINUTES", 15))))
-    first_slot_min = earliest_allowed
-    first_slot_max = min(latest_allowed, first_slot_min + early_window - 1)
-    first_slot_offsets = [m for m in allowed_offsets if first_slot_min <= m <= first_slot_max]
-    if not first_slot_offsets:
-        first_slot_offsets = allowed_offsets
-
     run_times_by_slot = {}
-    for slot_index, topic in enumerate(topics):
-        if slot_index == 0:
-            offset_min = _pick_offset_with_gap(first_slot_offsets, used_offsets, min_gap)
-        else:
-            offset_min = _pick_offset_with_gap(allowed_offsets, used_offsets, min_gap)
-        if offset_min is None:
-            break
+    selected_offsets = _pick_spread_offsets(allowed_offsets, len(topics), min_gap)
+    if len(selected_offsets) < len(topics):
+        selected_offsets = [
+            offset for offset in feasible_slots[:len(topics)]
+        ]
 
-        if offset_min not in allowed_offsets_set:
-            continue
-        used_offsets.add(offset_min)
-
+    for slot_index, (topic, offset_min) in enumerate(zip(topics, selected_offsets)):
         run_at = start_dt + timedelta(minutes=offset_min)
         run_times_by_slot[slot_index] = run_at
         delay = max(1.0, (run_at - datetime.now(timezone.utc)).total_seconds())
@@ -388,6 +430,24 @@ def schedule_day_posts(job_queue, start_dt):
                 "misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS,
             },
         )
+
+        retry_delay = max(delay + 1800, delay + 600)
+        retry_run_at = run_at + timedelta(minutes=30)
+        if retry_run_at.date() == start_dt.date() or config.POSTING_WINDOW_ENABLED:
+            job_queue.run_once(
+                retry_scheduled_topic,
+                when=max(1.0, (retry_run_at - datetime.now(timezone.utc)).total_seconds()),
+                data={
+                    "topic": topic,
+                    "plan_key": plan.get("plan_key"),
+                    "slot_index": slot_index,
+                    "scheduled_run_at": retry_run_at.isoformat(),
+                    "retry_state": {"attempts": 0, "source_slot_index": slot_index},
+                },
+                job_kwargs={
+                    "misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS,
+                },
+            )
 
     scheduled_for_date = start_dt.date().isoformat()
     for row in plan.get("decision_rows") or []:
@@ -490,7 +550,7 @@ async def first_run_introduction(context):
     if db.has_any_post_audit():
         return
 
-    thread_id = config.get_chat_thread_id() or config.get_thread_id("general") or config.THREADS["general"]
+    thread_id = config.get_chat_thread_id() or config.get_thread_id("general")
     text = (
         "Hi, I am SIU-M8, your Star Wars assistant bot.\n\n"
         "I post lore, trivia, memes, wallpapers, and verified event updates. "

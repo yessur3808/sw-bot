@@ -58,6 +58,7 @@ let selectedCandidateIds = new Set();
 let candidateFilterTimer = null;
 let candidateViewMode = "compact";
 let expandedCandidateIds = new Set();
+const datasetCache = new Map();
 const candidateViewStorageKey = "admin.datasetCandidates.viewMode";
 const recentTasksHideCompletedStorageKey = "admin.recentTasks.hideCompleted";
 let recentTasksHideCompleted = false;
@@ -2141,12 +2142,23 @@ const refreshLiveData = async () => {
     }
     refreshLiveData.inFlight = true;
     try {
-        await refreshSourceStatus();
-        await refreshTelemetry();
-        await loadRedditCache();
-        await loadRecentTasks(12);
-        await pollSystemMetrics();
-        setConnectionStatus("ok", "Connected", `Live data updated ${runAt}`);
+        const results = await Promise.allSettled([
+            refreshSourceStatus(),
+            refreshTelemetry(),
+            loadRedditCache(),
+            loadRecentTasks(12),
+            pollSystemMetrics(),
+        ]);
+        const failures = results.filter((item) => item.status === "rejected");
+        if (failures.length < results.length) {
+            const detail = failures.length
+                ? `Live data updated ${runAt} (${failures.length} partial refresh${failures.length === 1 ? "" : "es"})`
+                : `Live data updated ${runAt}`;
+            setConnectionStatus("ok", "Connected", detail);
+        } else {
+            const firstError = failures[0]?.reason;
+            setConnectionStatus("error", "Connection issue", firstError?.message || "Live refresh failed");
+        }
     } catch (err) {
         setConnectionStatus("error", "Connection issue", err.message || "Live refresh failed");
     } finally {
@@ -2266,15 +2278,25 @@ const renderAudit = () => {
     });
 };
 
-const loadDataset = async (name) => {
+const loadDataset = async (name, options = {}) => {
+    const forceRefresh = Boolean(options.forceRefresh);
     activeDataset = name;
     setActivePills("[data-dataset]", "dataset", name);
     const activeLabel = document.getElementById("dataset-active-name");
     if (activeLabel) {
         activeLabel.textContent = name;
     }
+
+    const cached = datasetCache.get(name);
+    if (cached && !forceRefresh) {
+        document.getElementById("dataset-editor").value = JSON.stringify(cached, null, 2);
+        return cached;
+    }
+
     const payload = await requestJson(`/admin/api/datasets/${name}`);
+    datasetCache.set(name, payload.data || []);
     document.getElementById("dataset-editor").value = JSON.stringify(payload.data, null, 2);
+    return payload.data;
 };
 
 const saveDataset = async () => {
@@ -2284,6 +2306,7 @@ const saveDataset = async () => {
         method: "POST",
         body: JSON.stringify({ data }),
     });
+    datasetCache.set(activeDataset, data);
     alert(`Saved ${activeDataset}`);
 };
 
