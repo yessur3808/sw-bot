@@ -1912,6 +1912,24 @@ def replace_dataset_items(dataset_name, payload, updated_by=None):
         )
 
 
+def seed_dataset_items_from_files(force=False):
+    seeded = []
+    for dataset_name in list_dataset_names():
+        items = _load_dataset_seed(dataset_name)
+        if not items:
+            continue
+        if not force:
+            try:
+                existing = get_dataset_items(dataset_name)
+            except Exception:
+                existing = []
+            if existing:
+                continue
+        replace_dataset_items(dataset_name, items)
+        seeded.append(dataset_name)
+    return seeded
+
+
 def list_thread_mappings():
     with get_db() as conn:
         return _fetchall(

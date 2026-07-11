@@ -725,6 +725,9 @@ def check_bot_downtime_alert(heartbeat_value=None):
 
 def main():
     db.init_db()
+    seeded_datasets = db.seed_dataset_items_from_files()
+    if seeded_datasets:
+        print(f"Seeded dataset_store from JSON files: {', '.join(seeded_datasets)}")
     db.ensure_admin_profiles(config.ADMIN_USER_IDS)
     previous_heartbeat = db.get_bot_health_state("bot_heartbeat_at")
     check_bot_downtime_alert(previous_heartbeat)
