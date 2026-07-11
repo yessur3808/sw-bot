@@ -528,7 +528,9 @@
                         <p>Active dataset</p>
                         <small id="dataset-active-name">facts</small>
                     </div>
-                    <textarea id="dataset-editor" class="editor" spellcheck="false"></textarea>
+                    <div class="dataset-editor-shell">
+                        <textarea id="dataset-editor" class="editor dataset-editor" spellcheck="false"></textarea>
+                    </div>
                     <div class="button-row">
                         <button id="save-dataset" type="button">Save Dataset</button>
                     </div>
@@ -716,7 +718,10 @@
                     <h2>Raw Source Feed</h2>
                     <details class="advanced-box" open>
                         <summary>Raw JSON Lines</summary>
-                        <textarea id="source-editor" class="editor" spellcheck="false"></textarea>
+                        <div class="dataset-editor-shell source-editor-shell">
+                            <textarea id="source-editor" class="editor dataset-editor source-editor"
+                                spellcheck="false"></textarea>
+                        </div>
                         <div class="button-row">
                             <button id="load-raw-sources" type="button">Load Raw into Builder</button>
                             <button id="export-builder-sources" type="button">Export Builder to Raw</button>
