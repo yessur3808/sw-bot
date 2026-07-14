@@ -157,19 +157,11 @@ def _render_tag_line(item):
 
 def _resolve_fact_thread(fact_text):
     topic = _classify_fact_topic(fact_text)
-    lore_tid = get_thread_id("lore")
-    movie_tid = get_thread_id("movie")
-    show_tid = get_thread_id("show")
-    chat_tid = get_thread_id("general")
-
-    if topic == "show":
-        # User rule: show goes to show thread, fallback to movie.
-        return topic, (show_tid or movie_tid or lore_tid or chat_tid or get_thread_id("general"))
-    if topic == "movie":
-        return topic, (movie_tid)
-    if topic == "general":
-        return topic, (chat_tid or get_thread_id("general"))
-    return topic, (lore_tid or chat_tid or get_thread_id("general"))
+    general_tid = db.resolve_thread_id(
+        "general",
+        default=get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore"),
+    )
+    return topic, general_tid
 
 async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
     selected = None
@@ -302,7 +294,7 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Community polls should target General first.
-    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore")
+    thread_id = db.resolve_thread_id("general", default=get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore"))
     message = await context.bot.send_poll(
         chat_id=GROUP_ID,
         message_thread_id=thread_id,
@@ -354,7 +346,7 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
         lines.append(f"Source: {src}")
 
     # Community discussions should target General first.
-    thread_id = get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore")
+    thread_id = db.resolve_thread_id("general", default=get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore"))
     text = "\n".join(lines)
     message = await context.bot.send_message(
         chat_id=GROUP_ID,

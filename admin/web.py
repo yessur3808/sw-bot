@@ -637,9 +637,11 @@ def _save_dataset(dataset_name, payload, updated_by=None):
     if not path:
         abort(404, description="unknown-dataset")
     db.replace_dataset_items(clean_name, payload, updated_by=updated_by)
-    with path.open("w", encoding="utf-8") as handle:
+    temp_path = path.with_suffix(f"{path.suffix}.tmp")
+    with temp_path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
+    os.replace(temp_path, path)
 
 
 def _thread_mapping_rows():
@@ -1189,14 +1191,31 @@ def create_admin_app():
         valid, err = _validate_dataset(dataset_name, data)
         if not valid:
             return jsonify({"ok": False, "error": err}), 400
-        _save_dataset(dataset_name, data, updated_by=user_id)
-        db.add_admin_audit(
-            "dataset.update",
-            actor_user_id=user_id,
-            actor_label="web",
-            details=json.dumps({"dataset": dataset_name, "items": len(data)}),
-        )
-        return jsonify({"ok": True, "size": len(data)})
+        run_async = bool(payload.get("async", False))
+
+        def _run_dataset_save():
+            started = time.perf_counter()
+            _save_dataset(dataset_name, data, updated_by=user_id)
+            save_ms = round((time.perf_counter() - started) * 1000.0, 1)
+            db.add_admin_audit(
+                "dataset.update",
+                actor_user_id=user_id,
+                actor_label="web",
+                details=json.dumps({"dataset": dataset_name, "items": len(data), "mode": "async" if run_async else "sync"}),
+            )
+            return {
+                "ok": True,
+                "size": len(data),
+                "dataset": dataset_name,
+                "timings_ms": {"save": save_ms},
+            }
+
+        if run_async:
+            task = _start_async_task("dataset_save", user_id, _run_dataset_save)
+            return jsonify({"ok": True, "async": True, "task": task}), 202
+
+        result = _run_dataset_save()
+        return jsonify({"ok": True, "async": False, **result})
 
     @app.get("/admin/api/thread-mappings")
     def api_thread_mappings():

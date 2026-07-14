@@ -73,6 +73,9 @@ let connectionState = {
     label: "Connecting...",
     detail: "Loading dashboard data",
 };
+let saveStatusState = {
+    retryAction: null,
+};
 const healthHistory = {
     cpu: [],
     mem: [],
@@ -266,7 +269,150 @@ const requestJson = async (url, options = {}) => {
     }
 };
 
+const isTransientRequestError = (err) => {
+    const message = String(err?.message || "").toLowerCase();
+    return message.includes("timed out")
+        || message.includes("failed to fetch")
+        || message.includes("network error")
+        || message.includes("networkerror");
+};
+
+const requestJsonWithRetry = async (url, options = {}) => {
+    const retries = Math.max(0, Number(options.retries ?? 2));
+    const retryDelayMs = Math.max(150, Number(options.retryDelayMs ?? 900));
+    const requestOptions = { ...options };
+    delete requestOptions.retries;
+    delete requestOptions.retryDelayMs;
+
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+        try {
+            return await requestJson(url, requestOptions);
+        } catch (err) {
+            lastError = err;
+            if (attempt >= retries || !isTransientRequestError(err)) {
+                throw err;
+            }
+            await sleep(retryDelayMs * (attempt + 1));
+        }
+    }
+    throw lastError || new Error(`Request failed: ${url}`);
+};
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const saveStatusElements = () => ({
+    overlay: document.getElementById("save-status-overlay"),
+    spinner: document.getElementById("save-status-spinner"),
+    title: document.getElementById("save-status-title"),
+    detail: document.getElementById("save-status-detail"),
+    meta: document.getElementById("save-status-meta"),
+    retry: document.getElementById("save-status-retry"),
+    close: document.getElementById("save-status-close"),
+});
+
+const clearSaveStatusButtons = () => {
+    const { retry, close } = saveStatusElements();
+    if (retry) {
+        retry.hidden = true;
+        retry.onclick = null;
+        retry.disabled = false;
+    }
+    if (close) {
+        close.hidden = true;
+        close.onclick = null;
+    }
+};
+
+const hideSaveStatus = () => {
+    const { overlay } = saveStatusElements();
+    saveStatusState.retryAction = null;
+    clearSaveStatusButtons();
+    if (!overlay) {
+        return;
+    }
+    overlay.hidden = true;
+    overlay.setAttribute("aria-busy", "false");
+    document.body.classList.remove("save-status-open");
+};
+
+const showSaveStatus = ({ title, detail, meta, mode = "loading", retryAction = null }) => {
+    const elements = saveStatusElements();
+    if (!elements.overlay) {
+        return;
+    }
+    saveStatusState.retryAction = typeof retryAction === "function" ? retryAction : null;
+    elements.overlay.hidden = false;
+    elements.overlay.dataset.mode = mode;
+    elements.overlay.setAttribute("aria-busy", mode === "loading" ? "true" : "false");
+    document.body.classList.add("save-status-open");
+    if (elements.title) {
+        elements.title.textContent = title || "Saving changes";
+    }
+    if (elements.detail) {
+        elements.detail.textContent = detail || "Please wait while the console writes your changes.";
+    }
+    if (elements.meta) {
+        elements.meta.textContent = meta || (mode === "loading" ? "Submitting request..." : "");
+    }
+    if (elements.spinner) {
+        elements.spinner.hidden = mode !== "loading";
+    }
+    clearSaveStatusButtons();
+    if (mode === "failed") {
+        if (elements.retry && saveStatusState.retryAction) {
+            elements.retry.hidden = false;
+            elements.retry.onclick = async () => {
+                elements.retry.disabled = true;
+                try {
+                    await saveStatusState.retryAction();
+                } finally {
+                    elements.retry.disabled = false;
+                }
+            };
+        }
+        if (elements.close) {
+            elements.close.hidden = false;
+            elements.close.onclick = () => hideSaveStatus();
+        }
+    }
+    if (mode === "success") {
+        window.setTimeout(() => {
+            hideSaveStatus();
+        }, 900);
+    }
+};
+
+const runSaveAction = async ({ title, detail, successDetail, action }) => {
+    const execute = async () => {
+        showSaveStatus({
+            title,
+            detail,
+            meta: "Submitting request...",
+            mode: "loading",
+        });
+        try {
+            const result = await action();
+            showSaveStatus({
+                title,
+                detail: successDetail || "Changes saved successfully.",
+                meta: "Save complete.",
+                mode: "success",
+            });
+            return result;
+        } catch (err) {
+            showSaveStatus({
+                title: `${title} failed`,
+                detail: err?.message || "The save request failed.",
+                meta: "You can retry the same save request or close this message.",
+                mode: "failed",
+                retryAction: execute,
+            });
+            throw err;
+        }
+    };
+    return execute();
+};
 
 const pollTaskUntilDone = async (taskId, options = {}) => {
     const intervalMs = Math.max(250, Number(options.intervalMs || 1200));
@@ -545,15 +691,23 @@ const renderAdminDirectory = () => {
                 is_primary: Boolean(read("is_primary")?.checked),
             };
             try {
-                await requestJson("/admin/api/admin-profiles", {
-                    method: "POST",
-                    body: JSON.stringify(payload),
+                await runSaveAction({
+                    title: "Saving admin profile",
+                    detail: "Writing the selected admin profile and refreshing the directory.",
+                    successDetail: "Admin profile saved.",
+                    action: async () => {
+                        await requestJsonWithRetry("/admin/api/admin-profiles", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                            timeoutMs: 45000,
+                            retries: 2,
+                        });
+                        adminDrafts = [];
+                        await loadAdminProfiles();
+                    },
                 });
-                adminDrafts = [];
-                await loadAdminProfiles();
-                alert("Admin profile saved");
             } catch (err) {
-                alert(err.message);
+                console.error(err);
             }
         };
 
@@ -583,7 +737,10 @@ const renderAdminDirectory = () => {
 };
 
 const loadAdminProfiles = async () => {
-    const payload = await requestJson("/admin/api/admin-profiles");
+    const payload = await requestJsonWithRetry("/admin/api/admin-profiles", {
+        timeoutMs: 30000,
+        retries: 1,
+    });
     state.admin_profiles = payload.rows || [];
     renderAdminDirectory();
     renderCurrentAdminProfile();
@@ -2671,7 +2828,11 @@ const renderThreadMappings = () => {
 };
 
 const loadThreadMappings = async () => {
-    const payload = await requestJson("/admin/api/thread-mappings");
+    const payload = await requestJsonWithRetry("/admin/api/thread-mappings", {
+        timeoutMs: 30000,
+        retries: 2,
+        retryDelayMs: 1200,
+    });
     state.thread_mappings = payload.rows || [];
     renderThreadMappings();
 };
@@ -2696,24 +2857,51 @@ const saveThreadMappings = async () => {
             thread_label: label,
         };
     });
-    const payload = await requestJson("/admin/api/thread-mappings", {
+    const payload = await requestJsonWithRetry("/admin/api/thread-mappings", {
         method: "POST",
         body: JSON.stringify({ rows }),
+        timeoutMs: 45000,
+        retries: 2,
+        retryDelayMs: 1200,
     });
     await loadThreadMappings();
-    alert("Channel routing saved");
     return payload;
 };
 
 const saveDataset = async () => {
     const editor = document.getElementById("dataset-editor");
     const data = JSON.parse(editor.value || "[]");
-    await requestJson(`/admin/api/datasets/${activeDataset}`, {
+    const queued = await requestJsonWithRetry(`/admin/api/datasets/${activeDataset}`, {
         method: "POST",
-        body: JSON.stringify({ data }),
+        body: JSON.stringify({ data, async: true }),
+        timeoutMs: 45000,
+        retries: 2,
     });
+    if (queued?.async && queued?.task?.id) {
+        showSaveStatus({
+            title: `Saving ${activeDataset}`,
+            detail: `Writing the ${activeDataset} dataset in the background.`,
+            meta: "Task queued. Waiting for completion...",
+            mode: "loading",
+        });
+        const task = await pollTaskUntilDone(queued.task.id, {
+            intervalMs: 1200,
+            maxWaitMs: 15 * 60 * 1000,
+            onUpdate: (current) => {
+                showSaveStatus({
+                    title: `Saving ${activeDataset}`,
+                    detail: `Writing the ${activeDataset} dataset in the background.`,
+                    meta: `Task status: ${current.status || "queued"}`,
+                    mode: "loading",
+                });
+            },
+        });
+        const result = task?.result || {};
+        if (!result?.ok) {
+            throw new Error(result?.error || "Dataset save failed");
+        }
+    }
     datasetCache.set(activeDataset, data);
-    alert(`Saved ${activeDataset}`);
 };
 
 const setEventStatus = async (eventId, status) => {
@@ -2737,13 +2925,15 @@ const saveSettings = async () => {
         }
         updates[input.name] = input.value;
     });
-    const payload = await requestJson("/admin/api/settings", {
+    const payload = await requestJsonWithRetry("/admin/api/settings", {
         method: "POST",
         body: JSON.stringify({ settings: updates }),
+        timeoutMs: 45000,
+        retries: 2,
+        retryDelayMs: 1200,
     });
     state.settings = payload.settings;
     renderSettings();
-    alert("Settings applied");
 };
 
 const normalizeSourceOrder = () => {
@@ -2952,13 +3142,15 @@ const saveSources = async () => {
         }
     }
 
-    const payload = await requestJson(`/admin/api/sources/${activeSourceType}`, {
+    const payload = await requestJsonWithRetry(`/admin/api/sources/${activeSourceType}`, {
         method: "POST",
         body: JSON.stringify({ sources: sourceBuilderRows }),
+        timeoutMs: 45000,
+        retries: 2,
+        retryDelayMs: 1200,
     });
     state.sources[activeSourceType] = payload.sources;
     loadSources(activeSourceType);
-    alert("Source overrides saved");
 };
 
 const addSourceRow = () => {
@@ -3100,14 +3292,22 @@ const initActions = () => {
             payload.is_active = Boolean(adminProfileForm.elements.is_active.checked);
             payload.is_primary = Boolean(adminProfileForm.elements.is_primary.checked);
             try {
-                await requestJson("/admin/api/admin-profiles", {
-                    method: "POST",
-                    body: JSON.stringify(payload),
+                await runSaveAction({
+                    title: "Saving my admin profile",
+                    detail: "Updating your contact and alert settings.",
+                    successDetail: "Your admin profile was updated.",
+                    action: async () => {
+                        await requestJsonWithRetry("/admin/api/admin-profiles", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                            timeoutMs: 45000,
+                            retries: 2,
+                        });
+                        await loadAdminProfiles();
+                    },
                 });
-                await loadAdminProfiles();
-                alert("Profile updated");
             } catch (err) {
-                alert(err.message);
+                console.error(err);
             }
         };
     }
@@ -3136,17 +3336,27 @@ const initActions = () => {
     });
     document.getElementById("save-dataset").onclick = async () => {
         try {
-            await saveDataset();
+            await runSaveAction({
+                title: `Saving ${activeDataset}`,
+                detail: `Writing the ${activeDataset} dataset to storage.`,
+                successDetail: `${activeDataset} saved successfully.`,
+                action: () => saveDataset(),
+            });
         } catch (err) {
-            alert(err.message);
+            console.error(err);
         }
     };
 
     document.getElementById("save-settings").onclick = async () => {
         try {
-            await saveSettings();
+            await runSaveAction({
+                title: "Saving runtime settings",
+                detail: "Applying runtime settings and refreshing the settings view.",
+                successDetail: "Runtime settings applied.",
+                action: () => saveSettings(),
+            });
         } catch (err) {
-            alert(err.message);
+            console.error(err);
         }
     };
 
@@ -3156,9 +3366,14 @@ const initActions = () => {
 
     document.getElementById("save-sources").onclick = async () => {
         try {
-            await saveSources();
+            await runSaveAction({
+                title: "Saving source overrides",
+                detail: `Persisting ${activeSourceType.toUpperCase()} source overrides and reloading the builder.`,
+                successDetail: "Source overrides saved.",
+                action: () => saveSources(),
+            });
         } catch (err) {
-            alert(err.message);
+            console.error(err);
         }
     };
 
@@ -3217,9 +3432,14 @@ const initActions = () => {
     if (saveThreadMappingsButton) {
         saveThreadMappingsButton.onclick = async () => {
             try {
-                await saveThreadMappings();
+                await runSaveAction({
+                    title: "Saving channel routing",
+                    detail: "Resolving channel links and storing updated thread mappings.",
+                    successDetail: "Channel routing saved.",
+                    action: () => saveThreadMappings(),
+                });
             } catch (err) {
-                alert(err.message);
+                console.error(err);
             }
         };
     }

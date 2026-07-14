@@ -62,6 +62,19 @@
         </div>
     </header>
     <div id="loading-strip" class="loading-strip" aria-hidden="true"></div>
+    <div id="save-status-overlay" class="save-status-overlay" hidden aria-live="polite" aria-busy="false">
+        <div class="save-status-card">
+            <div id="save-status-spinner" class="save-status-spinner" aria-hidden="true"></div>
+            <p class="eyebrow">SAVE STATUS</p>
+            <h2 id="save-status-title">Saving changes</h2>
+            <p id="save-status-detail" class="save-status-detail">Please wait while the console writes your changes.</p>
+            <small id="save-status-meta" class="save-status-meta">Preparing request...</small>
+            <div class="button-row save-status-actions">
+                <button id="save-status-retry" type="button" hidden>Retry</button>
+                <button id="save-status-close" type="button" hidden>Close</button>
+            </div>
+        </div>
+    </div>
 
     <main id="app" class="app" data-csrf="{{ csrf_token }}">
         <nav class="tabs">

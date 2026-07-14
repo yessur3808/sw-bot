@@ -201,6 +201,70 @@ body.is-loading .source-matrix-row::after {
     pointer-events: none;
 }
 
+body.save-status-open {
+    overflow: hidden;
+}
+
+.save-status-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(2, 8, 14, 0.72);
+    backdrop-filter: blur(10px);
+}
+
+.save-status-card {
+    width: min(520px, 100%);
+    display: grid;
+    gap: 10px;
+    padding: 24px;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 226, 122, 0.22);
+    background: linear-gradient(180deg, rgba(7, 20, 30, 0.96), rgba(10, 24, 36, 0.92));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.save-status-card h2 {
+    margin: 0;
+}
+
+.save-status-detail {
+    margin: 0;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.save-status-meta {
+    color: var(--muted);
+    line-height: 1.35;
+}
+
+.save-status-spinner {
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    border: 3px solid rgba(255, 226, 122, 0.14);
+    border-top-color: var(--accent);
+    border-right-color: rgba(87, 169, 255, 0.84);
+    animation: save-spin 900ms linear infinite;
+}
+
+.save-status-actions {
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.save-status-overlay[data-mode="failed"] .save-status-card {
+    border-color: rgba(255, 100, 100, 0.3);
+}
+
+.save-status-overlay[data-mode="success"] .save-status-card {
+    border-color: rgba(113, 226, 141, 0.3);
+}
+
 .chip {
     border: 1px solid var(--line);
     background: var(--surface);
@@ -279,6 +343,16 @@ button:hover {
 
     100% {
         box-shadow: 0 0 0 0 rgba(246, 185, 59, 0);
+    }
+}
+
+@keyframes save-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
     }
 }
 

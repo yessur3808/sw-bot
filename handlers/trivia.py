@@ -52,7 +52,7 @@ async def daily_trivia(context: ContextTypes.DEFAULT_TYPE):
     if selected is None or not content_id:
         return
 
-    thread_id = get_thread_id("general")
+    thread_id = db.resolve_thread_id("general", default=get_thread_id("general") or get_thread_id("chat") or get_thread_id("lore"))
     message = await context.bot.send_poll(
         chat_id=GROUP_ID,
         message_thread_id=thread_id,

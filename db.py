@@ -1904,7 +1904,7 @@ def replace_dataset_items(dataset_name, payload, updated_by=None):
     if not clean_name:
         raise ValueError("dataset_name is required")
     init_db()
-    payload_text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    payload_text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     with get_db() as conn:
         _execute(
             conn,
