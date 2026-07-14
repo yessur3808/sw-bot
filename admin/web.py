@@ -280,7 +280,7 @@ def _seconds_since(value):
 
 def _expected_interval_seconds(name):
     mapping = {
-        "posts": int(max(1, config.MIN_GAP_MINUTES) * 60),
+        "posts": int(max(1, runtime_settings.get("min_gap_minutes")) * 60),
         "events": int(max(1, config.EVENT_INGEST_HOURS) * 3600),
         "reddit_ingest": int(max(1, config.REDDIT_INGEST_INTERVAL_MINUTES) * 60),
         "reddit_relay": int(max(1, config.REDDIT_RELAY_INTERVAL_MINUTES) * 60),

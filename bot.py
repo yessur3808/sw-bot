@@ -35,6 +35,20 @@ TOPIC_CONTENT_TYPES = {
     "discussion": "discussion",
 }
 
+
+def _runtime_int(setting_key, fallback):
+    try:
+        return int(runtime_settings.get(setting_key))
+    except Exception:
+        return int(fallback)
+
+
+def _runtime_bool(setting_key, fallback):
+    try:
+        return bool(runtime_settings.get(setting_key))
+    except Exception:
+        return bool(fallback)
+
 async def start(update, context):
     await update.message.reply_text("May the Force be with you! 🌌")
 
@@ -174,8 +188,10 @@ async def retry_scheduled_topic(context):
 
 def _build_topics_for_day():
     now_utc = datetime.now(timezone.utc)
-    min_posts = min(config.DAILY_MIN_POSTS, config.DAILY_MAX_POSTS)
-    max_posts = max(config.DAILY_MIN_POSTS, config.DAILY_MAX_POSTS)
+    min_posts_setting = max(1, _runtime_int("daily_min_posts", config.DAILY_MIN_POSTS))
+    max_posts_setting = max(1, _runtime_int("daily_max_posts", config.DAILY_MAX_POSTS))
+    min_posts = min(min_posts_setting, max_posts_setting)
+    max_posts = max(min_posts_setting, max_posts_setting)
     target_count = random.randint(min_posts, max_posts)
 
     boosted = False
@@ -185,7 +201,7 @@ def _build_topics_for_day():
         if boosted:
             target_count = int(math.ceil(target_count * max(1.0, day_multiplier)))
 
-    per_topic_cap = config.MAX_PER_TOPIC_PER_DAY
+    per_topic_cap = max(1, _runtime_int("max_per_topic_per_day", config.MAX_PER_TOPIC_PER_DAY))
     if boosted:
         per_topic_cap = int(math.ceil(per_topic_cap * max(1.0, config.POST_BOOST_TOPIC_CAP_MULTIPLIER)))
     per_topic_cap = max(1, per_topic_cap)
@@ -351,24 +367,53 @@ def _pick_spread_offsets(allowed_offsets, count, min_gap):
     if not ordered or count <= 0:
         return []
 
-    if count >= len(ordered):
-        return ordered[:count]
+    min_gap = max(1, int(min_gap))
+    count = min(int(count), len(ordered))
+
+    if count == 1:
+        return [ordered[len(ordered) // 2]]
 
     selected = []
-    total = len(ordered)
+    used = set()
+    span = max(1, ordered[-1] - ordered[0])
 
     for slot_index in range(count):
-        band_start = int(round((slot_index * total) / count))
-        band_end = int(round(((slot_index + 1) * total) / count))
-        if band_end <= band_start:
-            band_end = min(total, band_start + 1)
-
-        band = ordered[band_start:band_end] or [ordered[min(total - 1, band_start)]]
-        center = (band[0] + band[-1]) / 2.0
-        chosen = min(band, key=lambda offset: (abs(offset - center), random.random()))
+        target = ordered[0] + (((slot_index + 0.5) / count) * span)
+        candidates = [
+            offset for offset in ordered
+            if offset not in used and all(abs(offset - existing) >= min_gap for existing in selected)
+        ]
+        if not candidates:
+            break
+        chosen = min(candidates, key=lambda offset: (abs(offset - target), offset))
         selected.append(chosen)
+        used.add(chosen)
 
-    return selected
+    if len(selected) < count:
+        for offset in ordered:
+            if offset in used:
+                continue
+            if all(abs(offset - existing) >= min_gap for existing in selected):
+                selected.append(offset)
+                used.add(offset)
+            if len(selected) >= count:
+                break
+
+    return sorted(selected)
+
+
+def _max_slots_with_gap(allowed_offsets, min_gap):
+    ordered = sorted({int(value) for value in allowed_offsets})
+    if not ordered:
+        return 0
+    min_gap = max(1, int(min_gap))
+    count = 0
+    last_offset = None
+    for offset in ordered:
+        if last_offset is None or (offset - last_offset) >= min_gap:
+            count += 1
+            last_offset = offset
+    return count
 
 
 def schedule_day_posts(job_queue, start_dt):
@@ -377,13 +422,20 @@ def schedule_day_posts(job_queue, start_dt):
     if not topics:
         return
 
-    min_gap = max(5, config.MIN_GAP_MINUTES)
+    min_gap = max(5, _runtime_int("min_gap_minutes", config.MIN_GAP_MINUTES))
     window_start = 2
     window_end = (24 * 60) - 20
 
-    active_start = _minute_of_day(config.POSTING_WINDOW_START_HOUR, config.POSTING_WINDOW_START_MINUTE)
-    active_end = _minute_of_day(config.POSTING_WINDOW_END_HOUR, config.POSTING_WINDOW_END_MINUTE)
-    if config.POSTING_WINDOW_ENABLED:
+    active_start = _minute_of_day(
+        _runtime_int("posting_window_start_hour", config.POSTING_WINDOW_START_HOUR),
+        _runtime_int("posting_window_start_minute", config.POSTING_WINDOW_START_MINUTE),
+    )
+    active_end = _minute_of_day(
+        _runtime_int("posting_window_end_hour", config.POSTING_WINDOW_END_HOUR),
+        _runtime_int("posting_window_end_minute", config.POSTING_WINDOW_END_MINUTE),
+    )
+    posting_window_enabled = _runtime_bool("posting_window_enabled", config.POSTING_WINDOW_ENABLED)
+    if posting_window_enabled:
         allowed_offsets = _allowed_offsets_for_window(start_dt, active_start, active_end)
     else:
         allowed_offsets = list(range(window_start, window_end + 1))
@@ -395,10 +447,7 @@ def schedule_day_posts(job_queue, start_dt):
         )
         allowed_offsets = list(range(window_start, window_end + 1))
 
-    earliest_allowed = min(allowed_offsets)
-    latest_allowed = max(allowed_offsets)
-    feasible_slots = _pick_spread_offsets(allowed_offsets, len(allowed_offsets), min_gap)
-    max_slots_by_gap = max(1, len(feasible_slots) or 1)
+    max_slots_by_gap = max(1, _max_slots_with_gap(allowed_offsets, min_gap))
     if len(topics) > max_slots_by_gap:
         print(
             "Scheduler cap applied: configured daily volume exceeds feasible slots for "
@@ -409,9 +458,7 @@ def schedule_day_posts(job_queue, start_dt):
     run_times_by_slot = {}
     selected_offsets = _pick_spread_offsets(allowed_offsets, len(topics), min_gap)
     if len(selected_offsets) < len(topics):
-        selected_offsets = [
-            offset for offset in feasible_slots[:len(topics)]
-        ]
+        topics = topics[:len(selected_offsets)]
 
     for slot_index, (topic, offset_min) in enumerate(zip(topics, selected_offsets)):
         run_at = start_dt + timedelta(minutes=offset_min)
@@ -433,7 +480,7 @@ def schedule_day_posts(job_queue, start_dt):
 
         retry_delay = max(delay + 1800, delay + 600)
         retry_run_at = run_at + timedelta(minutes=30)
-        if retry_run_at.date() == start_dt.date() or config.POSTING_WINDOW_ENABLED:
+        if retry_run_at.date() == start_dt.date() or posting_window_enabled:
             job_queue.run_once(
                 retry_scheduled_topic,
                 when=max(1.0, (retry_run_at - datetime.now(timezone.utc)).total_seconds()),

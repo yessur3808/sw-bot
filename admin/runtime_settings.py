@@ -5,6 +5,15 @@ import db
 
 
 SETTING_TYPES = {
+    "daily_min_posts": "int",
+    "daily_max_posts": "int",
+    "max_per_topic_per_day": "int",
+    "min_gap_minutes": "int",
+    "posting_window_enabled": "bool",
+    "posting_window_start_hour": "int",
+    "posting_window_start_minute": "int",
+    "posting_window_end_hour": "int",
+    "posting_window_end_minute": "int",
     "enable_event_ingestion": "bool",
     "auto_publish_threshold": "float",
     "min_review_threshold": "float",
@@ -43,6 +52,15 @@ SETTING_TYPES = {
 
 
 SETTING_DEFAULTS = {
+    "daily_min_posts": config.DAILY_MIN_POSTS,
+    "daily_max_posts": config.DAILY_MAX_POSTS,
+    "max_per_topic_per_day": config.MAX_PER_TOPIC_PER_DAY,
+    "min_gap_minutes": config.MIN_GAP_MINUTES,
+    "posting_window_enabled": config.POSTING_WINDOW_ENABLED,
+    "posting_window_start_hour": config.POSTING_WINDOW_START_HOUR,
+    "posting_window_start_minute": config.POSTING_WINDOW_START_MINUTE,
+    "posting_window_end_hour": config.POSTING_WINDOW_END_HOUR,
+    "posting_window_end_minute": config.POSTING_WINDOW_END_MINUTE,
     "enable_event_ingestion": config.ENABLE_EVENT_INGESTION,
     "auto_publish_threshold": config.AUTO_PUBLISH_THRESHOLD,
     "min_review_threshold": config.MIN_REVIEW_THRESHOLD,

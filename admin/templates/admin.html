@@ -149,6 +149,31 @@
                     <div id="ops-alerts" class="list"></div>
                 </article>
             </div>
+            <article class="card panel-surface dashboard-routing-shell">
+                <details id="dashboard-routing-panel" class="dashboard-routing-panel">
+                    <summary class="dashboard-routing-summary">
+                        <div>
+                            <p class="eyebrow">CHANNEL ROUTING</p>
+                            <h2>Telegram Topic Links and IDs</h2>
+                            <small>Expand to edit channel/topic routing using a full Telegram topic link or a raw thread
+                                ID.</small>
+                        </div>
+                        <span class="dashboard-routing-hint">Expand / Hide</span>
+                    </summary>
+                    <div class="dashboard-routing-body">
+                        <div class="button-row routing-toolbar">
+                            <button id="refresh-thread-mappings" type="button">Refresh Mappings</button>
+                            <button id="save-thread-mappings" type="button">Save Mappings</button>
+                        </div>
+                        <div class="list-item routing-note">
+                            <p>Accepted input</p>
+                            <small>Paste a Telegram topic link such as https://t.me/c/.../4 or enter the numeric thread
+                                ID directly. The bot stores the resolved thread ID.</small>
+                        </div>
+                        <div id="thread-mapping-list" class="list thread-mapping-list"></div>
+                    </div>
+                </details>
+            </article>
             <div class="grid two">
                 <article class="card">
                     <h2>Manual Control</h2>
@@ -287,7 +312,7 @@
             <div class="grid two">
                 <article class="card panel-surface">
                     <h2>My Admin Profile</h2>
-                    <p class="help">Update your display name, username, and email for alerts.</p>
+                    <p class="help">Keep your identity, alert routing, and emergency notes current.</p>
                     <form id="admin-profile-form" class="admin-profile-form">
                         <label>User ID
                             <input name="user_id" type="number" readonly>
@@ -304,8 +329,9 @@
                         <label>Role
                             <input name="role" type="text" placeholder="admin">
                         </label>
-                        <label>Notes
-                            <input name="notes" type="text" placeholder="Emergency contact notes">
+                        <label class="field-span-full">Notes
+                            <textarea name="notes" rows="4"
+                                placeholder="Emergency contact notes, escalation path, timezone"></textarea>
                         </label>
                         <label class="switch-row">
                             <input name="is_active" type="checkbox" checked>
@@ -516,7 +542,7 @@
             <div class="grid two">
                 <article class="card panel-surface">
                     <h2>Dataset Library</h2>
-                    <p class="help">Select a dataset, edit the JSON, and save it back instantly.</p>
+                    <p class="help">Work on one dataset at a time with a clear status strip and a larger editor.</p>
                     <div class="tab-chip-row" role="tablist" aria-label="Dataset picker">
                         <button class="tab-chip active" data-dataset="facts" type="button">📚 Facts</button>
                         <button class="tab-chip" data-dataset="quotes" type="button">💬 Quotes</button>
@@ -524,9 +550,19 @@
                         <button class="tab-chip" data-dataset="trivia" type="button">🧠 Trivia</button>
                         <button class="tab-chip" data-dataset="discussions" type="button">🔥 Discussions</button>
                     </div>
-                    <div class="list-item panel-summary">
-                        <p>Active dataset</p>
-                        <small id="dataset-active-name">facts</small>
+                    <div class="stats-strip">
+                        <div class="stat-pill">
+                            <span>Active dataset</span>
+                            <strong id="dataset-active-name">facts</strong>
+                        </div>
+                        <div class="stat-pill">
+                            <span>Items loaded</span>
+                            <strong id="dataset-item-count">-</strong>
+                        </div>
+                        <div class="stat-pill">
+                            <span>Format</span>
+                            <strong>JSON array</strong>
+                        </div>
                     </div>
                     <div class="dataset-editor-shell">
                         <textarea id="dataset-editor" class="editor dataset-editor" spellcheck="false"></textarea>
@@ -628,7 +664,8 @@
             <div class="grid two">
                 <article class="card panel-surface">
                     <h2>Runtime Settings</h2>
-                    <p class="help">Adjust bot behavior, ingestion, and admin controls from one place.</p>
+                    <p class="help">Settings are grouped by workflow so posting cadence, ingestion, AI, and sources are
+                        easier to audit.</p>
                     <div id="settings-form" class="settings-grid settings-grid-modern"></div>
                     <div class="button-row">
                         <button id="save-settings" type="button">Apply Settings</button>
@@ -652,58 +689,29 @@
             </div>
         </section>
 
-        <section class="panel" data-panel="thread-mappings">
-            <div class="grid two">
-                <article class="card panel-surface">
-                    <h2>Thread Mappings</h2>
-                    <p class="help">Map each supported topic to an exact Telegram thread ID. Separate slots are shown
-                        for Hong Kong events, global events, gaming, and lightsabers. Database values override env
-                        defaults when set.</p>
-                    <div class="button-row">
-                        <button id="refresh-thread-mappings" type="button">Refresh Mappings</button>
-                        <button id="save-thread-mappings" type="button">Save Mappings</button>
-                    </div>
-                    <div id="thread-mapping-list" class="list"></div>
-                </article>
-                <article class="card panel-surface">
-                    <h2>Example Thread URLs</h2>
-                    <div class="list-item thread-group-accent">
-                        <p>Event slots</p><small>Hong Kong events and global events are grouped together at the top
-                            because they are routed separately.</small>
-                    </div>
-                    <div class="list-item">
-                        <p>Hong Kong events</p><small>https://t.me/c/4441702993/4</small>
-                    </div>
-                    <div class="list-item">
-                        <p>Global events</p><small>https://t.me/c/4441702993/5</small>
-                    </div>
-                    <div class="list-item">
-                        <p>General channel</p><small>https://t.me/c/4441702993/1</small>
-                    </div>
-                    <div class="list-item">
-                        <p>Memes</p><small>https://t.me/c/4441702993/2</small>
-                    </div>
-                    <div class="list-item">
-                        <p>Wallpapers</p><small>https://t.me/c/4441702993/3</small>
-                    </div>
-                    <div class="list-item">
-                        <p>Gaming</p><small>https://t.me/c/4441702993/6</small>
-                    </div>
-                    <div class="list-item">
-                        <p>Lightsabers</p><small>https://t.me/c/4441702993/7</small>
-                    </div>
-                </article>
-            </div>
-        </section>
-
         <section class="panel" data-panel="sources">
             <div class="grid two">
                 <article class="card panel-surface">
                     <h2>Source Overrides</h2>
-                    <p class="help">Manage HK and global source lists with a clearer, card-based editor.</p>
+                    <p class="help">Manage HK and global source lists with a grouped builder, clearer status chips, and
+                        raw export when needed.</p>
                     <div class="tab-chip-row" role="tablist" aria-label="Source list selector">
                         <button class="tab-chip active" data-source-type="hk" type="button">🌏 HK</button>
                         <button class="tab-chip" data-source-type="global" type="button">🪐 Global</button>
+                    </div>
+                    <div class="stats-strip">
+                        <div class="stat-pill">
+                            <span>Scope</span>
+                            <strong id="source-active-scope">hk</strong>
+                        </div>
+                        <div class="stat-pill">
+                            <span>Rows</span>
+                            <strong id="source-active-count">0</strong>
+                        </div>
+                        <div class="stat-pill">
+                            <span>Editing mode</span>
+                            <strong>Builder + raw</strong>
+                        </div>
                     </div>
                     <div class="button-row">
                         <button id="add-source-row" type="button">Add Source</button>

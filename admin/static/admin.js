@@ -79,6 +79,147 @@ const healthHistory = {
     load: [],
 };
 
+const SETTING_GROUPS = [
+    { id: "cadence", label: "Posting Cadence", eyebrow: "Scheduling", description: "Controls daily volume, spacing, and the active posting window." },
+    { id: "events", label: "Event Ingestion", eyebrow: "Events", description: "Tune ingest cadence, review thresholds, and source guardrails." },
+    { id: "ai", label: "AI Replies", eyebrow: "LLM", description: "Adjust autonomous reply behavior, rate limits, and scope." },
+    { id: "reddit", label: "Reddit Pipeline", eyebrow: "Cache + Relay", description: "Shape ingest, filtering, and relay behavior for Reddit content." },
+    { id: "datasets", label: "Dataset Collection", eyebrow: "Collectors", description: "Manage collector frequency and throughput limits." },
+];
+
+const SETTING_FIELDS = {
+    daily_min_posts: { label: "Minimum daily posts", group: "cadence", type: "int", min: 1, help: "Lower bound for the daily scheduler plan." },
+    daily_max_posts: { label: "Maximum daily posts", group: "cadence", type: "int", min: 1, help: "Upper bound for the daily scheduler plan." },
+    max_per_topic_per_day: { label: "Per-topic daily cap", group: "cadence", type: "int", min: 1, help: "Maximum times the same topic can be scheduled in one day." },
+    min_gap_minutes: { label: "Minimum gap (minutes)", group: "cadence", type: "int", min: 1, help: "Minimum spacing enforced between scheduled posts." },
+    posting_window_enabled: { label: "Use waking-hour posting window", group: "cadence", type: "bool", help: "Restrict scheduling to the configured active-hour window." },
+    posting_window_start_hour: { label: "Window start hour", group: "cadence", type: "int", min: 0, max: 23, help: "Local hour when posting becomes active." },
+    posting_window_start_minute: { label: "Window start minute", group: "cadence", type: "int", min: 0, max: 59, help: "Local minute when the active window begins." },
+    posting_window_end_hour: { label: "Window end hour", group: "cadence", type: "int", min: 0, max: 23, help: "Local hour when posting stops." },
+    posting_window_end_minute: { label: "Window end minute", group: "cadence", type: "int", min: 0, max: 59, help: "Local minute when the active window ends." },
+    enable_event_ingestion: { label: "Enable event ingestion", group: "events", type: "bool", help: "Allows the event crawler and reviewer queue to run." },
+    auto_publish_threshold: { label: "Auto-publish threshold", group: "events", type: "float", min: 0, max: 1, step: 0.01, help: "Confidence required before an event is auto-published." },
+    min_review_threshold: { label: "Manual review threshold", group: "events", type: "float", min: 0, max: 1, step: 0.01, help: "Minimum confidence required before an item enters review instead of being dropped." },
+    event_ingest_hours: { label: "Ingest interval (hours)", group: "events", type: "int", min: 1, help: "How often event sources are pulled." },
+    ingest_feed_limit: { label: "Feed item limit", group: "events", type: "int", min: 1, help: "Maximum feed entries processed per source." },
+    ingest_api_limit: { label: "API item limit", group: "events", type: "int", min: 1, help: "Maximum API items processed per source." },
+    ingest_scrape_limit: { label: "Scrape item limit", group: "events", type: "int", min: 1, help: "Maximum scraped items processed per source." },
+    release_timezone: { label: "Release timezone", group: "events", type: "str", help: "Timezone used to interpret release and event dates." },
+    official_source_allowlist: { label: "Official source allowlist", group: "events", type: "textarea", help: "Comma-separated domains allowed as official sources." },
+    rss_source_allowlist: { label: "RSS source allowlist", group: "events", type: "textarea", help: "Comma-separated domains allowed for RSS ingest." },
+    api_source_allowlist: { label: "API source allowlist", group: "events", type: "textarea", help: "Comma-separated domains allowed for API ingest." },
+    scrape_source_allowlist: { label: "Scrape source allowlist", group: "events", type: "textarea", help: "Comma-separated domains allowed for scraping." },
+    scrape_tos_allowlist: { label: "Scrape ToS allowlist", group: "events", type: "textarea", help: "Domains explicitly approved for scraping under site terms." },
+    enable_llm_autonomy: { label: "Enable autonomous replies", group: "ai", type: "bool", help: "Allows the bot to trigger LLM-generated replies automatically." },
+    llm_reply_daily_cap: { label: "Daily reply cap", group: "ai", type: "int", min: 0, help: "Maximum autonomous replies allowed each day." },
+    llm_reply_cooldown_seconds: { label: "Reply cooldown (seconds)", group: "ai", type: "int", min: 0, help: "Minimum wait time between autonomous replies." },
+    llm_random_reply_chance: { label: "Random reply chance", group: "ai", type: "float", min: 0, max: 1, step: 0.01, help: "Probability that an eligible message gets an autonomous reply." },
+    llm_min_trigger_score: { label: "Minimum trigger score", group: "ai", type: "float", min: 0, max: 1, step: 0.01, help: "Minimum score required before a message is considered reply-worthy." },
+    llm_max_input_chars: { label: "Max input chars", group: "ai", type: "int", min: 1, help: "Maximum message length passed into the model." },
+    llm_thread_scope_mode: { label: "Thread scope mode", group: "ai", type: "str", help: "Controls whether the thread lists behave like allowlists or denylists." },
+    llm_denied_thread_names: { label: "Denied thread names", group: "ai", type: "textarea", help: "Comma-separated thread names excluded from autonomous replies." },
+    llm_denied_thread_ids: { label: "Denied thread IDs", group: "ai", type: "textarea", help: "Comma-separated thread IDs excluded from autonomous replies." },
+    enable_reddit_ingest: { label: "Enable Reddit ingest", group: "reddit", type: "bool", help: "Allows the ingest cache to fetch Reddit posts/comments." },
+    enable_reddit_relay: { label: "Enable Reddit relay", group: "reddit", type: "bool", help: "Allows cached Reddit content to be relayed into Telegram." },
+    reddit_post_limit: { label: "Posts per ingest", group: "reddit", type: "int", min: 1, help: "Maximum Reddit submissions pulled each ingest run." },
+    reddit_comments_per_post: { label: "Comments per post", group: "reddit", type: "int", min: 0, help: "How many comments to inspect per Reddit submission." },
+    reddit_min_post_score: { label: "Minimum post score", group: "reddit", type: "int", help: "Submissions below this score are ignored." },
+    reddit_min_comment_score: { label: "Minimum comment score", group: "reddit", type: "int", help: "Comments below this score are ignored." },
+    reddit_relay_batch_size: { label: "Relay batch size", group: "reddit", type: "int", min: 1, help: "Maximum items relayed per safe relay batch." },
+    reddit_banned_subreddits: { label: "Blocked subreddits", group: "reddit", type: "textarea", help: "Comma-separated subreddit names blocked from relay." },
+    reddit_banned_words: { label: "Blocked words", group: "reddit", type: "textarea", help: "Comma-separated terms blocked from Reddit relay." },
+    enable_dataset_collectors: { label: "Enable dataset collectors", group: "datasets", type: "bool", help: "Allows source-backed dataset collectors to run." },
+    dataset_collector_interval_minutes: { label: "Collector interval (minutes)", group: "datasets", type: "int", min: 1, help: "How often dataset collectors run." },
+    dataset_collector_source_limit: { label: "Sources per collector run", group: "datasets", type: "int", min: 1, help: "Maximum sources scanned during one collector pass." },
+};
+
+const fallbackSettingLabel = (key) => String(key || "")
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const parseThreadMappingValue = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+        return { threadId: null, mode: "empty" };
+    }
+    if (/^\d+$/.test(raw)) {
+        return { threadId: Number(raw), mode: "id" };
+    }
+    try {
+        const url = new URL(raw);
+        const queryThread = url.searchParams.get("thread") || url.searchParams.get("topic") || url.searchParams.get("message_thread_id");
+        if (queryThread && /^\d+$/.test(queryThread)) {
+            return { threadId: Number(queryThread), mode: "query" };
+        }
+        const parts = url.pathname.split("/").map((part) => part.trim()).filter(Boolean);
+        for (let idx = parts.length - 1; idx >= 0; idx -= 1) {
+            if (/^\d+$/.test(parts[idx])) {
+                return { threadId: Number(parts[idx]), mode: "path" };
+            }
+        }
+    } catch (_) {
+        return { threadId: null, mode: "invalid" };
+    }
+    return { threadId: null, mode: "invalid" };
+};
+
+const getSettingMeta = (key) => ({
+    label: fallbackSettingLabel(key),
+    group: "misc",
+    type: "str",
+    help: "",
+    ...(SETTING_FIELDS[key] || {}),
+});
+
+const renderSettingControl = (key, value, meta) => {
+    if (meta.type === "bool") {
+        const select = document.createElement("select");
+        select.name = key;
+        select.dataset.settingType = "bool";
+        [
+            { value: "true", label: "Enabled" },
+            { value: "false", label: "Disabled" },
+        ].forEach((optionDef) => {
+            const option = document.createElement("option");
+            option.value = optionDef.value;
+            option.textContent = optionDef.label;
+            option.selected = String(Boolean(value)) === optionDef.value;
+            select.appendChild(option);
+        });
+        return select;
+    }
+
+    const control = meta.type === "textarea"
+        ? document.createElement("textarea")
+        : document.createElement("input");
+
+    control.name = key;
+    control.dataset.settingType = meta.type;
+    if (meta.type === "textarea") {
+        control.rows = 3;
+        control.value = String(value ?? "");
+    } else {
+        control.value = String(value ?? "");
+        if (meta.type === "int" || meta.type === "float") {
+            control.type = "number";
+            if (meta.step !== undefined) {
+                control.step = String(meta.step);
+            }
+            if (meta.min !== undefined) {
+                control.min = String(meta.min);
+            }
+            if (meta.max !== undefined) {
+                control.max = String(meta.max);
+            }
+        } else {
+            control.type = "text";
+        }
+    }
+    return control;
+};
+
 const requestJson = async (url, options = {}) => {
     const headers = {
         "Content-Type": "application/json",
@@ -357,21 +498,25 @@ const renderAdminDirectory = () => {
         card.dataset.adminIndex = String(idx);
         const isDraft = !profile.user_id;
         card.innerHTML = `
-            <div class="audit-top">
-                <span class="audit-action">${profile.user_id || "New Admin"}</span>
+            <div class="admin-card-head">
+                <div>
+                    <p>${escapeHtml(profile.display_name || profile.username || profile.user_id || "New Admin")}</p>
+                    <small>${escapeHtml(profile.email || "No alert email configured")}</small>
+                </div>
                 <span class="audit-meta">${profile.is_primary ? "primary" : profile.is_active ? "active" : "inactive"}</span>
             </div>
-            <div class="settings-grid settings-grid-modern">
+            <div class="settings-grid settings-grid-modern admin-card-grid">
                 <label>User ID<input data-admin-field="user_id" type="number" value="${escapeHtml(profile.user_id)}"></label>
                 <label>Display Name<input data-admin-field="display_name" type="text" value="${escapeHtml(profile.display_name)}"></label>
                 <label>Username<input data-admin-field="username" type="text" value="${escapeHtml(profile.username)}"></label>
                 <label>Email<input data-admin-field="email" type="email" value="${escapeHtml(profile.email)}"></label>
                 <label>Role<input data-admin-field="role" type="text" value="${escapeHtml(profile.role)}"></label>
-                <label>Notes<input data-admin-field="notes" type="text" value="${escapeHtml(profile.notes)}"></label>
+                <label class="field-span-full">Notes<textarea data-admin-field="notes" rows="3">${escapeHtml(profile.notes)}</textarea></label>
             </div>
             <div class="badge-row">
                 <span class="small-chip">${profile.is_primary ? "Primary" : "Contact"}</span>
                 <span class="small-chip">${profile.is_active ? "Active" : "Inactive"}</span>
+                <span class="small-chip">role=${escapeHtml(profile.role || "admin")}</span>
             </div>
             <div class="card-actions">
                 <label class="switch-row"><input data-admin-field="is_active" type="checkbox" ${profile.is_active ? "checked" : ""}><span>Active</span></label>
@@ -2267,15 +2412,58 @@ const renderEvents = () => {
 
 const renderSettings = () => {
     const form = document.getElementById("settings-form");
+    if (!form) {
+        return;
+    }
     form.innerHTML = "";
-    Object.entries(state.settings).forEach(([key, value]) => {
-        const label = document.createElement("label");
-        label.textContent = key;
-        const input = document.createElement("input");
-        input.name = key;
-        input.value = String(value);
-        label.appendChild(input);
-        form.appendChild(label);
+
+    const grouped = new Map([...SETTING_GROUPS, { id: "misc" }].map((group) => [group.id, []]));
+    Object.entries(state.settings || {}).forEach(([key, value]) => {
+        const meta = getSettingMeta(key);
+        const groupKey = grouped.has(meta.group) ? meta.group : "misc";
+        grouped.get(groupKey).push({ key, value, meta });
+    });
+
+    [...SETTING_GROUPS, { id: "misc", label: "Other Controls", eyebrow: "Misc", description: "Any settings without explicit grouping land here." }].forEach((group) => {
+        const items = grouped.get(group.id) || [];
+        if (!items.length) {
+            return;
+        }
+
+        items.sort((left, right) => left.meta.label.localeCompare(right.meta.label));
+
+        const section = document.createElement("section");
+        section.className = "settings-section";
+
+        const head = document.createElement("div");
+        head.className = "settings-section-head";
+        head.innerHTML = `
+            <p class="eyebrow">${escapeHtml(group.eyebrow || "Settings")}</p>
+            <h3>${escapeHtml(group.label)}</h3>
+            <small>${escapeHtml(group.description || "")}</small>
+        `;
+        section.appendChild(head);
+
+        const grid = document.createElement("div");
+        grid.className = "settings-section-grid";
+        items.forEach(({ key, value, meta }) => {
+            const field = document.createElement("label");
+            field.className = `settings-field ${meta.type === "textarea" ? "field-span-full" : ""}`;
+
+            const title = document.createElement("span");
+            title.className = "settings-field-label";
+            title.textContent = meta.label;
+
+            const help = document.createElement("small");
+            help.className = "settings-field-help";
+            help.textContent = meta.help || " ";
+
+            const control = renderSettingControl(key, value, meta);
+            field.append(title, help, control);
+            grid.appendChild(field);
+        });
+        section.appendChild(grid);
+        form.appendChild(section);
     });
 };
 
@@ -2423,6 +2611,10 @@ const loadDataset = async (name, options = {}) => {
     const payload = await requestJson(`/admin/api/datasets/${name}`);
     datasetCache.set(name, payload.data || []);
     document.getElementById("dataset-editor").value = JSON.stringify(payload.data, null, 2);
+    const countNode = document.getElementById("dataset-item-count");
+    if (countNode) {
+        countNode.textContent = String(Array.isArray(payload.data) ? payload.data.length : 0);
+    }
     return payload.data;
 };
 
@@ -2444,6 +2636,7 @@ const renderThreadMappings = () => {
         const label = String(row.thread_label || topic || "unknown").trim();
         const description = String(row.description || "").trim();
         const exampleUrl = String(row.example_url || "").trim();
+        const currentValue = row.thread_id ? String(row.thread_id) : (exampleUrl || "");
         const isEventSlot = topic === "events_hk" || topic === "events_global";
         if (isEventSlot) {
             topicClass.push("thread-mapping-card--event");
@@ -2451,15 +2644,26 @@ const renderThreadMappings = () => {
         item.className = topicClass.join(" ");
         item.innerHTML = `
             <div class="thread-mapping-header">
-                <p>${escapeHtml(label)}</p>
+                <div>
+                    <p>${escapeHtml(label)}</p>
+                    <small class="thread-mapping-topic">${escapeHtml(topic)}</small>
+                </div>
                 <span class="chip ${isEventSlot ? "chip--event" : ""}">${escapeHtml(topic)}</span>
             </div>
             <small>${escapeHtml(description || `Resolved topic slot for ${topic}`)}</small>
-            <small>Example URL: ${escapeHtml(exampleUrl || "n/a")}</small>
-            <small>Thread ID: ${escapeHtml(String(row.thread_id ?? ""))}</small>
-            <div class="button-row">
-                <input data-thread-topic="${escapeHtml(topic)}" value="${escapeHtml(String(row.thread_id ?? ""))}" type="number" min="1" step="1" placeholder="Thread ID">
-                <input data-thread-label="${escapeHtml(topic)}" value="${escapeHtml(label)}" type="text" placeholder="Thread label">
+            <small>Example URL: ${exampleUrl ? `<a class="admin-link" href="${escapeHtml(exampleUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(exampleUrl)}</a>` : "n/a"}</small>
+            <small>Resolved thread ID: <span class="thread-mapping-id">${escapeHtml(String(row.thread_id ?? "not set"))}</span></small>
+            <div class="thread-mapping-inputs">
+                <label class="field-span-full">Telegram Topic Link or Thread ID
+                    <input data-thread-topic="${escapeHtml(topic)}" value="${escapeHtml(currentValue)}" type="text" placeholder="https://t.me/c/.../4 or 4">
+                </label>
+                <label>Thread label
+                    <input data-thread-label="${escapeHtml(topic)}" value="${escapeHtml(label)}" type="text" placeholder="Thread label">
+                </label>
+                <div class="thread-mapping-help">
+                    <span class="item-kicker">Tip</span>
+                    <small>Paste the Telegram topic link and the bot will extract the final topic/thread id automatically.</small>
+                </div>
             </div>
         `;
         target.appendChild(item);
@@ -2477,9 +2681,10 @@ const saveThreadMappings = async () => {
         const topic = String(row.topic_name || row.topic || "").trim();
         const threadInput = document.querySelector(`[data-thread-topic="${CSS.escape(topic)}"]`);
         const labelInput = document.querySelector(`[data-thread-label="${CSS.escape(topic)}"]`);
-        const threadId = threadInput ? Number(threadInput.value || 0) : Number(row.thread_id || 0);
+        const parsedThread = parseThreadMappingValue(threadInput ? threadInput.value : row.thread_id);
+        const threadId = Number(parsedThread.threadId || 0);
         if (!Number.isInteger(threadId) || threadId <= 0) {
-            throw new Error(`Thread ID for ${topic} must be a positive integer`);
+            throw new Error(`Thread mapping for ${topic} must be a Telegram topic link or a positive integer thread ID`);
         }
         const label = labelInput ? String(labelInput.value || "").trim() : String(row.thread_label || "").trim();
         if (!label) {
@@ -2496,6 +2701,7 @@ const saveThreadMappings = async () => {
         body: JSON.stringify({ rows }),
     });
     await loadThreadMappings();
+    alert("Channel routing saved");
     return payload;
 };
 
@@ -2521,7 +2727,14 @@ const setEventStatus = async (eventId, status) => {
 
 const saveSettings = async () => {
     const updates = {};
-    document.querySelectorAll("#settings-form input").forEach((input) => {
+    document.querySelectorAll("#settings-form [name]").forEach((input) => {
+        if (!input.name) {
+            return;
+        }
+        if (input.dataset.settingType === "bool") {
+            updates[input.name] = input.value === "true";
+            return;
+        }
         updates[input.name] = input.value;
     });
     const payload = await requestJson("/admin/api/settings", {
@@ -2572,7 +2785,19 @@ const sourceRowTemplate = (source, idx) => {
     }
 
     wrapper.innerHTML = `
-      <div class="button-row">
+            <div class="source-row-header">
+                <div>
+                    <p>${escapeHtml(source.name || `Source ${idx + 1}`)}</p>
+                    <small>${escapeHtml(source.url || "No URL configured")}</small>
+                </div>
+                <div class="badge-row">
+                    <span class="small-chip">${escapeHtml(source.tier || "rss")}</span>
+                    <span class="small-chip">${escapeHtml(source.kind || "event")}</span>
+                    <span class="small-chip">${source.enabled ? "enabled" : "disabled"}</span>
+                    <span class="small-chip">pos ${escapeHtml(String(source.position ?? idx))}</span>
+                </div>
+            </div>
+            <div class="button-row source-actions">
         <button data-act="up" data-idx="${idx}">Up</button>
         <button data-act="down" data-idx="${idx}">Down</button>
         <button data-act="toggle" data-idx="${idx}">${source.enabled ? "Disable" : "Enable"}</button>
@@ -2599,7 +2824,7 @@ const sourceRowTemplate = (source, idx) => {
         <label>Name
           <input data-field="name" data-idx="${idx}" value="${source.name || ""}">
         </label>
-        <label>URL
+                <label class="field-span-full">URL
           <input data-field="url" data-idx="${idx}" value="${source.url || ""}">
         </label>
         <label>Enabled
@@ -2703,6 +2928,14 @@ const loadSources = (runType) => {
         enabled: source.enabled !== false,
         position: Number(source.position ?? idx),
     }));
+    const scopeNode = document.getElementById("source-active-scope");
+    if (scopeNode) {
+        scopeNode.textContent = runType;
+    }
+    const countNode = document.getElementById("source-active-count");
+    if (countNode) {
+        countNode.textContent = String(sourceBuilderRows.length);
+    }
     normalizeSourceOrder();
     renderSourceBuilder();
     renderRawSourceEditor();

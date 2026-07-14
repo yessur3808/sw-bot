@@ -91,6 +91,12 @@ HK_HOLIDAY_GREETINGS = [
 ]
 
 
+def _shuffled(items):
+    pool = list(items or [])
+    random.shuffle(pool)
+    return pool
+
+
 def _classify_fact_topic(fact_text):
     low = (fact_text or "").lower()
     if any(token in low for token in SHOW_KEYWORDS):
@@ -166,15 +172,30 @@ def _resolve_fact_thread(fact_text):
     return topic, (lore_tid or chat_tid or get_thread_id("general"))
 
 async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
-    item = random.choice(QUOTES)
-    quote = _pick_text(item, ("quote", "text", "q"))
-    speaker = str(item.get("speaker") or "").strip() if isinstance(item, dict) else ""
-    if speaker:
-        body = f"_{quote}_\n\n- {speaker}"
-    else:
-        body = f"_{quote}_"
-    meta = _render_tag_line(item)
-    src = _source_line(item)
+    selected = None
+    content_id = None
+    raw = ""
+    for item in _shuffled(QUOTES):
+        quote = _pick_text(item, ("quote", "text", "q"))
+        speaker = str(item.get("speaker") or "").strip() if isinstance(item, dict) else ""
+        if not quote:
+            continue
+        raw = f"{quote}|{speaker}" if speaker else quote
+        candidate_id = f"quote:{db.compute_text_hash(raw)[:16]}"
+        if db.already_posted("quote", candidate_id):
+            continue
+        selected = item
+        content_id = candidate_id
+        break
+
+    if selected is None or not content_id:
+        return
+
+    quote = _pick_text(selected, ("quote", "text", "q"))
+    speaker = str(selected.get("speaker") or "").strip() if isinstance(selected, dict) else ""
+    body = f"_{quote}_\n\n- {speaker}" if speaker else f"_{quote}_"
+    meta = _render_tag_line(selected)
+    src = _source_line(selected)
     extra = ""
     if meta:
         extra += f"\n\n`{meta}`"
@@ -189,15 +210,12 @@ async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
         text=text,
         parse_mode="Markdown",
     )
-    raw = quote
-    if speaker:
-        raw = f"{quote}|{speaker}"
     db.log_post_audit(
         topic="quote",
         thread_id=thread_id,
         telegram_message_id=message.message_id,
         content_type="quote",
-        content_id=f"quote:{db.compute_text_hash(raw)[:16]}",
+        content_id=content_id,
         text=text,
     )
     mark_scheduler_execution_outcome(
@@ -205,16 +223,31 @@ async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
         "sent",
         message_id=message.message_id,
         content_type="quote",
-        content_id=f"quote:{db.compute_text_hash(raw)[:16]}",
+        content_id=content_id,
     )
 
 
 async def daily_fact(context: ContextTypes.DEFAULT_TYPE):
-    item = random.choice(FACTS)
-    fact = _pick_text(item, ("text", "fact", "q"))
+    selected = None
+    content_id = None
+    fact = ""
+    for item in _shuffled(FACTS):
+        fact = _pick_text(item, ("text", "fact", "q"))
+        if not fact:
+            continue
+        candidate_id = f"fact:{db.compute_text_hash(fact)[:16]}"
+        if db.already_posted("fact", candidate_id):
+            continue
+        selected = item
+        content_id = candidate_id
+        break
+
+    if selected is None or not content_id:
+        return
+
     route_topic, thread_id = _resolve_fact_thread(fact)
-    meta = _render_tag_line(item)
-    src = _source_line(item)
+    meta = _render_tag_line(selected)
+    src = _source_line(selected)
     extra = ""
     if meta:
         extra += f"\n\n`{meta}`"
@@ -232,7 +265,7 @@ async def daily_fact(context: ContextTypes.DEFAULT_TYPE):
         thread_id=thread_id,
         telegram_message_id=message.message_id,
         content_type="fact",
-        content_id=f"fact:{db.compute_text_hash(fact)[:16]}",
+        content_id=content_id,
         text=text,
     )
     mark_scheduler_execution_outcome(
@@ -240,18 +273,32 @@ async def daily_fact(context: ContextTypes.DEFAULT_TYPE):
         "sent",
         message_id=message.message_id,
         content_type="fact",
-        content_id=f"fact:{db.compute_text_hash(fact)[:16]}",
+        content_id=content_id,
     )
 
 
 async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
-    poll = random.choice(POLLS)
-    question = _pick_text(poll, ("q", "question", "prompt"))
-    options = poll.get("options") if isinstance(poll, dict) else None
-    if not isinstance(options, list) or len(options) < 2:
-        return
-    clean_options = [str(v).strip() for v in options if str(v).strip()]
-    if len(clean_options) < 2:
+    selected = None
+    clean_options = []
+    question = ""
+    content_id = None
+    for poll in _shuffled(POLLS):
+        question = _pick_text(poll, ("q", "question", "prompt"))
+        options = poll.get("options") if isinstance(poll, dict) else None
+        if not question or not isinstance(options, list) or len(options) < 2:
+            continue
+        clean_options = [str(v).strip() for v in options if str(v).strip()]
+        if len(clean_options) < 2:
+            continue
+        raw = f"{question}|{'|'.join(clean_options)}"
+        candidate_id = f"poll:{db.compute_text_hash(raw)[:16]}"
+        if db.already_posted("poll", candidate_id):
+            continue
+        selected = poll
+        content_id = candidate_id
+        break
+
+    if selected is None or not content_id:
         return
 
     # Community polls should target General first.
@@ -263,13 +310,12 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
         options=clean_options,
         is_anonymous=False,
     )
-    raw = f"{question}|{'|'.join(clean_options)}"
     db.log_post_audit(
         topic="poll",
         thread_id=thread_id,
         telegram_message_id=message.message_id,
         content_type="poll",
-        content_id=f"poll:{db.compute_text_hash(raw)[:16]}",
+        content_id=content_id,
         text=raw,
     )
     mark_scheduler_execution_outcome(
@@ -277,21 +323,30 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
         "sent",
         message_id=message.message_id,
         content_type="poll",
-        content_id=f"poll:{db.compute_text_hash(raw)[:16]}",
+        content_id=content_id,
     )
 
 
 async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
-    if not DISCUSSIONS:
+    selected = None
+    prompt = ""
+    content_id = None
+    for item in _shuffled(DISCUSSIONS):
+        prompt = _pick_text(item, ("prompt", "question", "text", "q"))
+        if not prompt:
+            continue
+        candidate_id = f"discussion:{db.compute_text_hash(prompt)[:16]}"
+        if db.already_posted("discussion", candidate_id):
+            continue
+        selected = item
+        content_id = candidate_id
+        break
+
+    if selected is None or not content_id:
         return
 
-    item = random.choice(DISCUSSIONS)
-    prompt = _pick_text(item, ("prompt", "question", "text", "q"))
-    if not prompt:
-        return
-
-    tags = _render_tag_line(item)
-    src = _source_line(item)
+    tags = _render_tag_line(selected)
+    src = _source_line(selected)
     lines = ["🔥 *Controversial Discussion Topic*", "", prompt]
     if tags:
         lines.extend(["", f"`{tags}`"])
@@ -312,7 +367,7 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
         thread_id=thread_id,
         telegram_message_id=message.message_id,
         content_type="discussion",
-        content_id=f"discussion:{db.compute_text_hash(prompt)[:16]}",
+        content_id=content_id,
         text=text,
     )
     mark_scheduler_execution_outcome(
@@ -320,7 +375,7 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
         "sent",
         message_id=message.message_id,
         content_type="discussion",
-        content_id=f"discussion:{db.compute_text_hash(prompt)[:16]}",
+        content_id=content_id,
     )
 
 

@@ -1854,6 +1854,12 @@ def already_posted(content_type, content_id):
             "SELECT 1 FROM posted WHERE content_type=? AND content_id=?",
             (content_type, content_id)
         ))
+        if not row:
+            row = _fetchone(_execute(
+                conn,
+                "SELECT 1 FROM post_audit WHERE content_type=? AND content_id=? AND status='sent' LIMIT 1",
+                (content_type, content_id),
+            ))
         if row:
             return True
         _execute(conn,
