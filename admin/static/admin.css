@@ -949,6 +949,7 @@ select {
 
 .dataset-editor-shell,
 .source-editor-shell {
+    position: relative;
     width: 100%;
     background: linear-gradient(180deg, rgba(3, 13, 20, 0.98), rgba(6, 18, 27, 0.92));
     border: 1px solid rgba(255, 226, 122, 0.14);
@@ -968,6 +969,54 @@ select {
     color: #eaf9ff;
     line-height: 1.45;
     resize: vertical;
+}
+
+.dataset-editor-shell.is-loading .dataset-editor {
+    filter: blur(0.5px);
+}
+
+.dataset-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: rgba(3, 14, 22, 0.84);
+    backdrop-filter: blur(4px);
+}
+
+.dataset-loading-overlay[hidden] {
+    display: none !important;
+}
+
+.dataset-loading-box {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    text-align: center;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 226, 122, 0.26);
+    background: rgba(6, 19, 28, 0.94);
+}
+
+.dataset-loading-box strong {
+    font-size: 0.9rem;
+}
+
+.dataset-loading-box small {
+    color: var(--muted);
+}
+
+.dataset-loading-spinner {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 3px solid rgba(255, 226, 122, 0.16);
+    border-top-color: var(--accent);
+    border-right-color: rgba(87, 169, 255, 0.8);
+    animation: save-spin 800ms linear infinite;
 }
 
 .dataset-editor:focus,

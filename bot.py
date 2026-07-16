@@ -186,8 +186,11 @@ async def retry_scheduled_topic(context):
         mark_scheduler_execution_outcome(context, "no_content", error=f"Retry producer returned without posting for topic={topic}")
 
 
-def _build_topics_for_day():
-    now_utc = datetime.now(timezone.utc)
+def _build_topics_for_day(base_dt=None):
+    if base_dt is None:
+        now_utc = datetime.now(timezone.utc)
+    else:
+        now_utc = base_dt.astimezone(timezone.utc)
     min_posts_setting = max(1, _runtime_int("daily_min_posts", config.DAILY_MIN_POSTS))
     max_posts_setting = max(1, _runtime_int("daily_max_posts", config.DAILY_MAX_POSTS))
     min_posts = min(min_posts_setting, max_posts_setting)
@@ -417,7 +420,7 @@ def _max_slots_with_gap(allowed_offsets, min_gap):
 
 
 def schedule_day_posts(job_queue, start_dt):
-    plan = _build_topics_for_day()
+    plan = _build_topics_for_day(start_dt)
     topics = plan.get("topics") or []
     if not topics:
         return
@@ -478,7 +481,6 @@ def schedule_day_posts(job_queue, start_dt):
             },
         )
 
-        retry_delay = max(delay + 1800, delay + 600)
         retry_run_at = run_at + timedelta(minutes=30)
         if retry_run_at.date() == start_dt.date() or posting_window_enabled:
             job_queue.run_once(
@@ -518,8 +520,99 @@ def schedule_day_posts(job_queue, start_dt):
         )
 
 
+def _parse_utc_datetime(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    normalized = raw.replace(" ", "T").replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(normalized)
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _existing_scheduler_dates(horizon_days=7):
+    now_utc = datetime.now(timezone.utc)
+    horizon_end = now_utc + timedelta(days=max(1, int(horizon_days)))
+    dates = set()
+    for row in db.upcoming_scheduler_decisions(limit=4000):
+        run_at = _parse_utc_datetime(row.get("run_at") if hasattr(row, "get") else None)
+        if not run_at or run_at < now_utc or run_at > horizon_end:
+            continue
+        scheduled_for_date = str((row.get("scheduled_for_date") if hasattr(row, "get") else "") or "").strip()
+        if scheduled_for_date:
+            dates.add(scheduled_for_date)
+    return dates
+
+
+def _restore_upcoming_scheduler_jobs(job_queue, horizon_days=7):
+    now_utc = datetime.now(timezone.utc)
+    horizon_end = now_utc + timedelta(days=max(1, int(horizon_days)))
+    posting_window_enabled = _runtime_bool("posting_window_enabled", config.POSTING_WINDOW_ENABLED)
+
+    for row in db.upcoming_scheduler_decisions(limit=4000):
+        run_at = _parse_utc_datetime(row.get("run_at") if hasattr(row, "get") else None)
+        if not run_at or run_at < now_utc or run_at > horizon_end:
+            continue
+
+        topic = row.get("topic") if hasattr(row, "get") else None
+        plan_key = row.get("plan_key") if hasattr(row, "get") else None
+        slot_index = row.get("slot_index") if hasattr(row, "get") else None
+        if not topic or plan_key is None or slot_index is None:
+            continue
+
+        delay = max(1.0, (run_at - now_utc).total_seconds())
+        job_queue.run_once(
+            run_scheduled_topic,
+            when=delay,
+            data={
+                "topic": topic,
+                "plan_key": plan_key,
+                "slot_index": int(slot_index),
+                "scheduled_run_at": run_at.isoformat(),
+            },
+            job_kwargs={"misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS},
+        )
+
+        retry_run_at = run_at + timedelta(minutes=30)
+        if retry_run_at > now_utc and (retry_run_at.date() == run_at.date() or posting_window_enabled):
+            job_queue.run_once(
+                retry_scheduled_topic,
+                when=max(1.0, (retry_run_at - now_utc).total_seconds()),
+                data={
+                    "topic": topic,
+                    "plan_key": plan_key,
+                    "slot_index": int(slot_index),
+                    "scheduled_run_at": retry_run_at.isoformat(),
+                    "retry_state": {"attempts": 0, "source_slot_index": int(slot_index)},
+                },
+                job_kwargs={"misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS},
+            )
+
+
+def ensure_scheduler_horizon(job_queue, horizon_days=7):
+    now_utc = datetime.now(timezone.utc)
+    existing_dates = _existing_scheduler_dates(horizon_days=horizon_days)
+    horizon_days = max(1, int(horizon_days))
+
+    for day_offset in range(horizon_days):
+        target_date = (now_utc + timedelta(days=day_offset)).date()
+        target_iso = target_date.isoformat()
+        if target_iso in existing_dates:
+            continue
+
+        if day_offset == 0:
+            anchor = now_utc
+        else:
+            anchor = datetime(target_date.year, target_date.month, target_date.day, tzinfo=timezone.utc)
+        schedule_day_posts(job_queue, anchor)
+
+
 async def plan_today_posts(context):
-    schedule_day_posts(context.job_queue, datetime.now(timezone.utc))
+    ensure_scheduler_horizon(context.job_queue, horizon_days=7)
 
 
 async def whats_new_today_cmd(update, context):
@@ -807,8 +900,9 @@ def main():
             print(f"- thread {thread_id} is shared by: {', '.join(names)}")
 
     jq = app.job_queue
-    # Build and schedule today's randomized posting plan immediately.
-    schedule_day_posts(jq, datetime.now(timezone.utc))
+    # Restore pending DB-backed schedule on restart, then top up a rolling weekly horizon.
+    _restore_upcoming_scheduler_jobs(jq, horizon_days=7)
+    ensure_scheduler_horizon(jq, horizon_days=7)
     # Rebuild plan every day near HKT midnight (UTC 16:05).
     jq.run_daily(plan_today_posts, time(hour=16, minute=5))
     if config.GREETING_ENABLED:

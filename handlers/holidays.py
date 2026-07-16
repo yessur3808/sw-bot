@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import requests
 from telegram import Update
@@ -12,6 +12,16 @@ from telemetry import instrument_command_handler
 
 HK_HOLIDAY_SOURCE_NAME = "1823.gov.hk Hong Kong Public Holidays"
 HK_HOLIDAY_SOURCE_URL = "https://www.1823.gov.hk/common/ical/en.json"
+
+
+def _today_hkt_iso():
+    try:
+        from zoneinfo import ZoneInfo
+
+        return datetime.now(ZoneInfo("Asia/Hong_Kong")).date().isoformat()
+    except Exception:
+        # Fallback to UTC+8 if zoneinfo is unavailable.
+        return datetime.now(timezone(timedelta(hours=8))).date().isoformat()
 
 
 def _is_admin(update: Update):
@@ -52,6 +62,7 @@ def fetch_hk_public_holidays(source_url=HK_HOLIDAY_SOURCE_URL, timeout=15):
     today_year = datetime.now(timezone.utc).year
     min_year = today_year - 1
     max_year = today_year + 3
+    hkt_today = _today_hkt_iso()
 
     dedupe = {}
     for event in events:
@@ -60,6 +71,8 @@ def fetch_hk_public_holidays(source_url=HK_HOLIDAY_SOURCE_URL, timeout=15):
         dtstart_token = _extract_dtstart_token(event.get("dtstart"))
         date_iso = _date_token_to_iso(dtstart_token)
         if not date_iso:
+            continue
+        if date_iso < hkt_today:
             continue
 
         try:

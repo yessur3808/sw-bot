@@ -64,6 +64,7 @@ let candidateFilterTimer = null;
 let candidateViewMode = "compact";
 let expandedCandidateIds = new Set();
 const datasetCache = new Map();
+let datasetLoadSequence = 0;
 let archivePage = 1;
 const candidateViewStorageKey = "admin.datasetCandidates.viewMode";
 const recentTasksHideCompletedStorageKey = "admin.recentTasks.hideCompleted";
@@ -760,6 +761,32 @@ const formatRunTime = (value) => {
         hour: "2-digit",
         minute: "2-digit",
     });
+};
+
+const setDatasetPanelLoading = (loading, detail = "") => {
+    const shell = document.getElementById("dataset-editor-shell");
+    const overlay = document.getElementById("dataset-loading-overlay");
+    const detailNode = document.getElementById("dataset-loading-detail");
+    const editor = document.getElementById("dataset-editor");
+
+    if (shell) {
+        shell.classList.toggle("is-loading", Boolean(loading));
+    }
+    if (overlay) {
+        if (loading) {
+            overlay.hidden = false;
+            overlay.setAttribute("aria-hidden", "false");
+        } else {
+            overlay.hidden = true;
+            overlay.setAttribute("aria-hidden", "true");
+        }
+    }
+    if (detailNode) {
+        detailNode.textContent = detail || "Loading dataset...";
+    }
+    if (editor) {
+        editor.disabled = Boolean(loading);
+    }
 };
 
 const chartWidth = 720;
@@ -2552,7 +2579,9 @@ const renderEvents = () => {
         const sourceLink = href
             ? `<a class="inline-link" href="${href}" target="_blank" rel="noopener noreferrer" aria-label="Open ${row.source_name || "source"}">↗</a>`
             : "";
-        info.innerHTML = `📅 ${row.event_date || "TBD"}<br>🛰️ ${row.source_name || "unknown"} ${sourceLink}`;
+        const eventDate = String(row.event_date || "TBD");
+        const queuedAt = formatRunTime(row.created_at);
+        info.innerHTML = `📅 Event date: ${eventDate}<br>🕒 Added: ${queuedAt}<br>🛰️ ${row.source_name || "unknown"} ${sourceLink}`;
         meta.appendChild(info);
 
         const rowButtons = document.createElement("div");
@@ -2647,7 +2676,7 @@ const archiveFilters = () => {
     const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 24));
     return {
         content_type: document.getElementById("archive-filter-content-type")?.value || "",
-        status: document.getElementById("archive-filter-status")?.value || "sent",
+        status: document.getElementById("archive-filter-status")?.value || "",
         limit,
         offset: Math.max(0, (archivePage - 1) * limit),
     };
@@ -2752,6 +2781,7 @@ const loadArchive = async () => {
 
 const loadDataset = async (name, options = {}) => {
     const forceRefresh = Boolean(options.forceRefresh);
+    const requestSeq = ++datasetLoadSequence;
     activeDataset = name;
     setActivePills("[data-dataset]", "dataset", name);
     const activeLabel = document.getElementById("dataset-active-name");
@@ -2759,20 +2789,38 @@ const loadDataset = async (name, options = {}) => {
         activeLabel.textContent = name;
     }
 
-    const cached = datasetCache.get(name);
-    if (cached && !forceRefresh) {
-        document.getElementById("dataset-editor").value = JSON.stringify(cached, null, 2);
-        return cached;
-    }
+    setDatasetPanelLoading(true, `Loading ${name} dataset...`);
 
-    const payload = await requestJson(`/admin/api/datasets/${name}`);
-    datasetCache.set(name, payload.data || []);
-    document.getElementById("dataset-editor").value = JSON.stringify(payload.data, null, 2);
     const countNode = document.getElementById("dataset-item-count");
-    if (countNode) {
-        countNode.textContent = String(Array.isArray(payload.data) ? payload.data.length : 0);
+
+    try {
+        const cached = datasetCache.get(name);
+        if (cached && !forceRefresh) {
+            if (requestSeq !== datasetLoadSequence) {
+                return cached;
+            }
+            document.getElementById("dataset-editor").value = JSON.stringify(cached, null, 2);
+            if (countNode) {
+                countNode.textContent = String(Array.isArray(cached) ? cached.length : 0);
+            }
+            return cached;
+        }
+
+        const payload = await requestJson(`/admin/api/datasets/${name}`);
+        if (requestSeq !== datasetLoadSequence) {
+            return payload.data;
+        }
+        datasetCache.set(name, payload.data || []);
+        document.getElementById("dataset-editor").value = JSON.stringify(payload.data, null, 2);
+        if (countNode) {
+            countNode.textContent = String(Array.isArray(payload.data) ? payload.data.length : 0);
+        }
+        return payload.data;
+    } finally {
+        if (requestSeq === datasetLoadSequence) {
+            setDatasetPanelLoading(false);
+        }
     }
-    return payload.data;
 };
 
 const renderThreadMappings = () => {

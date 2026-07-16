@@ -401,7 +401,8 @@
                         </label>
                         <label>Status
                             <select id="archive-filter-status">
-                                <option value="sent" selected>sent</option>
+                                <option value="" selected>all</option>
+                                <option value="sent">sent</option>
                                 <option value="failed">failed</option>
                                 <option value="skipped">skipped</option>
                             </select>
@@ -577,7 +578,14 @@
                             <strong>JSON array</strong>
                         </div>
                     </div>
-                    <div class="dataset-editor-shell">
+                    <div id="dataset-editor-shell" class="dataset-editor-shell">
+                        <div id="dataset-loading-overlay" class="dataset-loading-overlay" hidden aria-hidden="true">
+                            <div class="dataset-loading-box">
+                                <div class="dataset-loading-spinner" aria-hidden="true"></div>
+                                <strong>Loading dataset</strong>
+                                <small id="dataset-loading-detail">Loading dataset...</small>
+                            </div>
+                        </div>
                         <textarea id="dataset-editor" class="editor dataset-editor" spellcheck="false"></textarea>
                     </div>
                     <div class="button-row">

@@ -1645,7 +1645,7 @@ def create_admin_app():
         require_admin()
         content_type = str(request.args.get("content_type", "")).strip().lower() or None
         topic = str(request.args.get("topic", "")).strip() or None
-        status = str(request.args.get("status", "sent")).strip().lower() or None
+        status = str(request.args.get("status", "")).strip().lower() or None
         limit_raw = request.args.get("limit", "24")
         offset_raw = request.args.get("offset", "0")
         try:
