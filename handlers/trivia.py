@@ -2,12 +2,9 @@ import random
 
 from telegram.ext import ContextTypes
 
-from config import GROUP_ID, get_thread_id
+from config import GROUP_ID, get_thread_id, CONTENT_REPEAT_DAYS
 import db
 from telemetry import mark_scheduler_execution_outcome
-
-QUESTIONS = db.get_dataset_items("trivia")
-
 
 def _shuffled(items):
     pool = list(items or [])
@@ -33,7 +30,7 @@ async def daily_trivia(context: ContextTypes.DEFAULT_TYPE):
     correct = None
     content_id = None
     raw = ""
-    for item in _shuffled(QUESTIONS):
+    for item in _shuffled(db.get_dataset_items("trivia")):
         question = _pick_text(item, ("q", "question", "prompt"))
         options = item.get("options") if isinstance(item, dict) else None
         correct = item.get("correct") if isinstance(item, dict) else None
@@ -43,7 +40,7 @@ async def daily_trivia(context: ContextTypes.DEFAULT_TYPE):
             continue
         raw = f"{question}|{'|'.join([str(v) for v in options])}|{correct}"
         candidate_id = f"trivia:{db.compute_text_hash(raw)[:16]}"
-        if db.already_posted("trivia", candidate_id):
+        if db.posted_within_days("trivia", candidate_id, CONTENT_REPEAT_DAYS):
             continue
         selected = item
         content_id = candidate_id

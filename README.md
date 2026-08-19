@@ -25,6 +25,12 @@ DB_BACKEND=postgres
 DATABASE_URL=postgresql://starwars:starwars@postgres:5432/starwars
 ```
 
+For SQLite runs, you can optionally set:
+
+```dotenv
+DB_PATH=./starwars.db
+```
+
 Then run:
 
 ```bash
@@ -60,59 +66,31 @@ make restart
 make down
 ```
 
-## Railway Live Deployment (GitHub Actions)
+If you see `sqlite3.OperationalError: unable to open database file` in Docker logs, remove any accidental `starwars.db` directory created by an old file bind mount and restart:
 
-This repo includes a CI pipeline that auto-deploys to Railway on every push to `main`.
-
-### 1) Add GitHub Actions secrets
-
-In your GitHub repo settings, add these secrets:
-
-- `RAILWAY_TOKEN`
-- `RAILWAY_PROJECT_ID`
-- `RAILWAY_ENVIRONMENT_ID`
-- `RAILWAY_SERVICE_ID`
-
-Tip: you can get IDs from Railway project settings (Project, Environment, and Service).
-
-### 2) Set Railway runtime variables
-
-In Railway service variables, set your bot runtime env (minimum):
-
-```dotenv
-BOT_TOKEN=<telegram-bot-token>
-GROUP_ID=<telegram-group-id>
-
-DB_BACKEND=postgres
-DATABASE_URL=<railway-postgres-connection-url>
-
-THREAD_LORE=<thread-id>
-THREAD_MEMES=<thread-id>
-THREAD_WALLPAPERS=<thread-id>
-THREAD_CHAT=<thread-id>
-THREAD_GENERAL=<thread-id>
-THREAD_EVENTS=<thread-id>
+```bash
+rm -rf ./starwars.db
+make down
+make up
 ```
 
-`THREAD_EVENTS` is optional; if omitted, event posts use `THREAD_GENERAL`.
-Set `THREAD_CHAT` to isolate non-event posts (greeting, leaderboard, quote/fact/poll/discussion, and LLM general thread behavior) away from the events topic.
-Keep the thread IDs unique unless you intentionally want multiple content types routed to the same Telegram topic.
+## Free live deployment: Google Compute Engine
 
-Optional admin UI variables for web access:
+The deployment workflow targets one Always Free eligible `e2-micro` VM. A VM is a better fit than a sleeping free web service because this bot uses continuous Telegram long polling and a persistent SQLite database.
 
-```dotenv
-ADMIN_UI_ENABLED=true
-ADMIN_UI_HOST=0.0.0.0
-ADMIN_UI_PORT=8088
-ADMIN_UI_COOKIE_SECURE=true
+1. Create an `e2-micro` Debian/Ubuntu VM in an eligible US free-tier region with a standard persistent disk. Do not expose port 8088 unless you intentionally enable and secure the admin UI.
+2. Configure GitHub Actions authentication with Google Workload Identity Federation and grant the deployment service account permission to use Compute Engine SSH/OS Login.
+3. Add these GitHub Actions secrets: `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`, `GCP_INSTANCE`, and `GCP_ZONE`.
+4. Run the `Deploy to Google Compute Engine` workflow once. It installs the app as a locked-down systemd service and creates `/etc/sw-bot.env` from a safe template.
+5. SSH to the VM, edit `/etc/sw-bot.env` with the actual bot token, group ID, and thread IDs, then start it:
+
+```bash
+sudo systemctl restart sw-bot
+sudo systemctl status sw-bot
+sudo journalctl -u sw-bot -f
 ```
 
-### 3) Trigger deployment
-
-- Push to `main`, or
-- Run the `Deploy to Railway` workflow manually from GitHub Actions.
-
-The workflow installs Railway CLI and runs a detached deployment against the configured project/service.
+Future pushes to `main` deploy automatically. Runtime secrets and the SQLite database remain outside the release directory at `/etc/sw-bot.env` and `/var/lib/sw-bot/starwars.db`, so deployments do not overwrite them.
 
 ## Admin Control Center (Web UI)
 
@@ -303,7 +281,7 @@ Daily digest behavior:
 ## Telegram Conflict Handling (Single Poller Rule)
 
 Telegram long polling allows only one active `getUpdates` consumer per bot token.
-If you run both Railway and local bot at the same time with the same `BOT_TOKEN`, one will conflict.
+If you run both the GCE service and a local bot at the same time with the same `BOT_TOKEN`, one will conflict.
 
 This bot supports:
 
@@ -312,7 +290,7 @@ EXIT_ON_TELEGRAM_CONFLICT=true
 ```
 
 When enabled, an instance that encounters polling conflict exits to prevent endless conflict spam.
-Operationally, keep exactly one active poller per token (either Railway or local).
+Operationally, keep exactly one active poller per token (either GCE or local).
 
 Admin UI additions:
 

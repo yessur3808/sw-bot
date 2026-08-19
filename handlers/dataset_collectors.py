@@ -3,6 +3,7 @@ import html
 import json
 import re
 import random
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -10,6 +11,7 @@ from urllib.parse import urljoin, urlparse
 import feedparser
 import requests
 from bs4 import BeautifulSoup
+from bs4 import MarkupResemblesLocatorWarning
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
@@ -60,6 +62,11 @@ def _is_starwars_domain(url):
     return host == "starwars.com" or host.endswith(".starwars.com")
 
 
+def _is_allowed_source_url(url):
+    host = (urlparse(str(url or "")).hostname or "").lower()
+    return any(host == domain or host.endswith(f".{domain}") for domain in config.DATASET_ALLOWED_DOMAINS)
+
+
 def _load_dataset(dataset_name):
     path = DATASET_PATHS.get(dataset_name)
     if not path or not path.exists():
@@ -86,7 +93,10 @@ def _normalize_feed_text(value):
     raw = str(value or "")
     if not raw:
         return ""
-    text = BeautifulSoup(raw, "html.parser").get_text(" ", strip=True)
+    # Some feed entries include URL/path-like strings that trigger a noisy parser warning.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", MarkupResemblesLocatorWarning)
+        text = BeautifulSoup(raw, "html.parser").get_text(" ", strip=True)
     text = html.unescape(text)
     return _normalize_text(text)
 
@@ -415,7 +425,7 @@ def _fetch_source_entries(source, dataset_name, limit):
     meta = source.get("meta") or {}
     out = []
 
-    if not url:
+    if not url or not _is_allowed_source_url(url):
         return out
 
     if tier == "rss":
@@ -535,7 +545,7 @@ def _fact_candidates(entry):
             continue
         if not any(token in low for token in FACT_KEYWORDS):
             continue
-        out.append({"text": clean, "confidence": 0.65})
+        out.append({"text": clean, "confidence": 0.75})
         if len(out) >= 3:
             break
     return out
@@ -733,6 +743,11 @@ def ingest_dataset_sources():
                         options = validated["options"]
                         answer_text = validated["answer_text"]
 
+                    confidence = float(candidate.get("confidence") or 0.0)
+                    if confidence < config.DATASET_MIN_CONFIDENCE:
+                        continue
+                    if not _is_allowed_source_url(entry.get("url") or source.get("url")):
+                        continue
                     if not _passes_candidate_quality_gate(dataset_name, text, options, entry):
                         continue
 
@@ -753,7 +768,7 @@ def ingest_dataset_sources():
                             "body_text": text[:MAX_TEXT_LEN],
                             "options_json": options,
                             "answer_text": answer_text,
-                            "confidence": float(candidate.get("confidence") or 0.5),
+                            "confidence": confidence,
                             "status": "candidate",
                             "source_meta": {
                                 "dataset": dataset_name,

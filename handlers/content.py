@@ -1,7 +1,7 @@
 import json, random
 from datetime import datetime, timezone
 from telegram.ext import ContextTypes
-from config import GROUP_ID, THREADS, get_thread_id, RELEASE_TIMEZONE, HK_PUBLIC_HOLIDAYS
+from config import GROUP_ID, THREADS, get_thread_id, RELEASE_TIMEZONE, HK_PUBLIC_HOLIDAYS, CONTENT_REPEAT_DAYS
 import db
 from telemetry import mark_scheduler_execution_outcome
 
@@ -9,12 +9,6 @@ try:
     from zoneinfo import ZoneInfo
 except Exception:  # pragma: no cover
     ZoneInfo = None
-
-QUOTES = db.get_dataset_items("quotes")
-FACTS = db.get_dataset_items("facts")
-POLLS = db.get_dataset_items("polls")
-DISCUSSIONS = db.get_dataset_items("discussions")
-
 
 MOVIE_KEYWORDS = (
     "movie",
@@ -167,14 +161,14 @@ async def daily_quote(context: ContextTypes.DEFAULT_TYPE):
     selected = None
     content_id = None
     raw = ""
-    for item in _shuffled(QUOTES):
+    for item in _shuffled(db.get_dataset_items("quotes")):
         quote = _pick_text(item, ("quote", "text", "q"))
         speaker = str(item.get("speaker") or "").strip() if isinstance(item, dict) else ""
         if not quote:
             continue
         raw = f"{quote}|{speaker}" if speaker else quote
         candidate_id = f"quote:{db.compute_text_hash(raw)[:16]}"
-        if db.already_posted("quote", candidate_id):
+        if db.posted_within_days("quote", candidate_id, CONTENT_REPEAT_DAYS):
             continue
         selected = item
         content_id = candidate_id
@@ -223,12 +217,12 @@ async def daily_fact(context: ContextTypes.DEFAULT_TYPE):
     selected = None
     content_id = None
     fact = ""
-    for item in _shuffled(FACTS):
+    for item in _shuffled(db.get_dataset_items("facts")):
         fact = _pick_text(item, ("text", "fact", "q"))
         if not fact:
             continue
         candidate_id = f"fact:{db.compute_text_hash(fact)[:16]}"
-        if db.already_posted("fact", candidate_id):
+        if db.posted_within_days("fact", candidate_id, CONTENT_REPEAT_DAYS):
             continue
         selected = item
         content_id = candidate_id
@@ -274,7 +268,7 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
     clean_options = []
     question = ""
     content_id = None
-    for poll in _shuffled(POLLS):
+    for poll in _shuffled(db.get_dataset_items("polls")):
         question = _pick_text(poll, ("q", "question", "prompt"))
         options = poll.get("options") if isinstance(poll, dict) else None
         if not question or not isinstance(options, list) or len(options) < 2:
@@ -284,7 +278,7 @@ async def daily_vote_poll(context: ContextTypes.DEFAULT_TYPE):
             continue
         raw = f"{question}|{'|'.join(clean_options)}"
         candidate_id = f"poll:{db.compute_text_hash(raw)[:16]}"
-        if db.already_posted("poll", candidate_id):
+        if db.posted_within_days("poll", candidate_id, CONTENT_REPEAT_DAYS):
             continue
         selected = poll
         content_id = candidate_id
@@ -323,12 +317,12 @@ async def daily_discussion_topic(context: ContextTypes.DEFAULT_TYPE):
     selected = None
     prompt = ""
     content_id = None
-    for item in _shuffled(DISCUSSIONS):
+    for item in _shuffled(db.get_dataset_items("discussions")):
         prompt = _pick_text(item, ("prompt", "question", "text", "q"))
         if not prompt:
             continue
         candidate_id = f"discussion:{db.compute_text_hash(prompt)[:16]}"
-        if db.already_posted("discussion", candidate_id):
+        if db.posted_within_days("discussion", candidate_id, CONTENT_REPEAT_DAYS):
             continue
         selected = item
         content_id = candidate_id

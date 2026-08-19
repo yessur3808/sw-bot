@@ -75,6 +75,7 @@ def _event_setting(name, env_name, default, cast):
 BOT_TOKEN = _required_env("BOT_TOKEN")
 GROUP_ID = _required_int_env("GROUP_ID")
 EXIT_ON_TELEGRAM_CONFLICT = os.getenv("EXIT_ON_TELEGRAM_CONFLICT", "true").lower() == "true"
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO"
 
 REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
 REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
@@ -82,7 +83,7 @@ REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
 
 USE_REDDIT = os.getenv("USE_REDDIT", "true").lower() == "true"
 MEME_PROVIDER_PRIORITY = [
-    p.strip().lower() for p in os.getenv("MEME_PROVIDER_PRIORITY", "imgflip,reddit").split(",") if p.strip()
+    p.strip().lower() for p in os.getenv("MEME_PROVIDER_PRIORITY", "reddit").split(",") if p.strip()
 ]
 REDDIT_INGEST_ENABLED = os.getenv("REDDIT_INGEST_ENABLED", "true").lower() == "true"
 REDDIT_RELAY_ENABLED = os.getenv("REDDIT_RELAY_ENABLED", "true").lower() == "true"
@@ -108,10 +109,11 @@ REDDIT_BANNED_WORDS = [
     if w.strip()
 ]
 
-DAILY_MIN_POSTS = int(os.getenv("DAILY_MIN_POSTS", 20))
-DAILY_MAX_POSTS = int(os.getenv("DAILY_MAX_POSTS", 28))
-MAX_PER_TOPIC_PER_DAY = int(os.getenv("MAX_PER_TOPIC_PER_DAY", 6))
-MIN_GAP_MINUTES = int(os.getenv("MIN_GAP_MINUTES", 30))
+DAILY_MIN_POSTS = int(os.getenv("DAILY_MIN_POSTS", 5))
+DAILY_MAX_POSTS = int(os.getenv("DAILY_MAX_POSTS", 8))
+MAX_PER_TOPIC_PER_DAY = int(os.getenv("MAX_PER_TOPIC_PER_DAY", 2))
+MIN_GAP_MINUTES = int(os.getenv("MIN_GAP_MINUTES", 90))
+CONTENT_REPEAT_DAYS = int(os.getenv("CONTENT_REPEAT_DAYS", 7))
 INITIAL_POST_WINDOW_MINUTES = int(os.getenv("INITIAL_POST_WINDOW_MINUTES", 15))
 POSTING_WINDOW_ENABLED = os.getenv("POSTING_WINDOW_ENABLED", "true").lower() == "true"
 POSTING_WINDOW_START_HOUR = int(os.getenv("POSTING_WINDOW_START_HOUR", 8))
@@ -164,7 +166,7 @@ ENABLE_SOURCE_COMPLIANCE = _event_setting("enable_source_compliance", "ENABLE_SO
 REQUIRE_ROBOTS_FOR_SCRAPE = _event_setting("require_robots_for_scrape", "REQUIRE_ROBOTS_FOR_SCRAPE", True, _as_bool)
 REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE = _event_setting("require_tos_allowlist_for_scrape", "REQUIRE_TOS_ALLOWLIST_FOR_SCRAPE", True, _as_bool)
 
-OFFICIAL_SOURCE_ALLOWLIST = _event_setting("official_source_allowlist", "OFFICIAL_SOURCE_ALLOWLIST", "starwars.com,news.google.com", _as_str)
+OFFICIAL_SOURCE_ALLOWLIST = _event_setting("official_source_allowlist", "OFFICIAL_SOURCE_ALLOWLIST", "starwars.com", _as_str)
 RSS_SOURCE_ALLOWLIST = _event_setting("rss_source_allowlist", "RSS_SOURCE_ALLOWLIST", "starwars.com,news.google.com,scmp.com,hongkongfp.com", _as_str)
 API_SOURCE_ALLOWLIST = _event_setting("api_source_allowlist", "API_SOURCE_ALLOWLIST", "", _as_str)
 SCRAPE_SOURCE_ALLOWLIST = _event_setting("scrape_source_allowlist", "SCRAPE_SOURCE_ALLOWLIST", "wookieepedia.com,starwars.fandom.com,starwars.com", _as_str)
@@ -178,6 +180,12 @@ HK_ENABLE_ZH = _event_setting("hk_enable_zh", "HK_ENABLE_ZH", True, _as_bool)
 DATASET_COLLECTORS_ENABLED = os.getenv("DATASET_COLLECTORS_ENABLED", "true").lower() == "true"
 DATASET_COLLECTOR_INTERVAL_MINUTES = int(os.getenv("DATASET_COLLECTOR_INTERVAL_MINUTES", 180))
 DATASET_COLLECTOR_SOURCE_LIMIT = int(os.getenv("DATASET_COLLECTOR_SOURCE_LIMIT", 20))
+DATASET_MIN_CONFIDENCE = float(os.getenv("DATASET_MIN_CONFIDENCE", 0.70))
+DATASET_ALLOWED_DOMAINS = {
+    value.strip().lower()
+    for value in os.getenv("DATASET_ALLOWED_DOMAINS", "starwars.com").split(",")
+    if value.strip()
+}
 
 LLM_ENABLED = os.getenv("LLM_ENABLED", "true").lower() == "true"
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
@@ -222,7 +230,7 @@ ADMIN_USER_IDS = {
 # kind: event|news
 HK_SOURCE_CONFIG = os.getenv(
     "HK_SOURCE_CONFIG",
-    "official|event|GoogleNews HK Events EN|https://news.google.com/rss/search?q=star+wars+hong+kong+events&hl=en-HK&gl=HK&ceid=HK:en;"
+    "rss|event|GoogleNews HK Events EN|https://news.google.com/rss/search?q=star+wars+hong+kong+events&hl=en-HK&gl=HK&ceid=HK:en;"
     "rss|event|GoogleNews HK Fan Meetup EN|https://news.google.com/rss/search?q=star+wars+hong+kong+fan+meetup&hl=en-HK&gl=HK&ceid=HK:en;"
     "rss|event|GoogleNews HK Star Wars Exhibition EN|https://news.google.com/rss/search?q=star+wars+hong+kong+exhibition&hl=en-HK&gl=HK&ceid=HK:en;"
     "rss|event|GoogleNews HK Star Wars Cosplay EN|https://news.google.com/rss/search?q=star+wars+hong+kong+cosplay+event&hl=en-HK&gl=HK&ceid=HK:en;"
@@ -252,8 +260,6 @@ DATASET_SOURCE_CONFIG = os.getenv(
     "facts|rss|StarWars News Feed Facts|https://www.starwars.com/news/feed|locale=en;"
     "quotes|scrape|StarWars Quote Sources|https://www.starwars.com/news|locale=en,parser=starwars_news_quotes;"
     "trivia|scrape|StarWars Databank Trivia|https://www.starwars.com/databank|locale=en,parser=starwars_databank;"
-    "trivia|rss|GoogleNews Star Wars Trivia Quiz|https://news.google.com/rss/search?q=star+wars+trivia+quiz&hl=en-US&gl=US&ceid=US:en|locale=en;"
-    "trivia|rss|GoogleNews Star Wars Facts Quiz|https://news.google.com/rss/search?q=star+wars+facts+quiz&hl=en-US&gl=US&ceid=US:en|locale=en;"
     "polls|rss|StarWars News Poll Prompts|https://www.starwars.com/news/feed|locale=en;"
     "discussions|rss|StarWars News Discussion Prompts|https://www.starwars.com/news/feed|locale=en",
 )

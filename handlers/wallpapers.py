@@ -86,7 +86,9 @@ def _wallhaven_candidates():
         "categories": "010",   # general
         "purity": "100",       # SFW only
         "ratios": "9x16",      # phone-friendly
-        "sorting": "random",
+        "sorting": "toplist",
+        "topRange": "1M",
+        "atleast": "1080x1920",
     }
     try:
         response = requests.get(API, params=params, timeout=15)
@@ -97,15 +99,18 @@ def _wallhaven_candidates():
 
     out = []
     for wp in payload.get("data", []):
-        content_id = f"wallhaven:{wp.get('id')}"
+        wallhaven_id = str(wp.get("id") or "").strip()
+        content_id = f"wallhaven:{wallhaven_id}" if wallhaven_id else ""
         path = wp.get("path")
         thumb = (wp.get("thumbs") or {}).get("large")
-        if not content_id or not thumb:
+        dimension_x = int(wp.get("dimension_x") or 0)
+        dimension_y = int(wp.get("dimension_y") or 0)
+        if not content_id or not path or not thumb or dimension_x < 1080 or dimension_y < 1920:
             continue
         out.append(
             {
                 "id": content_id,
-                "photo": thumb,
+                "photo": path,
                 "caption": f"📱 Wallpaper of the day\nFull res: {path}",
                 "source": "wallhaven",
             }

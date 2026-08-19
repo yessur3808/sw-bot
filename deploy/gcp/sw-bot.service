@@ -1,0 +1,25 @@
+[Unit]
+Description=SIU-M8 Star Wars Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sw-bot
+Group=sw-bot
+WorkingDirectory=/opt/sw-bot
+EnvironmentFile=/etc/sw-bot.env
+Environment=DB_BACKEND=sqlite
+Environment=DB_PATH=/var/lib/sw-bot/starwars.db
+ExecStart=/opt/sw-bot/.venv/bin/python -u /opt/sw-bot/bot.py
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/sw-bot
+
+[Install]
+WantedBy=multi-user.target

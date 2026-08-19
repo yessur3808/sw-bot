@@ -1,0 +1,45 @@
+name: Deploy to Google Compute Engine
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: gcp-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build deployment archive
+        run: git archive --format=tar.gz --output=/tmp/sw-bot.tar.gz HEAD
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Upload release
+        run: >-
+          gcloud compute scp /tmp/sw-bot.tar.gz
+          "${{ secrets.GCP_INSTANCE }}:/tmp/sw-bot.tar.gz"
+          --zone "${{ secrets.GCP_ZONE }}"
+          --quiet
+
+      - name: Install and restart service
+        run: >-
+          gcloud compute ssh "${{ secrets.GCP_INSTANCE }}"
+          --zone "${{ secrets.GCP_ZONE }}"
+          --quiet
+          --command "sudo bash -c 'rm -rf /opt/sw-bot.release && mkdir -p /opt/sw-bot.release && tar -xzf /tmp/sw-bot.tar.gz -C /opt/sw-bot.release && bash /opt/sw-bot.release/deploy/gcp/install.sh'"

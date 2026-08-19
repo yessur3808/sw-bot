@@ -37,11 +37,17 @@ def _reddit_candidates():
         return []
     try:
         out = []
-        for post in reddit.subreddit(SUBS).top(time_filter="day", limit=25):
-            if post.url.endswith((".jpg", ".png", ".jpeg")) and post.score > 50:
+        for post in reddit.subreddit(SUBS).top(time_filter="week", limit=40):
+            url = str(post.url or "")
+            if (
+                url.lower().split("?")[0].endswith((".jpg", ".png", ".jpeg", ".webp"))
+                and int(post.score or 0) >= 250
+                and not bool(getattr(post, "over_18", False))
+                and not bool(getattr(post, "spoiler", False))
+            ):
                 out.append({
                     "id": f"reddit:{post.id}",
-                    "url": post.url,
+                    "url": url,
                     "caption": f"😂 {post.title}\n\n(via r/{post.subreddit})",
                 })
         return out
@@ -50,6 +56,8 @@ def _reddit_candidates():
 
 
 def _imgflip_candidates():
+    # Imgflip's endpoint returns blank templates, not completed memes. Keep the
+    # provider for explicit opt-in only; it is excluded from the default config.
     try:
         res = requests.get(IMGFLIP_API, timeout=12)
         res.raise_for_status()

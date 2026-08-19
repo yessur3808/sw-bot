@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, time, timezone
 import math
 import random
 from telegram import BotCommand
-from telegram.error import Conflict
+from telegram.error import BadRequest, Conflict, NetworkError, TimedOut
 from telegram.ext import Application, CommandHandler
 import config, db
 from admin import runtime_settings
@@ -12,8 +12,43 @@ from telemetry import instrument_command_handler, mark_scheduler_execution_outco
 
 
 _conflict_shutdown_requested = False
+_last_telegram_error_log_by_key = {}
 
 SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS = 30 * 60
+REPEATING_JOB_MISFIRE_GRACE_SECONDS = 5 * 60
+
+LOG_LEVELS = {
+    "DEBUG": 10,
+    "INFO": 20,
+    "WARNING": 30,
+    "ERROR": 40,
+}
+
+
+def _resolved_log_level_name():
+    raw = str(getattr(config, "LOG_LEVEL", "INFO") or "INFO").strip().upper()
+    return raw if raw in LOG_LEVELS else "INFO"
+
+
+def _fmt_kv(value):
+    if value is None:
+        return "none"
+    text = str(value).strip()
+    return text if text else "none"
+
+
+def _log(level, message, **fields):
+    level_name = str(level or "INFO").strip().upper()
+    if level_name not in LOG_LEVELS:
+        level_name = "INFO"
+    if LOG_LEVELS[level_name] < LOG_LEVELS[_resolved_log_level_name()]:
+        return
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    if fields:
+        extras = " ".join(f"{key}={_fmt_kv(value)}" for key, value in fields.items())
+        print(f"[{stamp}] {level_name} {message} {extras}")
+        return
+    print(f"[{stamp}] {level_name} {message}")
 
 TOPIC_BASE_WEIGHTS = {
     "meme": 1.0,
@@ -36,6 +71,21 @@ TOPIC_CONTENT_TYPES = {
 }
 
 
+def _topic_is_available(topic):
+    if topic != "meme":
+        return True
+    providers = set(config.MEME_PROVIDER_PRIORITY)
+    reddit_ready = (
+        "reddit" in providers
+        and config.USE_REDDIT
+        and all(
+            str(value or "").strip() and str(value).strip().lower() != "xxx"
+            for value in (config.REDDIT_CLIENT_ID, config.REDDIT_CLIENT_SECRET, config.REDDIT_USER_AGENT)
+        )
+    )
+    return reddit_ready or "imgflip" in providers
+
+
 def _runtime_int(setting_key, fallback):
     try:
         return int(runtime_settings.get(setting_key))
@@ -48,6 +98,26 @@ def _runtime_bool(setting_key, fallback):
         return bool(runtime_settings.get(setting_key))
     except Exception:
         return bool(fallback)
+
+
+def _queue_topic_retry(context, topic, attempt=1):
+    if not topic or attempt > 2:
+        return
+    delay_minutes = random.randint(20, 45)
+    retry_at = datetime.now(timezone.utc) + timedelta(minutes=delay_minutes)
+    context.job_queue.run_once(
+        retry_scheduled_topic,
+        when=delay_minutes * 60,
+        data={
+            "topic": topic,
+            "plan_key": context.job.data.get("plan_key"),
+            "slot_index": context.job.data.get("slot_index"),
+            "scheduled_run_at": retry_at.isoformat(),
+            "retry_state": {"attempts": attempt - 1},
+        },
+        job_kwargs={"misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS},
+    )
+    _log("INFO", "scheduler retry queued", topic=topic, attempt=attempt, retry_at=retry_at.isoformat())
 
 async def start(update, context):
     await update.message.reply_text("May the Force be with you! 🌌")
@@ -117,6 +187,14 @@ async def weekly_leaderboard(context):
 
 async def run_scheduled_topic(context):
     topic = context.job.data.get("topic")
+    _log(
+        "INFO",
+        "scheduler slot start",
+        topic=topic,
+        plan=context.job.data.get("plan_key"),
+        slot=context.job.data.get("slot_index"),
+        scheduled_run_at=context.job.data.get("scheduled_run_at"),
+    )
     scheduled_run_at = context.job.data.get("scheduled_run_at")
     if scheduled_run_at:
         try:
@@ -125,9 +203,13 @@ async def run_scheduled_topic(context):
                 scheduled_dt = scheduled_dt.replace(tzinfo=timezone.utc)
             lateness_seconds = max(0, int((datetime.now(timezone.utc) - scheduled_dt.astimezone(timezone.utc)).total_seconds()))
             if lateness_seconds > 0:
-                print(
-                    f"Scheduler slot late by {lateness_seconds}s: topic={topic} "
-                    f"plan={context.job.data.get('plan_key')} slot={context.job.data.get('slot_index')}"
+                _log(
+                    "WARNING",
+                    "scheduler slot late",
+                    lateness_seconds=lateness_seconds,
+                    topic=topic,
+                    plan=context.job.data.get("plan_key"),
+                    slot=context.job.data.get("slot_index"),
                 )
         except Exception:
             pass
@@ -147,12 +229,21 @@ async def run_scheduled_topic(context):
 
     try:
         await producer(context)
+        _log(
+            "INFO",
+            "scheduler slot producer completed",
+            topic=topic,
+            plan=context.job.data.get("plan_key"),
+            slot=context.job.data.get("slot_index"),
+        )
     except Exception as exc:
         mark_scheduler_execution_outcome(context, "failed", error=f"{type(exc).__name__}: {exc}")
-        raise
+        _queue_topic_retry(context, topic, attempt=1)
+        return
 
     if not scheduler_execution_logged(context):
         mark_scheduler_execution_outcome(context, "no_content", error=f"Producer returned without posting for topic={topic}")
+        _queue_topic_retry(context, topic, attempt=1)
 
 async def retry_scheduled_topic(context):
     topic = context.job.data.get("topic")
@@ -175,15 +266,26 @@ async def retry_scheduled_topic(context):
     retry_state = context.job.data.get("retry_state") or {}
     retry_state["attempts"] = int(retry_state.get("attempts", 0)) + 1
     context.job.data["retry_state"] = retry_state
+    _log(
+        "INFO",
+        "scheduler retry start",
+        topic=topic,
+        plan=context.job.data.get("plan_key"),
+        slot=context.job.data.get("slot_index"),
+        attempt=retry_state.get("attempts"),
+        scheduled_run_at=context.job.data.get("scheduled_run_at"),
+    )
 
     try:
         await producer(context)
     except Exception as exc:
         mark_scheduler_execution_outcome(context, "failed", error=f"retry:{type(exc).__name__}: {exc}")
+        _queue_topic_retry(context, topic, attempt=retry_state["attempts"] + 1)
         return
 
     if not scheduler_execution_logged(context):
         mark_scheduler_execution_outcome(context, "no_content", error=f"Retry producer returned without posting for topic={topic}")
+        _queue_topic_retry(context, topic, attempt=retry_state["attempts"] + 1)
 
 
 def _build_topics_for_day(base_dt=None):
@@ -218,6 +320,7 @@ def _build_topics_for_day(base_dt=None):
         "poll": per_topic_cap,
         "discussion": per_topic_cap,
     }
+    caps = {topic: cap for topic, cap in caps.items() if _topic_is_available(topic)}
     target_count = max(1, min(target_count, sum(caps.values())))
 
     recent_counts = db.recent_post_counts_by_content_type(
@@ -343,8 +446,13 @@ def _allowed_offsets_for_window(start_dt, window_start_minute, window_end_minute
         tz = timezone.utc
 
     offsets = []
-    for offset in range(2, (24 * 60) - 19):
+    now_utc = datetime.now(timezone.utc)
+    # Include the after-midnight tail only for an overnight local window.
+    max_offset = 26 * 60 if window_start_minute > window_end_minute else 24 * 60
+    for offset in range(2, max_offset + 1):
         run_at_utc = start_dt + timedelta(minutes=offset)
+        if run_at_utc <= now_utc + timedelta(minutes=1):
+            continue
         run_local = run_at_utc.astimezone(tz)
         minute_of_day = (run_local.hour * 60) + run_local.minute
         if _is_minute_in_window(minute_of_day, window_start_minute, window_end_minute):
@@ -444,17 +552,35 @@ def schedule_day_posts(job_queue, start_dt):
         allowed_offsets = list(range(window_start, window_end + 1))
 
     if not allowed_offsets:
-        print(
-            "Scheduler posting window produced zero eligible slots in the next 24h. "
-            "Falling back to full-day scheduling window."
+        _log(
+            "WARNING",
+            "scheduler posting window produced zero eligible slots, fallback to full-day",
+            posting_window_enabled=posting_window_enabled,
+            posting_window_start=active_start,
+            posting_window_end=active_end,
         )
         allowed_offsets = list(range(window_start, window_end + 1))
 
     max_slots_by_gap = max(1, _max_slots_with_gap(allowed_offsets, min_gap))
+    _log(
+        "INFO",
+        "scheduler day planning",
+        plan_key=plan.get("plan_key"),
+        requested_topics=len(topics),
+        min_gap_minutes=min_gap,
+        posting_window_enabled=posting_window_enabled,
+        allowed_slots=len(allowed_offsets),
+        feasible_slots=max_slots_by_gap,
+        boosted=plan.get("boosted"),
+        day_multiplier=plan.get("day_multiplier"),
+    )
     if len(topics) > max_slots_by_gap:
-        print(
-            "Scheduler cap applied: configured daily volume exceeds feasible slots for "
-            f"MIN_GAP_MINUTES={min_gap}. Scheduling {max_slots_by_gap} of {len(topics)} planned posts."
+        _log(
+            "WARNING",
+            "scheduler cap applied",
+            min_gap_minutes=min_gap,
+            feasible_slots=max_slots_by_gap,
+            planned_topics=len(topics),
         )
     topics = topics[:max_slots_by_gap]
 
@@ -462,6 +588,15 @@ def schedule_day_posts(job_queue, start_dt):
     selected_offsets = _pick_spread_offsets(allowed_offsets, len(topics), min_gap)
     if len(selected_offsets) < len(topics):
         topics = topics[:len(selected_offsets)]
+
+    preview_pairs = [f"{topic}@+{offset}m" for topic, offset in zip(topics, selected_offsets)]
+    _log(
+        "DEBUG",
+        "scheduler slots selected",
+        plan_key=plan.get("plan_key"),
+        selected_count=len(preview_pairs),
+        preview=", ".join(preview_pairs[:12]),
+    )
 
     for slot_index, (topic, offset_min) in enumerate(zip(topics, selected_offsets)):
         run_at = start_dt + timedelta(minutes=offset_min)
@@ -481,24 +616,11 @@ def schedule_day_posts(job_queue, start_dt):
             },
         )
 
-        retry_run_at = run_at + timedelta(minutes=30)
-        if retry_run_at.date() == start_dt.date() or posting_window_enabled:
-            job_queue.run_once(
-                retry_scheduled_topic,
-                when=max(1.0, (retry_run_at - datetime.now(timezone.utc)).total_seconds()),
-                data={
-                    "topic": topic,
-                    "plan_key": plan.get("plan_key"),
-                    "slot_index": slot_index,
-                    "scheduled_run_at": retry_run_at.isoformat(),
-                    "retry_state": {"attempts": 0, "source_slot_index": slot_index},
-                },
-                job_kwargs={
-                    "misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS,
-                },
-            )
-
-    scheduled_for_date = start_dt.date().isoformat()
+    try:
+        from zoneinfo import ZoneInfo
+        scheduled_for_date = start_dt.astimezone(ZoneInfo(config.POSTING_WINDOW_TIMEZONE)).date().isoformat()
+    except Exception:
+        scheduled_for_date = start_dt.date().isoformat()
     for row in plan.get("decision_rows") or []:
         slot_index = int(row.get("slot_index", 0))
         originally_selected = bool(row.get("selected"))
@@ -551,7 +673,7 @@ def _existing_scheduler_dates(horizon_days=7):
 def _restore_upcoming_scheduler_jobs(job_queue, horizon_days=7):
     now_utc = datetime.now(timezone.utc)
     horizon_end = now_utc + timedelta(days=max(1, int(horizon_days)))
-    posting_window_enabled = _runtime_bool("posting_window_enabled", config.POSTING_WINDOW_ENABLED)
+    restored_main = 0
 
     for row in db.upcoming_scheduler_decisions(limit=4000):
         run_at = _parse_utc_datetime(row.get("run_at") if hasattr(row, "get") else None)
@@ -576,39 +698,55 @@ def _restore_upcoming_scheduler_jobs(job_queue, horizon_days=7):
             },
             job_kwargs={"misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS},
         )
+        restored_main += 1
 
-        retry_run_at = run_at + timedelta(minutes=30)
-        if retry_run_at > now_utc and (retry_run_at.date() == run_at.date() or posting_window_enabled):
-            job_queue.run_once(
-                retry_scheduled_topic,
-                when=max(1.0, (retry_run_at - now_utc).total_seconds()),
-                data={
-                    "topic": topic,
-                    "plan_key": plan_key,
-                    "slot_index": int(slot_index),
-                    "scheduled_run_at": retry_run_at.isoformat(),
-                    "retry_state": {"attempts": 0, "source_slot_index": int(slot_index)},
-                },
-                job_kwargs={"misfire_grace_time": SCHEDULED_TOPIC_MISFIRE_GRACE_SECONDS},
-            )
+    _log(
+        "INFO",
+        "scheduler restore complete",
+        restored_main=restored_main,
+        restored_retry=0,
+        horizon_days=horizon_days,
+        posting_window_enabled=_runtime_bool("posting_window_enabled", config.POSTING_WINDOW_ENABLED),
+    )
 
 
 def ensure_scheduler_horizon(job_queue, horizon_days=7):
     now_utc = datetime.now(timezone.utc)
     existing_dates = _existing_scheduler_dates(horizon_days=horizon_days)
     horizon_days = max(1, int(horizon_days))
+    generated_dates = []
+
+    try:
+        from zoneinfo import ZoneInfo
+        planning_tz = ZoneInfo(config.POSTING_WINDOW_TIMEZONE)
+    except Exception:
+        planning_tz = timezone.utc
+    now_local = now_utc.astimezone(planning_tz)
 
     for day_offset in range(horizon_days):
-        target_date = (now_utc + timedelta(days=day_offset)).date()
+        target_date = now_local.date() + timedelta(days=day_offset)
         target_iso = target_date.isoformat()
         if target_iso in existing_dates:
             continue
 
-        if day_offset == 0:
-            anchor = now_utc
-        else:
-            anchor = datetime(target_date.year, target_date.month, target_date.day, tzinfo=timezone.utc)
+        anchor = datetime(
+            target_date.year,
+            target_date.month,
+            target_date.day,
+            tzinfo=planning_tz,
+        ).astimezone(timezone.utc)
         schedule_day_posts(job_queue, anchor)
+        generated_dates.append(target_iso)
+
+    _log(
+        "INFO",
+        "scheduler horizon ensured",
+        now=now_utc.isoformat(),
+        horizon_days=horizon_days,
+        existing_dates=len(existing_dates),
+        generated_dates=len(generated_dates),
+        generated_preview=", ".join(generated_dates[:7]),
+    )
 
 
 async def plan_today_posts(context):
@@ -789,19 +927,78 @@ async def thread_map_cmd(update, context):
 async def telegram_error_handler(update, context):
     global _conflict_shutdown_requested
     err = context.error
+    chat_id = None
+    thread_id = None
+    message_id = None
+    update_type = type(update).__name__ if update is not None else "none"
+    if update is not None:
+        try:
+            chat = update.effective_chat
+            message = update.effective_message
+            chat_id = chat.id if chat else None
+            thread_id = message.message_thread_id if message else None
+            message_id = message.message_id if message else None
+        except Exception:
+            pass
     if isinstance(err, Conflict):
-        print(
-            "TELEGRAM CONFLICT: another process is calling getUpdates with this BOT_TOKEN. "
-            "Ensure exactly one running bot instance across Railway/local machines."
+        _log(
+            "ERROR",
+            "telegram conflict detected",
+            detail="another process is calling getUpdates with this BOT_TOKEN",
+            update_type=update_type,
+            chat_id=chat_id,
+            thread_id=thread_id,
+            message_id=message_id,
         )
         if config.EXIT_ON_TELEGRAM_CONFLICT and not _conflict_shutdown_requested:
             _conflict_shutdown_requested = True
-            print("TELEGRAM CONFLICT: exiting this instance to avoid repeated polling conflicts.")
+            _log("ERROR", "telegram conflict shutdown requested", exit_on_conflict=config.EXIT_ON_TELEGRAM_CONFLICT)
             app = getattr(context, "application", None)
             if app and hasattr(app, "stop_running"):
                 app.stop_running()
         return
-    print(f"Unhandled Telegram error: {err}")
+
+    if isinstance(err, BadRequest) and "message thread not found" in str(err).lower():
+        _log(
+            "ERROR",
+            "telegram thread routing error",
+            detail="message thread not found",
+            group_id=config.GROUP_ID,
+            update_type=update_type,
+            chat_id=chat_id,
+            thread_id=thread_id,
+            message_id=message_id,
+        )
+        return
+
+    if isinstance(err, (NetworkError, TimedOut)) or "bad gateway" in str(err).lower():
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        key = str(type(err).__name__)
+        last_ts = int(_last_telegram_error_log_by_key.get(key, 0))
+        if now_ts - last_ts >= 60:
+            _last_telegram_error_log_by_key[key] = now_ts
+            _log(
+                "WARNING",
+                "telegram upstream transient failure",
+                error_type=type(err).__name__,
+                error=str(err),
+                update_type=update_type,
+                chat_id=chat_id,
+                thread_id=thread_id,
+                message_id=message_id,
+            )
+        return
+
+    _log(
+        "ERROR",
+        "unhandled telegram error",
+        error_type=type(err).__name__,
+        error=str(err),
+        update_type=update_type,
+        chat_id=chat_id,
+        thread_id=thread_id,
+        message_id=message_id,
+    )
 
 
 def record_bot_heartbeat():
@@ -865,14 +1062,39 @@ def check_bot_downtime_alert(heartbeat_value=None):
 
 def main():
     db.init_db()
+    _log("INFO", "database initialized", backend=db.DB_BACKEND)
     seeded_datasets = db.seed_dataset_items_from_files()
     if seeded_datasets:
-        print(f"Seeded dataset_store from JSON files: {', '.join(seeded_datasets)}")
+        _log("INFO", "dataset seed completed", datasets=", ".join(seeded_datasets))
+    else:
+        _log("INFO", "dataset seed skipped", reason="dataset_store already populated or no seed files")
     db.ensure_admin_profiles(config.ADMIN_USER_IDS)
+    _log("INFO", "admin profiles ensured", admin_count=len(config.ADMIN_USER_IDS))
     previous_heartbeat = db.get_bot_health_state("bot_heartbeat_at")
     check_bot_downtime_alert(previous_heartbeat)
     record_bot_heartbeat()
     start_admin_ui()
+    _log(
+        "INFO",
+        "startup runtime config",
+        group_id=config.GROUP_ID,
+        log_level=_resolved_log_level_name(),
+        min_gap_minutes=_runtime_int("min_gap_minutes", config.MIN_GAP_MINUTES),
+        daily_min_posts=_runtime_int("daily_min_posts", config.DAILY_MIN_POSTS),
+        daily_max_posts=_runtime_int("daily_max_posts", config.DAILY_MAX_POSTS),
+        posting_window_enabled=_runtime_bool("posting_window_enabled", config.POSTING_WINDOW_ENABLED),
+        posting_window_tz=config.POSTING_WINDOW_TIMEZONE,
+    )
+    _log(
+        "INFO",
+        "resolved primary thread routing",
+        thread_chat=config.get_thread_id("chat"),
+        thread_general=config.get_thread_id("general"),
+        thread_memes=config.get_thread_id("memes"),
+        thread_wallpapers=config.get_thread_id("wallpapers"),
+        thread_events_hk=config.get_thread_id("events_hk"),
+        thread_events_global=config.get_thread_id("events_global"),
+    )
     app = Application.builder().token(config.BOT_TOKEN).post_init(post_init).build()
 
     app.add_handler(CommandHandler("start", instrument_command_handler("start", start)))
@@ -891,13 +1113,13 @@ def main():
     try:
         holidays.sync_hk_public_holidays()
     except Exception as exc:
-        print(f"WARNING: public holiday startup sync failed: {type(exc).__name__}: {exc}")
+        _log("WARNING", "public holiday startup sync failed", error_type=type(exc).__name__, error=str(exc))
 
     collisions = _thread_collision_map()
     if collisions:
-        print("WARNING: duplicate Telegram thread IDs detected in THREAD_* config")
+        _log("WARNING", "duplicate telegram thread IDs detected in THREAD_* config")
         for thread_id, names in sorted(collisions.items(), key=lambda item: item[0]):
-            print(f"- thread {thread_id} is shared by: {', '.join(names)}")
+            _log("WARNING", "thread collision", thread_id=thread_id, topics=", ".join(names))
 
     jq = app.job_queue
     # Restore pending DB-backed schedule on restart, then top up a rolling weekly horizon.
@@ -915,46 +1137,75 @@ def main():
         )
     jq.run_daily(weekly_leaderboard, time(hour=12, minute=0), days=(6,)) # Sun 20:00
     if runtime_settings.get("enable_event_ingestion"):
-        jq.run_repeating(events.ingest_events_job, interval=runtime_settings.get("event_ingest_hours") * 3600, first=5)
-        jq.run_repeating(events.publish_auto_approved, interval=1800, first=30)
+        jq.run_repeating(
+            events.ingest_events_job,
+            interval=runtime_settings.get("event_ingest_hours") * 3600,
+            first=5,
+            job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
+        )
+        jq.run_repeating(
+            events.publish_auto_approved,
+            interval=1800,
+            first=30,
+            job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
+        )
         jq.run_daily(
             events.daily_event_digest,
             time(
                 hour=config.DAILY_EVENT_DIGEST_UTC_HOUR,
                 minute=config.DAILY_EVENT_DIGEST_UTC_MINUTE,
             ),
+            job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
         )
     if runtime_settings.get("enable_reddit_ingest"):
         jq.run_repeating(
             reddit_ingest.ingest_job,
             interval=max(5, config.REDDIT_INGEST_INTERVAL_MINUTES) * 60,
             first=20,
+            job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
         )
     if runtime_settings.get("enable_reddit_relay"):
         jq.run_repeating(
             reddit_ingest.relay_job,
             interval=max(5, config.REDDIT_RELAY_INTERVAL_MINUTES) * 60,
             first=45,
+            job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
         )
     if runtime_settings.get("enable_dataset_collectors"):
         jq.run_repeating(
             dataset_collectors.dataset_ingest_job,
             interval=max(10, runtime_settings.get("dataset_collector_interval_minutes")) * 60,
             first=25,
+            job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
         )
-    jq.run_repeating(holidays.sync_holidays_job, interval=24 * 3600, first=90)
-    jq.run_once(first_run_introduction, when=8)
-    jq.run_once(startup_recovery_post, when=10)
+    jq.run_repeating(
+        holidays.sync_holidays_job,
+        interval=24 * 3600,
+        first=90,
+        job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
+    )
+    jq.run_once(first_run_introduction, when=8, job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS})
+    jq.run_once(startup_recovery_post, when=10, job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS})
     async def heartbeat_job(context):
         record_bot_heartbeat()
 
     async def downtime_alert_job(context):
         check_bot_downtime_alert()
 
-    jq.run_repeating(heartbeat_job, interval=3600, first=60)
-    jq.run_repeating(downtime_alert_job, interval=3600, first=120)
+    jq.run_repeating(
+        heartbeat_job,
+        interval=3600,
+        first=60,
+        job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
+    )
+    jq.run_repeating(
+        downtime_alert_job,
+        interval=3600,
+        first=120,
+        job_kwargs={"misfire_grace_time": REPEATING_JOB_MISFIRE_GRACE_SECONDS},
+    )
 
-    print("Bot running...")
+    _log("INFO", "bot running")
     app.run_polling()
 
 if __name__ == "__main__":

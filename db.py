@@ -45,10 +45,10 @@ except Exception:  # pragma: no cover - optional dependency
     psycopg = None
     dict_row = None
 
-DB_PATH = "starwars.db"
 DB_BACKEND = os.getenv("DB_BACKEND", "sqlite").strip().lower()
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 ROOT_DIR = Path(__file__).resolve().parent
+DB_PATH = os.getenv("DB_PATH", str(ROOT_DIR / "starwars.db")).strip() or str(ROOT_DIR / "starwars.db")
 DATA_DIR = ROOT_DIR / "data"
 
 
@@ -113,6 +113,9 @@ def get_db():
             prepare_threshold=None,
         )
     else:
+        db_file = Path(DB_PATH)
+        if db_file.parent and str(db_file.parent) not in ("", "."):
+            db_file.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(DB_PATH, timeout=30)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA busy_timeout = 30000")
@@ -738,7 +741,6 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_exec_status ON scheduler_decisions(execution_status, executed_at);
         CREATE INDEX IF NOT EXISTS idx_command_usage_created ON command_usage_audit(created_at);
         CREATE INDEX IF NOT EXISTS idx_command_usage_name_created ON command_usage_audit(command_name, created_at);
-        ALTER TABLE post_audit ADD COLUMN IF NOT EXISTS post_payload TEXT;
         CREATE INDEX IF NOT EXISTS idx_llm_action_created ON llm_action_audit(created_at);
         CREATE INDEX IF NOT EXISTS idx_llm_action_thread_created ON llm_action_audit(thread_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_llm_action_fingerprint_created ON llm_action_audit(fingerprint, created_at);
@@ -752,6 +754,10 @@ def init_db():
         """)
 
         # Best-effort compatibility when older sqlite DBs already exist without new columns.
+        try:
+            conn.execute("ALTER TABLE post_audit ADD COLUMN post_payload TEXT")
+        except Exception:
+            pass
         try:
             conn.execute("ALTER TABLE reddit_ingest_cache ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0")
         except Exception:
@@ -1846,26 +1852,31 @@ def reset_weekly():
     with get_db() as conn:
         _execute(conn, "UPDATE users SET weekly_xp = 0")
 
-# Prevents reposting the same meme/wallpaper twice
+# Read-only duplicate check. Successful sends in post_audit are authoritative.
+# Do not reserve content before Telegram has accepted the message.
 def already_posted(content_type, content_id):
     with get_db() as conn:
         row = _fetchone(_execute(
             conn,
-            "SELECT 1 FROM posted WHERE content_type=? AND content_id=?",
-            (content_type, content_id)
+            "SELECT 1 FROM post_audit WHERE content_type=? AND content_id=? AND status='sent' LIMIT 1",
+            (content_type, content_id),
         ))
-        if not row:
-            row = _fetchone(_execute(
-                conn,
-                "SELECT 1 FROM post_audit WHERE content_type=? AND content_id=? AND status='sent' LIMIT 1",
-                (content_type, content_id),
-            ))
-        if row:
-            return True
-        _execute(conn,
-            "INSERT INTO posted VALUES (?, ?)", (content_type, content_id)
-        )
-        return False
+    return bool(row)
+
+
+def posted_within_days(content_type, content_id, days):
+    cutoff = _utc_cutoff(max(1, int(days)) * 24 * 3600)
+    with get_db() as conn:
+        row = _fetchone(_execute(
+            conn,
+            """
+            SELECT 1 FROM post_audit
+            WHERE content_type=? AND content_id=? AND status='sent' AND posted_at >= ?
+            LIMIT 1
+            """,
+            (content_type, content_id, cutoff),
+        ))
+    return bool(row)
 
 
 def list_dataset_names():
