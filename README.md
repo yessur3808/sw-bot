@@ -1,5 +1,9 @@
 # Star Wars Bot
 
+The active **Star Wars Test** bot runs on Cloudflare Workers. See
+[the Cloudflare worker](workers/free/README.md) for its source, tests, engagement
+schedule and deployment. The Python/GCE instructions below describe the older bot.
+
 ## Quick Onboarding (Copy-Paste)
 
 Start from the sanitized template:
