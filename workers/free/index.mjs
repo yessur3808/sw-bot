@@ -1,4 +1,6 @@
 import { assertDeployment, automaticDelivery, reserveAutomation, budgetStatus, readiness } from './production.mjs';
+import { portalFetch, portalLoginCommand } from './admin-portal.mjs';
+import { schedulePortalPosts } from './portal-content.mjs';
 import { handleCoreCommand, observeGroup, recordReaction, recordEventVote, welcome, memoryContext, clubPaused } from './cantina-core.mjs';
 import { gameCommand, gameVote } from './cantina-games.mjs';
 import { handleClubJob, clubJob, clubDelivered, scheduleClub, forgetClub } from './cantina-jobs.mjs';
@@ -538,7 +540,7 @@ Content topics: gaming, movies, lore, hongkong/local_events, global_events, tv, 
 /game trivia|character|caption, /team, /season — continuous games
 /interests gaming,movies — opt-in interests
 /prompts off — stop follow-ups to your discussions
-Admins: /pending, /approve, /dismiss, /quiet 60, /settings, /readiness
+Admins: /admin (web portal), /pending, /approve, /dismiss, /quiet 60, /settings, /readiness
 /privacy \u2014 what is stored and sent to AI
 /optout \u2014 stop processing your participation
 /optin \u2014 rejoin
@@ -627,7 +629,7 @@ async function send(env, updateId, method, body, deliveryGuard) {
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
     await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), clock() + (body.open_period || 60) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
   }
-  if (method === "sendPoll" && !club) await recordPoll(env,updateId,body,result.result);
+  if (method === "sendPoll" && (!club||club.kind==='portal_post')) await recordPoll(env,updateId,body,result.result);
   if(method==='sendMessage'&&body.reply_parameters?.message_id&&result.result?.message_id)await env.DB.prepare('INSERT OR IGNORE INTO club_messages(message_id,user_id,thread_id,text,parent_id,kind,created_at) VALUES (?,0,?,?,?,?,?)').bind(result.result.message_id,body.message_thread_id||0,String(body.text||'').slice(0,600),body.reply_parameters.message_id,'bot',clock()).run();
   if(club)await clubDelivered(env,updateId,method,body,result.result);
   await setSetting(env, "last_delivery", JSON.stringify({update_id:updateId,chat_id:body.chat_id,thread_id:body.message_thread_id || 0,message_id:result.result?.message_id,method,sent_at:clock()}));
@@ -697,6 +699,7 @@ async function handle(env, u) {
   if (!allowed(m, env) || user.is_bot || !text) return;
   const cmd = command(text, env.BOT_USERNAME);
   if (text.startsWith("/") && !cmd) return;
+  if(cmd?.name==='admin'){await say(env,u.update_id,m,await portalLoginCommand(env,user.id,cmd.arg));return;}
   if(cmd?.name==='readiness'){
     if(!admins(env).includes(user.id)){await say(env,u.update_id,m,'This command is for configured admins.');return;}
     const report=await readiness(env);
@@ -916,6 +919,7 @@ async function processUpdate(env, id) {
 }
 async function maintenance(env) {
   await assertDeployment(env);
+  await schedulePortalPosts(env);
   await scheduleProactive(env);
   await scheduleFollowups(env);
   await scheduleClub(env);
@@ -936,6 +940,7 @@ async function maintenance(env) {
 var index_default = {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
+    if(path==='/admin'||path.startsWith('/admin/'))return portalFetch(request,env);
     if (path === "/healthz" && request.method === "GET") {
       try {
         await assertDeployment(env);
@@ -965,7 +970,7 @@ var index_default = {
       u = { update_id: u.update_id, message: { message_id: m.message_id, chat: m.chat, from: m.from, text: m.text?.slice(0, 2500), entities: Array.isArray(m.entities)?m.entities.filter(e=>e.type==='spoiler').map(e=>({type:'spoiler'})):[], new_chat_members:Array.isArray(m.new_chat_members)?m.new_chat_members.slice(0,20).map(p=>({id:p.id,is_bot:p.is_bot,first_name:p.first_name?.slice(0,60)})):undefined, message_thread_id: m.message_thread_id, reply_to_message: m.reply_to_message ? { message_id: m.reply_to_message.message_id, from: m.reply_to_message.from, text: m.reply_to_message.text?.slice(0, 600) } : void 0 } };
       const text = u.message.text || "";
       const c = command(text, env.BOT_USERNAME);
-      if (await optedOut(env, m.from.id) && !["privacy", "optout", "optin", "forget"].includes(c?.name || "")) return new Response("OK");
+      if (await optedOut(env, m.from.id) && !["privacy", "optout", "optin", "forget", "admin"].includes(c?.name || "")) return new Response("OK");
       if (m.chat.id === Number(env.GROUP_ID)) {
         if (!text.startsWith('/') && text.trim().length>=12 && !await optedOut(env,m.from.id)) await recordEngagement(env,m.from.id,m.message_thread_id||0,addressed(u.message,env));
         await env.DB.prepare('INSERT OR IGNORE INTO activity(update_id,thread_id,created_at) VALUES (?,?,?)').bind(u.update_id,m.message_thread_id||0,clock()).run();

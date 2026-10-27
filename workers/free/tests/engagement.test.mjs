@@ -14,6 +14,7 @@ function database() {
   db.exec(readFileSync(new URL('../migrations/0004_cantina.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0005_production.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0006_safe_recaps_games.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0007_admin_portal.sql', import.meta.url), 'utf8'));
   db.exec("INSERT INTO deployment_identity VALUES (1,'-100123','test')");
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];

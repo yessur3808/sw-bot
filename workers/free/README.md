@@ -183,10 +183,61 @@ Telegram polling process is needed for this deployment.
 
 ## Cantina community and admin features
 
-The deployed Cloudflare Worker has a Telegram control panel, not a web admin
-page. Use `/settings`, `/pending`, and `/readiness` in the configured group.
-The root README's `localhost:8088/admin` console belongs to the separate Python
-deployment and is not served by this Worker.
+The live admin portal is **https://sw-bot-test.yaser3808.workers.dev/admin**.
+It controls Star Wars Test; production remains unassigned and disabled. The root
+README's `localhost:8088/admin` console belongs to the older Python deployment.
+
+### Web admin portal
+
+1. Open the portal and click **Sign in with Telegram**.
+2. Copy the displayed `/admin login …` command and send it privately to
+   `@SIU_M8_bot` from a configured `ADMIN_USER_IDS` account.
+3. Return to the same browser. It signs in automatically. Only approve codes
+   displayed in your own browser; never approve a login someone sends you.
+
+The command approves only the browser that created it. Codes expire in ten
+minutes and work once. Sessions expire in eight hours, use Secure/HttpOnly,
+host-only cookies, and recheck admin membership on every request. No bot token,
+password, or new deployment secret is required. `/admin logout` revokes all your
+portal sessions; the portal's Sign out button revokes its current session.
+
+- **Posts & schedule:** create text, polls or quizzes, choose a topic, preview,
+  optionally generate an AI text draft, then save. Approve the exact revision
+  before publishing now or scheduling in **Hong Kong time (UTC+8)**. Editing an
+  approved/scheduled post revokes approval and invalidates its queued version.
+  Regular polls close after ten minutes and use the existing result follow-ups;
+  quizzes close after two minutes. Plain text is sent literally, not as HTML.
+- **Group knowledge:** propose, approve, reject or remove rules, FAQs,
+  recommendations and decisions.
+- **Events:** draft and confirm community events, supply checked source links,
+  inspect RSVPs and cancel activities. Confirmation means an admin checked the
+  details; the portal does not independently verify venues or event listings.
+- **Moderation:** inspect flagged messages and reasons, dismiss them or explicitly
+  approve a deletion, one-hour mute or ban. Existing protection and permission
+  checks still apply. Flags never trigger automatic punishment.
+- **Settings & topics:** pause/resume, quiet for an hour, run readiness checks,
+  bind existing topic IDs, or switch proactive starters to approval-first mode.
+  Existing automatic posting stays enabled by default. Approval-first captures
+  new proactive starters as drafts; replies, game rounds, briefings and reminders
+  retain their existing safeguards. Explicit Telegram `/post` requests remain
+  direct requests. Telegram cannot list existing forum topics for bots; use
+  `/bindtopic name` inside the topic or enter its known numeric ID in the portal.
+
+Portal receipts stay in the browser; approved posts and announcements go to the
+configured group. Scheduled posts use the durable delivery queue (normally the
+next minute), respect pause, expire after 24 hours overdue, and never blindly
+retry ambiguous Telegram deliveries. Check a post marked **uncertain** in Telegram
+before composing a replacement. Explicit portal publications are admin requests,
+separate from the automatic daily cap. AI drafts need editorial review.
+
+Apply `migrations/0007_admin_portal.sql` to the target D1 database before uploading
+all Worker modules. It adds no secret bindings. Authentication/API responses are
+not cached; mutations require same-origin requests and a session-bound CSRF
+header. Login and AI generation are rate-limited. Session hashes expire with the
+session; admin action metadata expires after 90 days. Editorial posts are shared
+admin-managed content retained in D1; the UI lists the latest 100. Do not place
+private member information or unprotected spoilers into drafts. Existing Telegram
+admin commands remain available.
 
 Apply `migrations/0004_cantina.sql` before deploying this version, then enqueue
 `{"internal_configure":true}` to enable Telegram `message_reaction` updates.

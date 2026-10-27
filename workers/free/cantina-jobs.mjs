@@ -2,6 +2,7 @@ import {nowSeconds,localDay,activeHours,setting,setSetting,cleanAnswer} from './
 import {quiet,defer,topicThread} from './community.mjs';
 import {CLUB_OFFSET,queueClub,clubPaused,out,isAdmin,prepareBriefing,briefingSourcesAllowed,messageLink,hkTime} from './cantina-core.mjs';
 import {startGame,gameBody,gameDelivered,scheduleGames,gameDeliveryStatus} from './cantina-games.mjs';
+import {portalPostBody,claimPortalPost,portalPostDelivered,portalPostFailed} from './portal-content.mjs';
 export async function clubJob(env,updateId){return env.DB.prepare('SELECT * FROM club_jobs WHERE id=?').bind(-updateId-CLUB_OFFSET).first();}
 export async function clubAllowed(env,job){
  if(!job||job.state!=='pending')return 'cancel';
@@ -75,6 +76,11 @@ export async function handleClubJob(env,id,send){
  else if(job.kind==='game_start'){
   await startGame(env,-id,data.kind,job.thread_id);await env.DB.prepare("UPDATE club_jobs SET state='sent' WHERE id=?").bind(job.id).run();return;
  }
+ else if(job.kind==='portal_post'){
+  const generated=await portalPostBody(env,job);
+  if(!generated){await env.DB.prepare("UPDATE club_jobs SET state='cancelled' WHERE id=?").bind(job.id).run();return;}
+  ({method,body}=generated);deliveryGuard=()=>claimPortalPost(env,job);
+ }
  else if(job.kind==='game_step'||job.kind==='game_close'){
   const status=await gameDeliveryStatus(env,job);
   if(status==='wait'){await defer(env,id);return;}
@@ -83,18 +89,19 @@ export async function handleClubJob(env,id,send){
  }
  else return;
  const recheck=await clubAllowed(env,job);if(recheck==='wait'){await defer(env,id);return;}if(recheck==='cancel')return;
- await send(env,id,method,{...body,...method==='sendMessage'?{link_preview_options:{is_disabled:true}}:{}},async()=>{
+ try{await send(env,id,method,{...body,...method==='sendMessage'?{link_preview_options:{is_disabled:true}}:{}},async()=>{
   // Reload after queue writes: forget, opt-out, pause or cancellation may have
   // changed eligibility while the outgoing body was being prepared.
   const current=await clubAllowed(env,await clubJob(env,id));
   if(current!=='send')return current;
   return deliveryGuard?deliveryGuard():'send';
- });
+ });}catch(error){if(job.kind==='portal_post')await portalPostFailed(env,job,id);throw error;}
 }
 export async function clubDelivered(env,id,method,body,result){
  const job=await clubJob(env,id);if(!job)return;
  await env.DB.prepare("UPDATE club_jobs SET state='sent',message_id=? WHERE id=?").bind(result?.message_id||null,job.id).run();
  const data=JSON.parse(job.data);
+ if(job.kind==='portal_post')await portalPostDelivered(env,job,result);
  if(job.kind==='event_poll')await env.DB.prepare('UPDATE club_events SET poll_id=?,message_id=? WHERE id=?').bind(result.poll?.id||null,result.message_id||null,data.event_id).run();
  if(job.kind==='event_announcement')await env.DB.prepare('UPDATE club_events SET message_id=? WHERE id=?').bind(result.message_id||null,data.event_id).run();
  if(job.kind==='host')await env.DB.prepare('INSERT INTO club_controls(user_id,last_nudge) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET last_nudge=excluded.last_nudge').bind(job.user_id,nowSeconds()).run();

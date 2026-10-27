@@ -24,7 +24,7 @@ export function automaticDelivery(payload,job,username,botId) {
  if(job){
   const data=JSON.parse(job.data);
   if(job.kind==='moderation'||job.job_key.startsWith('moderation-result:'))return false;
-  if(data.requested&&['briefing','event_poll','event_announcement','text'].includes(job.kind))return false;
+  if(data.requested&&['briefing','event_poll','event_announcement','text','portal_post'].includes(job.kind))return false;
   return true;
  }
  if(payload.internal_post)return !payload.internal_post.requested;
