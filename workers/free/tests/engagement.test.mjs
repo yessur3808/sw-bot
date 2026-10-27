@@ -721,3 +721,45 @@ test('hosting suppresses an excerpt forgotten during final queue preparation',as
  assert.ok(withdrawn);
  assert.equal(sent.filter(s=>s.body.text?.startsWith('This question has no recorded reply')).length,0);
 });
+
+for(const [withdrawal,remaining] of [['/forget',true],['/optout',true],['/rsvp 100 no',true],['/rsvp 100 yes silent',true],['/forget',false]]){
+ test(`event reminder handles ${withdrawal} during final preparation with ${remaining?1:0} remaining attendee`,async()=>{
+  nativeTelegram();await webhook(update(100,'/event create Test|2026-10-28 18:00|Room|hongkong'));
+  await webhook(update(101,'/event confirm 100'));await drainClub();
+  await webhook(update(102,'/rsvp 100 yes remind',{from:{id:77,first_name:'Withdrawn'}}));
+  if(remaining)await webhook(update(103,'/rsvp 100 yes remind',{from:{id:78,first_name:'Remaining'}}));
+  Date.now=()=>Date.parse('2026-10-28T09:31:00Z');
+  const originalPrepare=env.DB.prepare.bind(env.DB);let withdrawn=false;
+  env.DB.prepare=sql=>{
+   const statement=originalPrepare(sql);
+   if(sql.startsWith("UPDATE updates SET state='sending'")){
+    const bind=statement.bind,run=statement.run;let body;
+    statement.bind=(...args)=>{body=JSON.parse(args[0]);return bind(...args);};
+    statement.run=async()=>{const result=await run();if(!withdrawn&&body.text?.startsWith('Opt-in reminder')){withdrawn=true;await webhook(update(104,withdrawal,{from:{id:77}}));}return result;};
+   }
+   return statement;
+  };
+  await drainClub();assert.ok(withdrawn);
+  assert.equal(sent.filter(s=>s.body.text?.startsWith('Opt-in reminder')).length,0);
+  Date.now=()=>Date.parse('2026-10-28T09:36:01Z');await drainClub();
+  const reminders=sent.filter(s=>s.body.text?.startsWith('Opt-in reminder'));
+  assert.equal(reminders.length,remaining?1:0);
+  if(remaining){assert.deepEqual(reminders[0].body.entities.map(e=>e.user.id),[78]);assert.doesNotMatch(reminders[0].body.text,/Withdrawn/);}
+  else assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE kind='event_reminder'").get().state,'skipped');
+ });
+}
+
+test('welcome is cancelled if the newcomer forgets during final queue preparation',async()=>{
+ const originalPrepare=env.DB.prepare.bind(env.DB);let withdrawn=false;
+ env.DB.prepare=sql=>{
+  const statement=originalPrepare(sql);
+  if(sql.startsWith("UPDATE updates SET state='sending'")){
+   const bind=statement.bind,run=statement.run;let body;
+   statement.bind=(...args)=>{body=JSON.parse(args[0]);return bind(...args);};
+   statement.run=async()=>{const result=await run();if(!withdrawn&&body.text?.startsWith('Welcome aboard')){withdrawn=true;await webhook(update(101,'/forget',{from:{id:77}}));}return result;};
+  }
+  return statement;
+ };
+ await webhook(update(100,'',{new_chat_members:[{id:77,first_name:'Withdrawn',is_bot:false}]}));await drainClub();
+ assert.ok(withdrawn);assert.equal(sent.filter(s=>s.body.text?.startsWith('Welcome aboard')).length,0);
+});

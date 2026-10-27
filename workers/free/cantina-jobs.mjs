@@ -42,8 +42,6 @@ export async function handleClubJob(env,id,send){
   const source=await env.DB.prepare('SELECT * FROM club_messages WHERE message_id=?').bind(data.message_id).first();
   body.text=`${source.kind==='suggestion'?'This idea picked up interest. Is there a useful next step?':'This question has no recorded reply yet. Does anyone have a useful answer?'}\n${cleanAnswer(source.text,180)}\n${messageLink(env,source.message_id,source.thread_id)}\nThe author can use /prompts off to stop these follow-ups.`;
   body.reply_parameters={message_id:source.message_id,allow_sending_without_reply:true};
-  // A member may withdraw their records or prompts during the queue writes.
-  deliveryGuard=async()=>clubAllowed(env,await clubJob(env,id));
  }
  else if(job.kind.startsWith('event_')){
   const e=await env.DB.prepare('SELECT * FROM club_events WHERE id=?').bind(data.event_id).first();if(!e)return;
@@ -56,6 +54,11 @@ export async function handleClubJob(env,id,send){
    let text=`Opt-in reminder: ${e.title}\n${hkTime(e.starts_at)} — ${e.location}\n${messageLink(env,e.message_id,e.thread_id)}\n`,entities=[];
    for(const person of people){const name=cleanAnswer(person.name,40);entities.push({type:'text_mention',offset:text.length,length:name.length,user:{id:person.user_id,is_bot:false,first_name:name}});text+=name+' ';}
    body={...base,text,entities};
+   deliveryGuard=async()=>{
+    const current=(await env.DB.prepare("SELECT user_id FROM club_rsvps r WHERE event_id=? AND response='yes' AND remind=1 AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=r.user_id AND p.opted_out=1)").bind(e.id).all()).results;
+    // Rebuild the body on retry if any already-rendered mention lost consent.
+    return people.every(person=>current.some(r=>r.user_id===person.user_id))?'send':current.length?'wait':'cancel';
+   };
   }
  }
  else if(job.kind==='moderation'){
@@ -80,7 +83,13 @@ export async function handleClubJob(env,id,send){
  }
  else return;
  const recheck=await clubAllowed(env,job);if(recheck==='wait'){await defer(env,id);return;}if(recheck==='cancel')return;
- await send(env,id,method,{...body,...method==='sendMessage'?{link_preview_options:{is_disabled:true}}:{}},deliveryGuard);
+ await send(env,id,method,{...body,...method==='sendMessage'?{link_preview_options:{is_disabled:true}}:{}},async()=>{
+  // Reload after queue writes: forget, opt-out, pause or cancellation may have
+  // changed eligibility while the outgoing body was being prepared.
+  const current=await clubAllowed(env,await clubJob(env,id));
+  if(current!=='send')return current;
+  return deliveryGuard?deliveryGuard():'send';
+ });
 }
 export async function clubDelivered(env,id,method,body,result){
  const job=await clubJob(env,id);if(!job)return;
