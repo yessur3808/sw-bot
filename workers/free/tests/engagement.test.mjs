@@ -459,6 +459,7 @@ test('briefings and weekly games are durably scheduled only once in their Hong K
  Date.now=()=>Date.parse('2026-11-02T13:00:00Z');await scheduleClub(env);await scheduleClub(env);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_jobs WHERE kind='briefing'").get().n,1);
 });
 test('quiet mode pauses automatic work but leaves direct admin commands available',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(99,'Who wants to join a watch party?',{from:{id:77}}));
  await webhook(update(100,'/quiet 60'));await queue(-50,{internal_post:{kind:'idea',scheduled_at:Date.now()/1000}});assert.equal(sent.length,1);
  const job=await queueClub(env,'briefing-test','briefing',{});await drainClub();assert.equal(sqlite.prepare('SELECT state FROM club_jobs WHERE id=?').get(job.id).state,'pending');await webhook(update(101,'/settings'));assert.match(sent.at(-1).body.text,/Quiet until:/);
  await webhook(update(102,'/quiet off'));Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await drainClub();assert.ok(sent.some(s=>s.body.text?.startsWith('Cantina briefing')));
@@ -572,4 +573,26 @@ test('webhook cannot trigger internal launch readiness or network permission pro
 });
 test('invalid default topic routing fails before processing member messages',async()=>{
  env.ALLOWED_THREAD_IDS='4,6';env.PRIVATE_THREAD_ID='0';assert.equal((await webhook(update())).status,503);assert.equal(sent.length,0);
+});
+
+
+test('empty manual briefings produce no acknowledgement, no AI request and no budget reservation',async()=>{
+ await webhook(update(700,'/briefing'));await drainClub();await drainClub();
+ assert.equal(sent.length,0);assert.equal(aiCalls.length,0);assert.equal((await budgetStatus(env)).used,0);
+ assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE kind='briefing'").get().state,'skipped');
+});
+test('scheduled briefings skip ordinary chatter and polls with no votes',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(701,'Good morning everyone, hope your day is going well.',{from:{id:77}}));
+ sqlite.prepare('INSERT INTO community_polls(poll_id,message_id,thread_id,question,options,closes_at,closed,followup_id) VALUES (?,?,?,?,?,?,1,?)').run('empty',800,0,'Droid choice?',JSON.stringify([{text:'R2',voter_count:0},{text:'Chopper',voter_count:0}]),Date.now()/1000-60,-999);
+ await queueClub(env,'empty-daily','briefing',{});Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await drainClub();
+ assert.equal(sent.length,0);assert.equal(aiCalls.length,0);assert.equal((await budgetStatus(env)).used,0);
+ assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE kind='briefing'").get().state,'skipped');
+});
+test('a voted poll alone is enough to publish a briefing without an empty-discussion notice',async()=>{
+ sqlite.prepare('INSERT INTO community_polls(poll_id,message_id,thread_id,question,options,closes_at,closed,followup_id) VALUES (?,?,?,?,?,?,1,?)').run('voted',800,0,'Droid choice?',JSON.stringify([{text:'R2',voter_count:3},{text:'Chopper',voter_count:1}]),Date.now()/1000-60,-999);
+ await webhook(update(700,'/briefing'));await drainClub();assert.equal(sent.length,1);assert.match(sent[0].body.text,/R2 — 3/);assert.doesNotMatch(sent[0].body.text,/No eligible/);
+});
+test('a confirmed upcoming event alone keeps the briefing useful',async()=>{
+ sqlite.prepare("INSERT INTO club_events(id,title,creator,starts_at,location,status,created_at,thread_id) VALUES(1,'Watch party',42,?,'Room','confirmed',?,0)").run(Date.now()/1000+86400,Date.now()/1000);
+ const briefing=await makeBriefing(env);assert.match(briefing,/Upcoming: Watch party/);assert.doesNotMatch(briefing,/No eligible/);
 });

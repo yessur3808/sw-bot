@@ -31,7 +31,10 @@ export async function handleClubJob(env,id,send){
  if(allowed==='cancel'){if(job)await env.DB.prepare("UPDATE club_jobs SET state='cancelled' WHERE id=? AND state='pending'").bind(job.id).run();return;}
  const data=JSON.parse(job.data),base={chat_id:Number(env.GROUP_ID),...(job.thread_id?{message_thread_id:job.thread_id}:{})};
  let method='sendMessage',body={...base};
- if(job.kind==='briefing')body.text=await makeBriefing(env);
+ if(job.kind==='briefing'){
+  body.text=await makeBriefing(env);
+  if(!body.text){await env.DB.prepare("UPDATE club_jobs SET state='skipped' WHERE id=?").bind(job.id).run();return;}
+ }
  else if(job.kind==='text')body.text=data.text;
  else if(job.kind==='host'){
   const source=await env.DB.prepare('SELECT * FROM club_messages WHERE message_id=?').bind(data.message_id).first();

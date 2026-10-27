@@ -307,3 +307,8 @@ sends; exhausted automated jobs are suppressed, not carried into tomorrow.
 `/status` and `/settings` show usage; `/readiness` checks production prerequisites.
 Production `/resume` requires those checks to pass. The prepared production
 configuration is disabled and has no real group ID yet; it has not been deployed.
+
+Briefings are skipped when there are no eligible discussion highlights, voted poll
+results or confirmed upcoming activities. Zero-vote polls and ordinary unengaged
+chatter do not justify a recap. This also applies to `/briefing`: there is no queue
+acknowledgement or empty recap message. Skipped jobs consume no posting budget.
