@@ -183,6 +183,11 @@ Telegram polling process is needed for this deployment.
 
 ## Cantina community and admin features
 
+The deployed Cloudflare Worker has a Telegram control panel, not a web admin
+page. Use `/settings`, `/pending`, and `/readiness` in the configured group.
+The root README's `localhost:8088/admin` console belongs to the separate Python
+deployment and is not served by this Worker.
+
 Apply `migrations/0004_cantina.sql` before deploying this version, then enqueue
 `{"internal_configure":true}` to enable Telegram `message_reaction` updates.
 The bot needs to remain a group administrator to see group messages/reactions.

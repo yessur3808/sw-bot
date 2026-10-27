@@ -42,6 +42,8 @@ export async function handleClubJob(env,id,send){
   const source=await env.DB.prepare('SELECT * FROM club_messages WHERE message_id=?').bind(data.message_id).first();
   body.text=`${source.kind==='suggestion'?'This idea picked up interest. Is there a useful next step?':'This question has no recorded reply yet. Does anyone have a useful answer?'}\n${cleanAnswer(source.text,180)}\n${messageLink(env,source.message_id,source.thread_id)}\nThe author can use /prompts off to stop these follow-ups.`;
   body.reply_parameters={message_id:source.message_id,allow_sending_without_reply:true};
+  // A member may withdraw their records or prompts during the queue writes.
+  deliveryGuard=async()=>clubAllowed(env,await clubJob(env,id));
  }
  else if(job.kind.startsWith('event_')){
   const e=await env.DB.prepare('SELECT * FROM club_events WHERE id=?').bind(data.event_id).first();if(!e)return;

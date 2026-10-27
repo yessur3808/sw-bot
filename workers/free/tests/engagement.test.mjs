@@ -703,3 +703,21 @@ test('a game solved during queue preparation is rechecked before the clue reache
  };
  await drainClub();assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT step FROM club_games').get().step,-1);
 });
+
+test('hosting suppresses an excerpt forgotten during final queue preparation',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(800,'Who wants to discuss my private watch-party idea?',{from:{id:77}}));
+ Date.now=()=>Date.parse('2026-10-27T08:01:00Z');
+ const originalPrepare=env.DB.prepare.bind(env.DB);let withdrawn=false;
+ env.DB.prepare=sql=>{
+  const statement=originalPrepare(sql);
+  if(sql.startsWith("UPDATE updates SET state='sending'")){
+   const bind=statement.bind,run=statement.run;let body;
+   statement.bind=(...args)=>{body=JSON.parse(args[0]);return bind(...args);};
+   statement.run=async()=>{const result=await run();if(!withdrawn&&body.text?.startsWith('This question has no recorded reply')){withdrawn=true;await webhook(update(801,'/forget',{from:{id:77}}));}return result;};
+  }
+  return statement;
+ };
+ await drainClub();
+ assert.ok(withdrawn);
+ assert.equal(sent.filter(s=>s.body.text?.startsWith('This question has no recorded reply')).length,0);
+});
