@@ -1,5 +1,16 @@
 import { nowSeconds, activeHours, setting, setSetting, cleanAnswer } from './engagement.mjs';
-export const TOPICS = {game:'gaming',movie:'movies',question:'lore',poll:'lore',idea:'lore',character:'lore',quote:'lore',weekly:'lore'};
+export const TOPICS = {game:'gaming',movie:'movies',question:'lore',poll:'lore',idea:'lore',character:'lore',quote:'lore',weekly:'lore',hongkong:'hongkong',global_events:'global_events',tv:'tv',memes:'memes',wallpapers:'wallpapers'};
+export const EXTRA_TOPICS = ['hongkong','global_events','tv','memes','wallpapers'];
+const TOPIC_ALIASES = {hong_kong:'hongkong',hk:'hongkong',local:'hongkong',local_events:'hongkong',hong_kong_events:'hongkong',global:'global_events',world_events:'global_events',tv_shows:'tv',tvshows:'tv',television:'tv',shows:'tv',meme:'memes',wallpaper:'wallpapers',film:'movies',films:'movies',movie:'movies',games:'gaming',game:'gaming'};
+export function topicName(value) {
+  const name=String(value||'').trim().toLowerCase().replace(/[ -]+/g,'_');
+  if(!/^[a-z][a-z0-9_]{0,39}$/.test(name)) return null;
+  return TOPIC_ALIASES[name] || name;
+}
+export async function availablePostKinds(env) {
+  const rows=(await env.DB.prepare('SELECT name FROM topic_map').all()).results;
+  return ['question','poll','idea','movie','game',...EXTRA_TOPICS.filter(name=>rows.some(r=>r.name===name))];
+}
 export async function topicThread(env, kind) {
   const mapped = await env.DB.prepare('SELECT thread_id FROM topic_map WHERE name=?').bind(TOPICS[kind] || kind).first();
   const allowed = (env.ALLOWED_THREAD_IDS || '').split(',').filter(Boolean).map(Number);
@@ -9,7 +20,7 @@ export async function topicThread(env, kind) {
 }
 export async function topicSummary(env) {
   const rows = (await env.DB.prepare('SELECT name,thread_id FROM topic_map ORDER BY name').all()).results;
-  return rows.length ? rows.map(r=>`${r.name}: topic ${r.thread_id || 'General'}`).join('\n') : 'No named topics mapped yet. Admins: use /bindtopic gaming, movies or lore inside the corresponding topic.';
+  return rows.length ? rows.map(r=>`${r.name}: topic ${r.thread_id || 'General'}${Object.values(TOPICS).includes(r.name)?'':' (mapped; no automatic content category)'}`).join('\n') : 'No named topics mapped yet. Admins: use /bindtopic <name> inside the matching topic. Supported content: gaming, movies, lore, hongkong (local_events), global_events, tv, memes, wallpapers. Other names can be mapped too.';
 }
 export async function quiet(env, thread, ambient=false) {
   const row = await env.DB.prepare('SELECT COUNT(*) n,MAX(created_at) latest FROM activity WHERE thread_id=? AND created_at>?').bind(thread,nowSeconds()-600).first();

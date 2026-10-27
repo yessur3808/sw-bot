@@ -76,6 +76,38 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   messages are not stored. Ambiguous Telegram delivery is recorded for inspection
   rather than blindly retried; Telegram 429 responses use the stored payload.
 
+## Additional topic bindings
+
+Send each command inside its corresponding existing Telegram topic:
+
+| Topic | Command | Automatic content |
+| --- | --- | --- |
+| Hong Kong / local events | `/bindtopic hongkong` | Hypothetical meetup ideas and local fan discussions |
+| Global events | `/bindtopic global_events` | Fan-event wishlists and international community discussions |
+| TV shows | `/bindtopic tv` | Spoiler-free show discussions and creative prompts |
+| Memes | `/bindtopic memes` | Original text jokes and caption challenges |
+| Wallpapers | `/bindtopic wallpapers` | Wallpaper design concepts/prompts and sharing discussions |
+
+Aliases include `hong_kong`, `hk`, `local_events`, `tv_shows`, `television`,
+`meme` and `wallpaper`. Names with spaces work too. The existing Gaming, Movies
+and Lore bindings continue to work. `/topics` shows the canonical names and IDs.
+
+Bound content categories join the existing 5–10 starter rotation; the daily cap
+is shared across all topics. Categories rotate by last post/attempt so a new topic
+can enter today's schedule and a failed category cannot monopolise it. Recurring
+games retain the first scheduled slot. Unbound extra categories are excluded from
+automatic rotation; explicit `/post tv`, `/post memes`, `/post wallpapers`,
+`/post hongkong` or `/post global_events` uses the normal default if not mapped.
+
+These event categories currently use curated planning prompts, **not live event
+listings or news feeds**. Memes are text; wallpaper posts are concepts, **not
+image attachments**. Adding live listings or image generation is separate work.
+
+Admins can also `/bindtopic collectibles` (or another name up to 40 characters).
+Custom names are stored and displayed as mapped-only; they do not automatically
+create a new content generator. Matching topic service messages use the same
+normalisation. Binding is admin-only and must happen in the group, not a DM.
+
 ## Test and deploy
 
 Tests use Node 24's SQLite with real SQL, a mocked Telegram transport and mocked AI:

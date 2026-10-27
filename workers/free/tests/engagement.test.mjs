@@ -313,3 +313,44 @@ test('status exposes the dynamic target and group messages create erasable signa
  await webhook(update(2,'The droids deserve their own spin-off.'));assert.ok(sqlite.prepare("SELECT 1 FROM quota WHERE user_id=42 AND kind='engagement_chat'").get());
  await webhook(update(3,'/forget'));assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM quota WHERE user_id=42').get().n,0);
 });
+
+import { topicName, availablePostKinds } from '../community.mjs';
+test('expanded topic aliases normalize to consistent bindings',()=>{
+ for(const alias of ['Hong Kong','hong_kong','hk','local events','local_events'])assert.equal(topicName(alias),'hongkong');
+ for(const alias of ['TV Shows','tv_shows','television'])assert.equal(topicName(alias),'tv');
+ assert.equal(topicName('global events'),'global_events');assert.equal(topicName('meme'),'memes');assert.equal(topicName('wallpaper'),'wallpapers');
+ assert.equal(topicName('collectibles'),'collectibles');assert.equal(topicName('../secret'),null);assert.equal(topicName('x'.repeat(41)),null);
+});
+test('admins can bind new and custom topics while private/non-admin requests cannot',async()=>{
+ await webhook(update(1,'/bindtopic local events',{message_thread_id:20}));await webhook(update(2,'/bindtopic tv shows',{message_thread_id:21}));await webhook(update(3,'/bindtopic collectibles',{message_thread_id:22}));
+ assert.equal(sqlite.prepare("SELECT thread_id FROM topic_map WHERE name='hongkong'").get().thread_id,20);assert.equal(sqlite.prepare("SELECT thread_id FROM topic_map WHERE name='tv'").get().thread_id,21);assert.match(sent.at(-1).body.text,/collectibles.*no automatic content/);
+ await webhook(update(4,'/bindtopic memes',{chat:{id:42,type:'private'}}));await webhook(update(5,'/bindtopic wallpapers',{from:{id:99},message_thread_id:23}));assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM topic_map WHERE name IN ('memes','wallpapers')").get().n,0);
+});
+test('each expanded content category routes to its actual bound topic',async()=>{
+ let i=0;for(const name of ['hongkong','global_events','tv','memes','wallpapers']){
+  sqlite.prepare('INSERT INTO topic_map VALUES (?,?)').run(name,20+i);
+  env.AI.run=async()=>({response:`A distinct ${name} discussion prompt for the group.`});
+  await queue(-100-i,{internal_post:{kind:name,scheduled_at:Date.now()/1000,requested:true}});assert.equal(sent.at(-1).body.message_thread_id,20+i);i++;
+ }
+ assert.equal(sent.length,5);
+});
+test('only bound extra categories enter automatic rotation; custom maps remain routing-only',async()=>{
+ assert.equal((await availablePostKinds(env)).includes('hongkong'),false);sqlite.prepare("INSERT INTO topic_map VALUES ('hongkong',20),('tv',21),('collectibles',22)").run();
+ const kinds=await availablePostKinds(env);assert.ok(kinds.includes('hongkong'));assert.ok(kinds.includes('tv'));assert.equal(kinds.includes('memes'),false);assert.equal(kinds.includes('collectibles'),false);
+});
+test('local and global event posts use labelled planning prompts without inventing announcements',async()=>{
+ const local=await buildPost(env,'hongkong',[]),global=await buildPost(env,'global_events',[]);assert.equal(aiCalls.length,0);assert.equal(local.generation,'curated');assert.equal(global.generation,'curated');assert.match(local.text,/idea|wishlist|gathering/i);assert.match(global.text,/wishlist|If fans|would/i);
+});
+test('wallpaper generation explicitly requests a concept without claiming images or links',async()=>{
+ await buildPost(env,'wallpapers',[]);assert.match(aiCalls[0].messages.at(-1).content,/never claim you generated, attached, downloaded or found an image/);
+});
+test('expanded topic service messages learn canonical aliases',async()=>{
+ await webhook(update(1,undefined,{text:undefined,message_thread_id:20,forum_topic_created:{name:'Hong Kong'}}));await webhook(update(2,undefined,{text:undefined,message_thread_id:21,forum_topic_created:{name:'TV Shows'}}));
+ assert.equal(sqlite.prepare("SELECT thread_id FROM topic_map WHERE name='hongkong'").get().thread_id,20);assert.equal(sqlite.prepare("SELECT thread_id FROM topic_map WHERE name='tv'").get().thread_id,21);
+});
+test('a newly bound category can enter the current day without increasing its daily target',async()=>{
+ const at=Date.now()/1000;sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27',JSON.stringify(makePlan('2026-10-27',()=>0)));
+ sqlite.prepare("INSERT INTO topic_map VALUES ('tv',21)").run();
+ for(const [i,kind] of ['question','poll','idea','movie','game'].entries())sqlite.prepare('INSERT INTO engagement_posts(update_id,kind,seed,text,payload,created_at,state) VALUES (?,?,?,?,?,?,?)').run(-100-i,kind,kind,kind,'{}',at-86400,'sent');
+ seedStarters(1);await scheduleProactive(env);const row=sqlite.prepare("SELECT payload FROM updates WHERE id<0").get();assert.equal(JSON.parse(row.payload).internal_post.kind,'tv');assert.equal((await postingPolicy(env)).target,5);
+});

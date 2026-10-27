@@ -1,5 +1,5 @@
 import { postingPolicy, starterCount, recordEngagement, starterSpacingBlocked } from './adaptive.mjs';
-import { topicThread, topicSummary, quiet, defer, preferencesCommand, preferencePrompt, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
+import { topicThread, topicSummary, topicName, TOPICS, quiet, defer, preferencesCommand, preferencePrompt, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
 import { VERSION, PERSONALITY, activeHours, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, setSetting, currentRelease, refreshReleases, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
 // data/trivia.json
 var trivia_default = [
@@ -521,7 +521,8 @@ var HELP = `SIU-M8 cantina host \u2014 AI host for your Star Wars group.
 /poll \u2014 a community vote
 /rank and /leaderboard \u2014 participation rewards
 /whereami \u2014 show group and topic routing
-/topics — show named topics; admins can /bindtopic gaming|movies|lore
+/topics — show named topics; admins: /bindtopic <name> inside a topic
+Content topics: gaming, movies, lore, hongkong/local_events, global_events, tv, memes, wallpapers
 /guess, /quote, /weeklytrivia — play a two-minute quiz
 /preferences on|off — opt into remembered preferences
 /era any|prequels|original|sequels|high-republic|old-republic|legends
@@ -692,10 +693,11 @@ async function handle(env, u) {
   if (await preferencesCommand(env,u.update_id,m,cmd,say)) return;
   if (cmd?.name === 'topics' || cmd?.name === 'bindtopic') {
     if (cmd.name === 'bindtopic') {
-      if (!admins(env).includes(user.id) || m.chat.type === 'private' || !['gaming','movies','lore'].includes(cmd.arg)) {
-        await say(env,u.update_id,m,'Admins: send /bindtopic gaming, /bindtopic movies or /bindtopic lore inside the matching group topic.');return;
+      const name=topicName(cmd.arg);
+      if (!admins(env).includes(user.id) || m.chat.type === 'private' || !name) {
+        await say(env,u.update_id,m,'Admins: send /bindtopic <name> inside its group topic. Examples: gaming, movies, lore, hongkong, global_events, tv, memes, wallpapers. Names can contain letters, numbers and spaces/underscores (40 characters max).');return;
       }
-      await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(cmd.arg,m.message_thread_id||0).run();
+      await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(name,m.message_thread_id||0).run();
     }
     await say(env,u.update_id,m,await topicSummary(env));return;
   }
@@ -751,8 +753,9 @@ async function handle(env, u) {
   }
   if (cmd?.name === "post") {
     if (!admins(env).includes(user.id)) return;
-    const kind = cmd.arg || "question";
-    if (!KINDS.includes(kind)) { await say(env, u.update_id, m, "Choose: /post question, poll, idea, movie or game."); return; }
+    const requested=cmd.arg.toLowerCase() || "question";
+    const kind=KINDS.includes(requested)?requested:Object.keys(TOPICS).find(k=>TOPICS[k]===topicName(requested));
+    if (!KINDS.includes(kind)) { await say(env, u.update_id, m, `Choose /post followed by: ${KINDS.join(", ")}. Memes are text/caption posts; wallpapers are design prompts. Event posts are planning ideas, not live listings.`); return; }
     if (!await takeQuota(env, `post:${u.update_id}`, m, "manual_post", 5, 60)) return;
     await proactive(env, u.update_id, {kind, scheduled_at: clock(), requested: true}, send, polls_default, trivia_default);
     return;
@@ -889,8 +892,8 @@ var index_default = {
       if (m.chat.id === Number(env.GROUP_ID)) {
         if (!text.startsWith('/') && text.trim().length>=12 && !await optedOut(env,m.from.id)) await recordEngagement(env,m.from.id,m.message_thread_id||0,addressed(u.message,env));
         await env.DB.prepare('INSERT OR IGNORE INTO activity(update_id,thread_id,created_at) VALUES (?,?,?)').bind(u.update_id,m.message_thread_id||0,clock()).run();
-        const topicName=(m.forum_topic_created?.name || m.forum_topic_edited?.name || '').toLowerCase().trim();
-        if (['gaming','movies','lore'].includes(topicName) && Number.isSafeInteger(m.message_thread_id)) await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(topicName,m.message_thread_id).run();
+        const discoveredTopic=topicName(m.forum_topic_created?.name || m.forum_topic_edited?.name);
+        if (discoveredTopic && Number.isSafeInteger(m.message_thread_id)) await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(discoveredTopic,m.message_thread_id).run();
       }
       if (u.message.reply_to_message?.from && await optedOut(env, u.message.reply_to_message.from.id)) delete u.message.reply_to_message.text;
       if (m.chat.type !== "private" && !c && !addressed(u.message, env) && !ambientCandidate(u.message, env, u.update_id)) {
