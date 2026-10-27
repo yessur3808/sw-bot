@@ -1,3 +1,4 @@
+import { postingPolicy, starterCount, recordEngagement, starterSpacingBlocked } from './adaptive.mjs';
 import { topicThread, topicSummary, quiet, defer, preferencesCommand, preferencePrompt, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
 import { VERSION, PERSONALITY, activeHours, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, setSetting, currentRelease, refreshReleases, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
 // data/trivia.json
@@ -530,8 +531,8 @@ var HELP = `SIU-M8 cantina host \u2014 AI host for your Star Wars group.
 /optin \u2014 rejoin
 /forget \u2014 remove your stored participation/context and opt out
 
-Private requests from configured admins produce public responses in the group, not in DMs. I answer mentions and replies, occasionally join relevant conversations, and post 3–5 conversation starters daily (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
-var PRIVACY = `I am an AI bot. Configured admins can message me privately, but all my responses and polls are published to the configured group. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. Unselected ordinary message text is not stored. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. Topic activity timestamps (without text or user IDs) expire after 24 hours. Saved era/spoiler preferences are opt-in and kept until /preferences off or /forget. Poll aggregate results expire after 7 days. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
+Private requests from configured admins produce public responses in the group, not in DMs. I answer mentions and replies, occasionally join relevant conversations, and target five daily conversation starters, rising to seven or ten when recent participation is strong (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
+var PRIVACY = `I am an AI bot. Configured admins can message me privately, but all my responses and polls are published to the configured group. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. Unselected ordinary message text is not stored. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. Topic activity timestamps (without text or user IDs) expire after 24 hours. Saved era/spoiler preferences are opt-in and kept until /preferences off or /forget. Poll aggregate results expire after 7 days. Adaptive posting uses at most one text-free engagement signal per member per five minutes; signals expire after two days and /forget removes them. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
 function command(text, username) {
   const m = text.match(/^\/([a-z_]+)(?:@([a-z0-9_]+))?(?:\s+([\s\S]*))?$/i);
   if (!m || m[2] && m[2].toLowerCase() !== username.toLowerCase()) return null;
@@ -637,6 +638,7 @@ async function quizAnswer(env, u) {
   if (!a.user || a.user.is_bot || a.option_ids.length !== 1 || await optedOut(env, a.user.id)) return;
   const poll = await env.DB.prepare("SELECT * FROM polls WHERE poll_id=? AND expires_at>=?").bind(a.poll_id, clock()).first();
   if (!poll || poll.chat_id !== Number(env.GROUP_ID)) return;
+  await recordEngagement(env,a.user.id,poll.thread_id,true);
   await member(env, a.user);
   await env.DB.prepare("INSERT OR IGNORE INTO answers(poll_id,user_id,option_id) VALUES (?,?,?)").bind(a.poll_id, a.user.id, a.option_ids[0]).run();
   const first = await env.DB.prepare("SELECT option_id FROM answers WHERE poll_id=? AND user_id=?").bind(a.poll_id, a.user.id).first();
@@ -705,7 +707,9 @@ async function handle(env, u) {
     if (cmd.name !== "status") await env.DB.prepare("INSERT INTO settings(key,value) VALUES ('paused',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(cmd.name === "pause" ? "1" : "0").run();
     const paused = await env.DB.prepare("SELECT value FROM settings WHERE key='paused'").first();
     const errors = await env.DB.prepare("SELECT COUNT(*) AS n FROM updates WHERE state IN ('uncertain','failed')").first();
-    await say(env, u.update_id, m, `Testing bot ${paused?.value === "1" ? "paused" : "active"}. Proactive posts: 3–5/day, 10:00–23:00 Hong Kong, at least 2h apart. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
+    const policy=await postingPolicy(env);
+    const starters=await starterCount(env);
+    await say(env, u.update_id, m, `Testing bot ${paused?.value === "1" ? "paused" : "active"}. Proactive starters: ${starters}/${policy.target} today (baseline 5, ceiling 10). Current spacing: ${policy.gap/60}min; wait for 10 quiet minutes in the topic. Engagement over 4h: ${policy.participants} participants, score ${policy.score}. Active hours: 10:00–23:00 Hong Kong. Busy topics, pauses and delivery failures can prevent the target; no catch-up bursts. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
     return;
   }
   if (cmd?.name === "start" || cmd?.name === "help") {
@@ -814,7 +818,9 @@ async function processUpdate(env, id) {
       if (payload.internal_post || payload.internal_followup) {
         const body = JSON.parse(claimed.outbound);
         const autonomous = payload.internal_followup || !payload.internal_post.requested;
+        if (payload.internal_post && !payload.internal_post.requested && await starterCount(env,id)>=(await postingPolicy(env)).target) {await mark(env,id,'done');return;}
         if (payload.internal_followup && (env.PROACTIVE_ENABLED === 'false' || clock() - (await env.DB.prepare('SELECT closes_at FROM community_polls WHERE poll_id=?').bind(payload.internal_followup).first())?.closes_at > 86400)) {await mark(env,id,'done');return;}
+        if (payload.internal_post && !payload.internal_post.requested && await starterSpacingBlocked(env,id)) {await defer(env,id);return;}
         if (autonomous && (!activeHours() || !await quiet(env,body.message_thread_id||0))) {await defer(env,id);return;}
       }
       const delivered = await send(env, id, claimed.method, JSON.parse(claimed.outbound));
@@ -881,6 +887,7 @@ var index_default = {
       const c = command(text, env.BOT_USERNAME);
       if (await optedOut(env, m.from.id) && !["privacy", "optout", "optin", "forget"].includes(c?.name || "")) return new Response("OK");
       if (m.chat.id === Number(env.GROUP_ID)) {
+        if (!text.startsWith('/') && text.trim().length>=12 && !await optedOut(env,m.from.id)) await recordEngagement(env,m.from.id,m.message_thread_id||0,addressed(u.message,env));
         await env.DB.prepare('INSERT OR IGNORE INTO activity(update_id,thread_id,created_at) VALUES (?,?,?)').bind(u.update_id,m.message_thread_id||0,clock()).run();
         const topicName=(m.forum_topic_created?.name || m.forum_topic_edited?.name || '').toLowerCase().trim();
         if (['gaming','movies','lore'].includes(topicName) && Number.isSafeInteger(m.message_thread_id)) await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(topicName,m.message_thread_id).run();

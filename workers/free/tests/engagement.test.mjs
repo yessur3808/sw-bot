@@ -26,8 +26,8 @@ function update(id=1,text='@SIU_M8_bot Which droid would be the best coworker?',
 async function webhook(u) { const response=await worker.fetch(new Request('https://test/telegram',{method:'POST',headers:{'X-Telegram-Bot-Api-Secret-Token':'test-secret'},body:JSON.stringify(u)}),env,{waitUntil(p){waits.push(p);}});await Promise.all(waits.splice(0));return response; }
 async function queue(id,payload) {sqlite.prepare('INSERT INTO updates(id,payload,created_at) VALUES (?,?,?)').run(id,JSON.stringify(payload),Math.floor(Date.now()/1000));await processUpdate(env,id);}
 
-test('random plans stay in HK active hours, have 3–5 posts and at least 2h gaps',()=>{
- for(let i=0;i<1000;i++){const p=makePlan('2026-10-27');assert.ok(p.length>=3&&p.length<=5);assert.equal(new Set(p.map(s=>s.kind)).size,p.length);p.forEach((s,j)=>{assert.ok(activeHours(s.at));assert.equal(localDay(s.at),'2026-10-27');if(j)assert.ok(s.at-p[j-1].at>=7200);});}
+test('random plans stay in HK active hours, have five baseline posts and at least 2h gaps',()=>{
+ for(let i=0;i<1000;i++){const p=makePlan('2026-10-27');assert.equal(p.length,5);assert.equal(new Set(p.map(s=>s.kind)).size,p.length);p.forEach((s,j)=>{assert.ok(activeHours(s.at));assert.equal(localDay(s.at),'2026-10-27');if(j)assert.ok(s.at-p[j-1].at>=7200);});}
 });
 test('plain group mention gets contextual AI reply and duplicate delivery is suppressed',async()=>{
  await webhook(update());await webhook(update());assert.equal(sent.length,1);assert.equal(aiCalls.length,1);assert.equal(sent[0].body.reply_parameters.message_id,1);assert.match(aiCalls[0].messages[0].content,/cantina droid/);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM context').get().n,2);
@@ -68,8 +68,8 @@ test('movie cards are sourced, future dated and expire instead of inventing news
 test('changed release cache supersedes original seeded date',async()=>{
  sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('release:movie',JSON.stringify({date:'2026-10-26',checked:'2026-10-27'}));assert.equal(await currentRelease(env,'movie'),null);
 });
-test('scheduler keeps a durable plan, does not duplicate jobs or replay old slots',async()=>{
- const at=Date.now()/1000;sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('plan:2026-10-27',JSON.stringify([{at:at-60,kind:'idea'},{at:at-7200,kind:'poll'}]));await scheduleProactive(env);await scheduleProactive(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM updates').get().n,1);assert.equal(sqlite.prepare('SELECT id FROM updates').get().id,-(at-60));
+test('scheduler keeps a durable plan, deduplicates work and queues only one catch-up starter',async()=>{
+ const at=Date.now()/1000;sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27',JSON.stringify([{at:at-60,kind:'idea'},{at:at-7200,kind:'poll'}]));await scheduleProactive(env);await scheduleProactive(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM updates').get().n,1);assert.equal(sqlite.prepare('SELECT id FROM updates').get().id,-2000000000000-Math.floor(at/300));
 });
 test('429 retries the stored outbound payload without another model call',async()=>{
  let attempts=0;globalThis.fetch=async(url,options)=>{sent.push(JSON.parse(options.body));attempts++;return Response.json(attempts===1?{ok:false,error_code:429,parameters:{retry_after:2}}:{ok:true,result:{message_id:900}});};await webhook(update());assert.equal(sqlite.prepare('SELECT state FROM updates').get().state,'queued');Date.now=()=>Date.parse('2026-10-27T06:00:03Z');await processUpdate(env,1);assert.equal(aiCalls.length,1);assert.equal(sent.length,2);assert.deepEqual(sent[0],sent[1]);assert.equal(sqlite.prepare('SELECT state FROM updates').get().state,'done');
@@ -91,8 +91,8 @@ test('pause arriving during proactive generation prevents delivery',async()=>{
 });
 test('daily autonomous cap remains effective for explicitly requested posts',async()=>{
  let generated=0;env.AI.run=async()=>({response:`Creative prompt number ${++generated}: invent your ideal companion droid.`});
- for(let i=0;i<6;i++){await queue(-100-i,{internal_post:{kind:i%2?'game':'movie',scheduled_at:Date.now()/1000,requested:true}});Date.now=()=>Date.parse('2026-10-27T06:00:00Z')+(i+1)*1000;}
- assert.equal(sent.length,5);
+ for(let i=0;i<11;i++){await queue(-100-i,{internal_post:{kind:i%2?'game':'movie',scheduled_at:Date.now()/1000,requested:true}});Date.now=()=>Date.parse('2026-10-27T06:00:00Z')+(i+1)*1000;}
+ assert.equal(sent.length,10);
 });
 
 test('plain admin DM produces a group response without a private reply ID',async()=>{
@@ -223,7 +223,7 @@ test('a 429 follow-up retries its original text and rechecks topic activity',asy
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await processUpdate(env,-4000000000010);assert.equal(sent.length,2);assert.deepEqual(sent[0],sent[1]);assert.equal(aiCalls.length,1);
 });
 test('poll recording uses Telegram IDs and scheduler deduplicates its follow-up',async()=>{
- sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('plan:2026-10-27','[]');
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27','[]');
  globalThis.fetch=async(url,options)=>{const body=JSON.parse(options.body);sent.push({body});return Response.json({ok:true,result:{message_id:901,poll:{id:'real-poll',options:body.options.map(text=>({text,voter_count:0}))}}});};
  await webhook(update(1,'/poll'));assert.equal(sent[0].body.open_period,undefined);const p=sqlite.prepare('SELECT * FROM community_polls').get();assert.equal(p.poll_id,'real-poll');assert.equal(p.message_id,901);
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await receivePoll(env,{id:'real-poll',is_closed:true,options:JSON.parse(p.options)});
@@ -233,9 +233,83 @@ test('stale poll follow-ups expire rather than replaying yesterday’s discussio
  trackedPoll();Date.now=()=>Date.parse('2026-10-28T07:00:00Z');await queue(-4000000000010,{internal_followup:'poll-1'});assert.equal(sent.length,0);
 });
 test('maintenance closes polls and captures final totals even while their topic is busy',async()=>{
- sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('plan:2026-10-27','[]');
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27','[]');
  trackedPoll(undefined,0);await webhook(update(1,'hello',{message_thread_id:15}));
  globalThis.fetch=async(url,options)=>{const method=String(url).split('/').at(-1);sent.push({method,body:JSON.parse(options.body)});return Response.json({ok:true,result:{id:'poll-1',is_closed:true,options:[{text:'R2-D2',voter_count:4},{text:'Chopper',voter_count:2}]}});};
  await maintenance(env);assert.deepEqual(sent.map(s=>s.method),['stopPoll']);assert.equal(sqlite.prepare('SELECT closed FROM community_polls').get().closed,1);assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=-4000000000010').get().state,'queued');
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await processUpdate(env,-4000000000010);assert.equal(sent.at(-1).method,'sendMessage');assert.match(sent.at(-1).body.text,/4 votes/);
+});
+
+import { postingPolicy, recordEngagement, dayStart } from '../adaptive.mjs';
+function seedInterest(users,buckets,offset=0) {
+ const now=Date.now()/1000;
+ for(let u=1;u<=users;u++)for(let b=0;b<buckets;b++)sqlite.prepare('INSERT OR IGNORE INTO quota VALUES (?,?,?,?,?)').run(`interest:${u}:${b}:${offset}`,u,0,'engagement_reply',now-offset-b*300);
+}
+function seedStarters(count,age=8000) {
+ for(let i=0;i<count;i++)sqlite.prepare("INSERT INTO engagement_posts(update_id,kind,seed,text,payload,created_at,state) VALUES (?,'question',?,?, '{}',?,'sent')").run(-1000-i,`old:${i}`,`Existing starter ${i}`,Date.now()/1000-age-i);
+}
+test('posting target rises from five to seven to ten with recent participation',async()=>{
+ assert.equal((await postingPolicy(env)).target,5);seedInterest(2,2);assert.equal((await postingPolicy(env)).target,7);assert.equal((await postingPolicy(env)).gap,5400);
+ seedInterest(3,4);assert.equal((await postingPolicy(env)).target,10);assert.equal((await postingPolicy(env)).gap,3600);
+});
+test('single-member spam and repeated webhook delivery cannot unlock bonus posts',async()=>{
+ seedInterest(1,30);assert.equal((await postingPolicy(env)).target,5);
+ for(let i=0;i<20;i++)await recordEngagement(env,99,0,true);
+ assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM quota WHERE event_key LIKE 'engagement:99:%'").get().n,1);
+});
+test('engagement expires after four hours and opted-out members do not boost posting',async()=>{
+ seedInterest(3,4);assert.equal((await postingPolicy(env)).target,10);
+ sqlite.prepare('INSERT INTO preferences VALUES (1,1),(2,1)').run();assert.equal((await postingPolicy(env)).target,5);
+ sqlite.prepare('DELETE FROM preferences').run();Date.now=()=>Date.parse('2026-10-27T10:00:01Z');assert.equal((await postingPolicy(env)).target,5);
+});
+test('real aggregate poll votes can unlock moderate engagement without tracking voters',async()=>{
+ trackedPoll([{text:'R2-D2',voter_count:4},{text:'Chopper',voter_count:4}]);assert.equal((await postingPolicy(env)).target,7);
+ sqlite.prepare('UPDATE community_polls SET closed=0').run();assert.equal((await postingPolicy(env)).target,5);
+});
+test('private messages and admin commands never boost engagement',async()=>{
+ await webhook(update(1,'/status'));await webhook(update(2,'Which droid should I pick?',{chat:{id:42,type:'private'}}));assert.equal((await postingPolicy(env)).score,0);
+ await webhook(update(3,'An ordinary group contribution.'));assert.equal((await postingPolicy(env)).score,1);
+});
+test('five baseline reservations prevent extra posts without engagement',async()=>{
+ seedStarters(5);await scheduleProactive(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM updates').get().n,0);
+ await queue(-10,{internal_post:{kind:'idea',scheduled_at:Date.now()/1000,adaptive:true}});assert.equal(sent.length,0);
+});
+test('high engagement queues an extra post but a busy topic still defers it',async()=>{
+ seedStarters(5);seedInterest(3,4);await webhook(update(10,'The cantina is busy right now.'));await scheduleProactive(env);
+ const row=sqlite.prepare('SELECT id FROM updates WHERE id<0').get();assert.ok(row);await processUpdate(env,row.id);assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=?').get(row.id).state,'queued');
+ Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await processUpdate(env,row.id);assert.equal(sent.length,1);
+});
+test('queued bonuses are cancelled when engagement cools before execution',async()=>{
+ seedStarters(5);seedInterest(3,4);await scheduleProactive(env);const row=sqlite.prepare('SELECT id FROM updates WHERE id<0').get();assert.ok(row);
+ sqlite.prepare("DELETE FROM quota WHERE kind='engagement_reply'").run();await processUpdate(env,row.id);assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=?').get(row.id).state,'done');
+});
+test('adaptive minimum spacing, pause and quiet hours remain enforced',async()=>{
+ seedStarters(5,1800);seedInterest(3,4);await scheduleProactive(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM updates').get().n,0);
+ sqlite.prepare('UPDATE engagement_posts SET created_at=created_at-7200').run();sqlite.prepare("INSERT INTO settings VALUES ('paused','1')").run();await scheduleProactive(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM updates').get().n,0);
+ sqlite.prepare("DELETE FROM settings WHERE key='paused'").run();Date.now=()=>Date.parse('2026-10-27T16:00:00Z');await scheduleProactive(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM updates').get().n,0);
+});
+test('daily counts reset at Hong Kong midnight rather than UTC midnight',async()=>{
+ Date.now=()=>Date.parse('2026-10-27T16:01:00Z');assert.equal(dayStart(),Date.parse('2026-10-27T16:00:00Z')/1000);
+});
+test('a quiet full day schedules five baseline starters without a catch-up burst',async()=>{
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27',JSON.stringify(makePlan('2026-10-27',()=>0)));
+ let generated=0;env.AI.run=async()=>({response:`Fresh discussion ${++generated}: what would you put in a cantina?`});
+ for(let minute=0;minute<13*60;minute+=5){Date.now=()=>Date.parse('2026-10-27T02:00:00Z')+minute*60000;await scheduleProactive(env);const rows=sqlite.prepare("SELECT id FROM updates WHERE state='queued'").all();for(const r of rows)await processUpdate(env,r.id);}
+ assert.equal(sent.length,5);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM engagement_posts WHERE state='sent'").get().n,5);
+});
+test('sustained engagement can reach ten but never exceeds the daily ceiling',async()=>{
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27',JSON.stringify(makePlan('2026-10-27',()=>0)));
+ let generated=0;env.AI.run=async()=>({response:`Fresh lively discussion ${++generated}: which planet would you visit?`});
+ for(let hour=0;hour<13;hour++){Date.now=()=>Date.parse('2026-10-27T02:00:00Z')+hour*3600000;seedInterest(3,4,hour);await scheduleProactive(env);for(const r of sqlite.prepare("SELECT id FROM updates WHERE state='queued'").all())await processUpdate(env,r.id);}
+ assert.equal(sent.length,10);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM engagement_posts WHERE state='sent'").get().n,10);
+});
+test('a retry does not publish a bonus after participation falls below the current count',async()=>{
+ seedStarters(5);seedInterest(3,4);globalThis.fetch=async()=>Response.json({ok:false,error_code:429,parameters:{retry_after:2}});
+ await queue(-50,{internal_post:{kind:'idea',scheduled_at:Date.now()/1000}});assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=-50').get().state,'queued');
+ sqlite.prepare("DELETE FROM quota WHERE kind='engagement_reply'").run();Date.now=()=>Date.parse('2026-10-27T06:01:00Z');globalThis.fetch=async()=>{throw Error('retry must not send');};await processUpdate(env,-50);assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=-50').get().state,'done');
+});
+test('status exposes the dynamic target and group messages create erasable signals',async()=>{
+ seedInterest(3,4);await webhook(update(1,'/status'));assert.match(sent.at(-1).body.text,/0\/10 today/);assert.match(sent.at(-1).body.text,/60min/);
+ await webhook(update(2,'The droids deserve their own spin-off.'));assert.ok(sqlite.prepare("SELECT 1 FROM quota WHERE user_id=42 AND kind='engagement_chat'").get());
+ await webhook(update(3,'/forget'));assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM quota WHERE user_id=42').get().n,0);
 });

@@ -8,10 +8,25 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
 
 ## Behavior
 
-- A persisted random daily plan selects 3–5 different post categories between
-  10:00 and 23:00 Hong Kong time, at least two hours apart. Missed slots are skipped,
-  not replayed in a burst. Replies and explicitly requested posts are separate
-  from scheduled slots; requested posts share the five-post safety cap.
+- Five baseline starters per Hong Kong day, with a persisted random plan between
+  10:00 and 23:00. The target rises to seven or ten as recent participation grows.
+  Baseline spacing is two hours, moderate engagement 90 minutes, strong engagement
+  60 minutes. All starter reservations, including requested posts, share a hard
+  ten-per-day ceiling. Poll follow-ups and conversational replies are separate.
+- Adaptive signals look back four hours: distinct participating members, meaningful
+  group messages, replies/mentions of the bot, quiz answers and actual closed-poll
+  votes. At most one signal per member per five minutes counts (one point for chat,
+  two for bot replies/quiz participation). Poll votes add up to ten points; the
+  largest single-poll voter count also supplies a distinct-participant lower bound.
+  Two participants and eight points unlock seven starters; three participants and
+  twenty points unlock ten. Commands, DMs, bots and opted-out members do not boost
+  the message score. Anonymous poll totals remain aggregate, without voter IDs.
+- As signals age out, extra slots are cancelled, including queued retries. Unsent
+  baseline slots are recovered one at a time with normal spacing, never in a burst.
+  Five is the daily baseline target, not permission to override quiet hours, pauses,
+  continuously busy topics or delivery failures. `/status` shows current count,
+  target, spacing, participant count and score. Metadata expires after two days;
+  `/forget` erases member-linked signals.
 - Scheduled posts wait for ten quiet minutes in their destination topic. Busy slots
   retry every five minutes for up to one hour, then expire instead of interrupting
   a conversation. Ambient replies stop after four messages in ten minutes.
@@ -55,7 +70,7 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   member's language.
 - `/pause` and `/resume` control participation. `/status` describes active limits.
   Admins can request `/post question`, `/post poll`, `/post idea`, `/post movie`,
-  or `/post game` (one per minute, five per day, subject to total post cap).
+  or `/post game` (one per minute, five explicit requests per day, subject to the ten-starter total cap).
 - `/privacy`, `/optout`, `/optin` and `/forget` are retained. Conversation text
   expires after 24h; autonomous post history after 30 days. Nonselected ordinary
   messages are not stored. Ambiguous Telegram delivery is recorded for inspection
@@ -85,7 +100,7 @@ The live bindings are `DB` (D1), `AI` (Workers AI), `BOT_TOKEN` and
 
 - `GROUP_ID`, `BOT_USERNAME`, `ADMIN_USER_IDS`, `ALLOWED_THREAD_IDS`
 - `AI_MODEL` = `@cf/meta/llama-3.3-70b-instruct-fp8-fast`
-- `AI_DAILY_CAP` = `60` (reply budget; five additional proactive generations/day,
+- `AI_DAILY_CAP` = `60` (reply budget; ten additional proactive generations/day,
   plus one generation per voted poll follow-up)
 - `PROACTIVE_ENABLED` = `true`; set `false` to stop proactive posts
 - Optional `PROACTIVE_THREAD_ID` (defaults to first allowlisted topic or General)
@@ -111,7 +126,7 @@ Do not use the old root `.env` token for this Worker.
 Cron runs each minute, maintaining the plan, draining the durable queue and
 expiring old context. `engagement_posts` records content, generation mode, Telegram
 message ID and delivery state. `updates` contains queued/error delivery states.
-The `settings` table holds `plan:YYYY-MM-DD`, source snapshots, diagnostic results
+The `settings` table holds `adaptive-plan:YYYY-MM-DD`, the latest `posting_policy`, source snapshots, diagnostic results
 and `last_delivery` (destination, method, Telegram message ID and timestamp; no
 message text or credentials).
 
