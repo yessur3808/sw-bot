@@ -123,6 +123,7 @@ npx wrangler d1 execute sw-bot-test --remote --file migrations/0002_engagement.s
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0003_community.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0004_cantina.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0005_production.sql
+npx wrangler d1 execute sw-bot-test --remote --file migrations/0006_safe_recaps_games.sql
 npx wrangler deploy
 ```
 
@@ -312,3 +313,19 @@ Briefings are skipped when there are no eligible discussion highlights, voted po
 results or confirmed upcoming activities. Zero-vote polls and ordinary unengaged
 chatter do not justify a recap. This also applies to `/briefing`: there is no queue
 acknowledgement or empty recap message. Skipped jobs consume no posting budget.
+
+
+Migration 0006 excludes legacy excerpts with unknown spoiler formatting from
+briefings and hosting. New spoiler-marked messages keep only reply-tracking
+metadata, without the spoiler text. Briefings validate all source records and
+consent after generation and again immediately before Telegram delivery; a
+withdrawn source invalidates the whole draft to avoid cross-source summaries.
+Retries rebuild the briefing from current records. Empty/invalidated briefings
+remain silent.
+
+Game rounds now advance only after confirmed delivery. New games have a one-hour
+window to deliver their first post; the session clock starts with that delivery.
+Later trivia rounds wait at least 150 seconds, and character clues 300 seconds,
+from the previous successful send. Stale steps cannot rewind progress, and
+future queued steps wait for their predecessors. Expired sessions do not produce
+catch-up bursts. Production remains disabled.

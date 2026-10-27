@@ -590,7 +590,7 @@ function groupDelivery(env, original) {
   if (Number(body.chat_id) !== Number(env.GROUP_ID) || Number(env.GROUP_ID) >= 0) throw new Error("unexpected-delivery-chat");
   return body;
 }
-async function send(env, updateId, method, body) {
+async function send(env, updateId, method, body, deliveryGuard) {
   await assertDeployment(env);
   body = groupDelivery(env, body);
   const club=await clubJob(env,updateId);
@@ -599,6 +599,11 @@ async function send(env, updateId, method, body) {
   // Community polls are closed by maintenance, which captures final totals.
   // Telegram may not send an update when an automatic timer closes an empty poll.
   await env.DB.prepare("UPDATE updates SET state='sending',outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
+  // Recheck after all queue/budget writes, immediately before the external send.
+  if(deliveryGuard){
+    const decision=await deliveryGuard();
+    if(decision!=='send')throw Error(decision==='wait'?'delivery-deferred':'delivery-invalidated');
+  }
   let response;
   try {
     response = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`, {
@@ -884,6 +889,12 @@ async function processUpdate(env, id) {
     const after = await env.DB.prepare('SELECT state FROM updates WHERE id=?').bind(id).first();
     if (after?.state !== 'queued') await mark(env, id, "done");
   } catch (error) {
+    if(error.message==='delivery-deferred'){await defer(env,id);return;}
+    if(error.message==='delivery-invalidated'){
+      const job=await clubJob(env,id);
+      if(job)await env.DB.prepare("UPDATE club_jobs SET state='skipped' WHERE id=?").bind(job.id).run();
+      await mark(env,id,'done','delivery-invalidated');return;
+    }
     if(error.message==='automated-budget-exhausted'){
       const job=await clubJob(env,id);
       if(job){

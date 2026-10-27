@@ -1,7 +1,7 @@
 import {nowSeconds,localDay,activeHours,setting,setSetting,cleanAnswer} from './engagement.mjs';
 import {quiet,defer,topicThread} from './community.mjs';
-import {CLUB_OFFSET,queueClub,clubPaused,out,isAdmin,makeBriefing,messageLink,hkTime} from './cantina-core.mjs';
-import {startGame,gameBody,gameDelivered,scheduleGames} from './cantina-games.mjs';
+import {CLUB_OFFSET,queueClub,clubPaused,out,isAdmin,prepareBriefing,briefingSourcesAllowed,messageLink,hkTime} from './cantina-core.mjs';
+import {startGame,gameBody,gameDelivered,scheduleGames,gameDeliveryStatus} from './cantina-games.mjs';
 export async function clubJob(env,updateId){return env.DB.prepare('SELECT * FROM club_jobs WHERE id=?').bind(-updateId-CLUB_OFFSET).first();}
 export async function clubAllowed(env,job){
  if(!job||job.state!=='pending')return 'cancel';
@@ -17,7 +17,7 @@ export async function clubAllowed(env,job){
   if(job.kind==='event_reminder'&&(e.status!=='confirmed'||e.starts_at<=nowSeconds()))return 'cancel';
  }
  if(job.kind==='host'){
-  const source=await env.DB.prepare('SELECT * FROM club_messages WHERE message_id=?').bind(data.message_id).first();if(!source||source.kind==='resolved'||await out(env,source.user_id))return 'cancel';
+  const source=await env.DB.prepare('SELECT * FROM club_messages WHERE message_id=?').bind(data.message_id).first();if(!source||!source.recap_safe||source.kind==='resolved'||await out(env,source.user_id))return 'cancel';
   const controls=await env.DB.prepare('SELECT * FROM club_controls WHERE user_id=?').bind(source.user_id).first();if(controls?.prompts===0||controls?.last_nudge>nowSeconds()-604800)return 'cancel';
   const replies=await env.DB.prepare('SELECT 1 FROM club_messages WHERE parent_id=? AND user_id<>? LIMIT 1').bind(source.message_id,source.user_id).first();if(replies)return 'cancel';
  }
@@ -30,10 +30,12 @@ export async function handleClubJob(env,id,send){
  if(allowed==='wait'){await defer(env,id);return;}
  if(allowed==='cancel'){if(job)await env.DB.prepare("UPDATE club_jobs SET state='cancelled' WHERE id=? AND state='pending'").bind(job.id).run();return;}
  const data=JSON.parse(job.data),base={chat_id:Number(env.GROUP_ID),...(job.thread_id?{message_thread_id:job.thread_id}:{})};
- let method='sendMessage',body={...base};
+ let method='sendMessage',body={...base},deliveryGuard;
  if(job.kind==='briefing'){
-  body.text=await makeBriefing(env);
-  if(!body.text){await env.DB.prepare("UPDATE club_jobs SET state='skipped' WHERE id=?").bind(job.id).run();return;}
+  const briefing=await prepareBriefing(env);
+  if(!briefing){await env.DB.prepare("UPDATE club_jobs SET state='skipped' WHERE id=?").bind(job.id).run();return;}
+  body.text=briefing.text;
+  deliveryGuard=async()=>await briefingSourcesAllowed(env,briefing.sources)?'send':'cancel';
  }
  else if(job.kind==='text')body.text=data.text;
  else if(job.kind==='host'){
@@ -69,11 +71,14 @@ export async function handleClubJob(env,id,send){
   await startGame(env,-id,data.kind,job.thread_id);await env.DB.prepare("UPDATE club_jobs SET state='sent' WHERE id=?").bind(job.id).run();return;
  }
  else if(job.kind==='game_step'||job.kind==='game_close'){
+  const status=await gameDeliveryStatus(env,job);
+  if(status==='wait'){await defer(env,id);return;}
+  deliveryGuard=()=>gameDeliveryStatus(env,job);
   const generated=await gameBody(env,job);if(!generated){await env.DB.prepare("UPDATE club_jobs SET state='cancelled' WHERE id=?").bind(job.id).run();return;}({method,body}=generated);
  }
  else return;
  const recheck=await clubAllowed(env,job);if(recheck==='wait'){await defer(env,id);return;}if(recheck==='cancel')return;
- await send(env,id,method,{...body,...method==='sendMessage'?{link_preview_options:{is_disabled:true}}:{}});
+ await send(env,id,method,{...body,...method==='sendMessage'?{link_preview_options:{is_disabled:true}}:{}},deliveryGuard);
 }
 export async function clubDelivered(env,id,method,body,result){
  const job=await clubJob(env,id);if(!job)return;
@@ -96,7 +101,7 @@ export async function scheduleClub(env){
   if(activeHours()){
    const recent=await env.DB.prepare("SELECT 1 FROM club_jobs WHERE kind='host' AND run_at>? LIMIT 1").bind(now-86400).first();
    if(!recent){
-    const candidate=await env.DB.prepare(`SELECT m.* FROM club_messages m WHERE m.user_id<>0 AND m.created_at>? AND m.created_at<? AND (kind='question' OR (kind='suggestion' AND (SELECT COUNT(*) FROM club_reactions r WHERE r.message_id=m.message_id)>=2))
+    const candidate=await env.DB.prepare(`SELECT m.* FROM club_messages m WHERE m.user_id<>0 AND m.recap_safe=1 AND m.created_at>? AND m.created_at<? AND (kind='question' OR (kind='suggestion' AND (SELECT COUNT(*) FROM club_reactions r WHERE r.message_id=m.message_id)>=2))
      AND NOT EXISTS(SELECT 1 FROM club_messages r WHERE r.parent_id=m.message_id AND r.user_id<>m.user_id)
      AND NOT EXISTS(SELECT 1 FROM club_controls c WHERE c.user_id=m.user_id AND (c.prompts=0 OR c.last_nudge>?))
      AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=m.user_id AND p.opted_out=1)

@@ -13,6 +13,7 @@ function database() {
   db.exec(readFileSync(new URL('../migrations/0003_community.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0004_cantina.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0005_production.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0006_safe_recaps_games.sql', import.meta.url), 'utf8'));
   db.exec("INSERT INTO deployment_identity VALUES (1,'-100123','test')");
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];
@@ -595,4 +596,110 @@ test('a voted poll alone is enough to publish a briefing without an empty-discus
 test('a confirmed upcoming event alone keeps the briefing useful',async()=>{
  sqlite.prepare("INSERT INTO club_events(id,title,creator,starts_at,location,status,created_at,thread_id) VALUES(1,'Watch party',42,?,'Room','confirmed',?,0)").run(Date.now()/1000+86400,Date.now()/1000);
  const briefing=await makeBriefing(env);assert.match(briefing,/Upcoming: Watch party/);assert.doesNotMatch(briefing,/No eligible/);
+});
+
+test('forget during briefing generation invalidates the entire draft, including blended summaries',async()=>{
+ env.AMBIENT_ENABLED='false';
+ await webhook(update(800,'Should we discuss my secret watch-party idea?',{from:{id:77}}));
+ await webhook(update(801,'Which day is best for the public meetup?',{from:{id:78}}));
+ env.AI.run=async()=>{
+  await webhook(update(802,'/forget',{from:{id:77}}));
+  return {response:JSON.stringify([{id:801,summary:'Combine the public meetup with the secret watch-party idea.'}])};
+ };
+ await queueClub(env,'forget-during-briefing','briefing',{requested:true},0,42);await drainClub();
+ assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_messages WHERE user_id=77').get().n,0);
+ assert.equal(sent.filter(s=>s.body.text?.startsWith('Cantina briefing')).length,0);
+ assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE kind='briefing'").get().state,'skipped');
+});
+test('briefing source consent is rechecked at final send after queue writes',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(800,'Should we discuss my watch-party idea?',{from:{id:77}}));
+ env.AI.run=async()=>({response:JSON.stringify([{id:800,summary:'A watch-party idea was proposed.'}])});
+ const originalPrepare=env.DB.prepare.bind(env.DB);let withdrawn=false;
+ env.DB.prepare=sql=>{
+  const statement=originalPrepare(sql);
+  if(sql.startsWith("UPDATE updates SET state='sending'")){
+   const bind=statement.bind,run=statement.run;let body;
+   statement.bind=(...args)=>{body=JSON.parse(args[0]);return bind(...args);};
+   statement.run=async()=>{const result=await run();if(!withdrawn&&body.text?.startsWith('Cantina briefing')){withdrawn=true;await webhook(update(801,'/forget',{from:{id:77}}));}return result;};
+  }
+  return statement;
+ };
+ await queueClub(env,'late-withdrawal','briefing',{requested:true},0,42);await drainClub();
+ assert.ok(withdrawn);assert.equal(sent.filter(s=>s.body.text?.startsWith('Cantina briefing')).length,0);
+ assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE kind='briefing'").get().state,'skipped');
+ assert.ok(sqlite.prepare("SELECT 1 FROM updates WHERE error='delivery-invalidated' AND outbound IS NULL").get());
+});
+test('briefing rate-limit retries rebuild from current sources after opt-out',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(800,'Would you join my watch-party idea?',{from:{id:77}}));
+ const job=await queueClub(env,'briefing-429','briefing',{requested:true},0,42),id=-CLUB_OFFSET-job.id;
+ globalThis.fetch=async()=>Response.json({ok:false,error_code:429,parameters:{retry_after:2}});
+ await drainClub();assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=?').get(id).state,'queued');
+ nativeTelegram();await webhook(update(801,'/optout',{from:{id:77}}));Date.now=()=>Date.parse('2026-10-27T06:00:03Z');await drainClub();
+ assert.equal(sent.filter(s=>s.body.text?.startsWith('Cantina briefing')).length,0);
+ assert.equal(sqlite.prepare('SELECT state FROM club_jobs WHERE id=?').get(job.id).state,'skipped');
+});
+test('spoiler-formatted excerpts are excluded from AI briefings and fallback text',async()=>{
+ env.AMBIENT_ENABLED='false';
+ await webhook(update(800,'Why does Captain Example die in the finale?',{from:{id:77},entities:[{type:'spoiler',offset:0,length:42}]}));
+ await webhook(update(801,'Which droid would make a good host?',{from:{id:78}}));
+ env.AI.run=async(model,request)=>{aiCalls.push(request);throw Error('unavailable');};
+ await webhook(update(802,'/briefing'));await drainClub();
+ assert.equal(sent.length,1);assert.match(sent[0].body.text,/Which droid/);assert.doesNotMatch(sent[0].body.text,/Captain Example/);
+ assert.ok(aiCalls.length);assert.doesNotMatch(JSON.stringify(aiCalls),/Captain Example/);
+ assert.equal(sqlite.prepare('SELECT text FROM club_messages WHERE message_id=800').get().text,'');
+});
+test('spoiler-marked questions cannot be revived by new or already queued hosting jobs',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(800,'Why does Captain Example die in the finale?',{from:{id:77},entities:[{type:'spoiler',offset:0,length:42}]}));
+ await queueClub(env,'legacy-host-spoiler','host',{message_id:800},0,77);
+ Date.now=()=>Date.parse('2026-10-27T08:01:00Z');await drainClub();
+ assert.equal(sent.length,0);assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE kind='host'").get().state,'cancelled');
+});
+test('legacy excerpts with unknown spoiler metadata are not eligible for recaps',async()=>{
+ sqlite.prepare("INSERT INTO club_messages(message_id,user_id,thread_id,text,kind,created_at) VALUES(800,77,0,'Why does Captain Example die?','question',?)").run(Date.now()/1000);
+ assert.equal(await makeBriefing(env),null);assert.equal(aiCalls.length,0);
+});
+test('a ten-minute delayed character game starts at clue one and waits between delivered clues',async()=>{
+ await startGame(env,800,'character',6);
+ Date.now=()=>Date.parse('2026-10-27T06:10:01Z');await drainClub();
+ const clues=()=>sent.filter(s=>s.body.text?.startsWith('Character game')).map(s=>Number(s.body.text.match(/clue (\d)/)[1]));
+ assert.deepEqual(clues(),[1]);assert.equal(sqlite.prepare('SELECT last_step_at FROM club_games').get().last_step_at,Date.now()/1000);
+ Date.now=()=>Date.parse('2026-10-27T06:15:00Z');await drainClub();assert.deepEqual(clues(),[1]);
+ Date.now=()=>Date.parse('2026-10-27T06:15:01Z');await drainClub();assert.deepEqual(clues(),[1,2]);
+ Date.now=()=>Date.parse('2026-10-27T06:20:01Z');await drainClub();assert.deepEqual(clues(),[1,2,3]);
+});
+test('legacy future rounds wait for predecessors and stale rounds cannot rewind progress',async()=>{
+ await startGame(env,800,'character',6);
+ await queueClub(env,'game:800:2','game_step',{game_id:800,step:2},6);
+ Date.now=()=>Date.parse('2026-10-27T06:10:01Z');await drainClub();
+ assert.equal(sent.length,1);assert.match(sent[0].body.text,/clue 1\/3/);
+ await queueClub(env,'stale-step-zero','game_step',{game_id:800,step:0},6);await drainClub();
+ assert.equal(sent.length,1);assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE job_key='stale-step-zero'").get().state,'cancelled');
+ Date.now=()=>Date.parse('2026-10-27T06:15:01Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.text,/clue 2\/3/);
+ Date.now=()=>Date.parse('2026-10-27T06:20:01Z');await drainClub();assert.equal(sent.length,3);assert.match(sent[2].body.text,/clue 3\/3/);
+ assert.equal(sqlite.prepare('SELECT step FROM club_games').get().step,2);
+});
+test('trivia waits for successful first delivery after 429 before scheduling the next poll',async()=>{
+ await startGame(env,800,'trivia',6);globalThis.fetch=async()=>Response.json({ok:false,error_code:429,parameters:{retry_after:600}});await drainClub();
+ assert.equal(sqlite.prepare('SELECT step FROM club_games').get().step,-1);
+ Date.now=()=>Date.parse('2026-10-27T06:09:00Z');await scheduleClub(env);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_jobs WHERE kind='game_step'").get().n,1);
+ nativeTelegram();Date.now=()=>Date.parse('2026-10-27T06:10:00Z');await drainClub();assert.equal(sent.length,1);assert.match(sent[0].body.question,/round 1\/3/);
+ Date.now=()=>Date.parse('2026-10-27T06:12:29Z');await drainClub();assert.equal(sent.length,1);
+ Date.now=()=>Date.parse('2026-10-27T06:12:30Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.question,/round 2\/3/);
+});
+test('unsent games expire without revealing an answer or emitting a catch-up burst',async()=>{
+ await startGame(env,800,'character',6);Date.now=()=>Date.parse('2026-10-27T07:01:00Z');await drainClub();
+ assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'expired');
+});
+test('a game solved during queue preparation is rechecked before the clue reaches Telegram',async()=>{
+ await startGame(env,800,'character',6);
+ const originalPrepare=env.DB.prepare.bind(env.DB);let solved=false;
+ env.DB.prepare=sql=>{
+  const statement=originalPrepare(sql);
+  if(sql.startsWith("UPDATE updates SET state='sending'")){
+   const run=statement.run;
+   statement.run=async()=>{const result=await run();if(!solved){solved=true;sqlite.exec("UPDATE club_games SET state='solved' WHERE id=800");}return result;};
+  }
+  return statement;
+ };
+ await drainClub();assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT step FROM club_games').get().step,-1);
 });

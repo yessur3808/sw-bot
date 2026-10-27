@@ -26,7 +26,7 @@ export async function gamePoints(env,key,user,points,kind){
 export async function startGame(env,id,kind,thread,user=null){
  if(!['trivia','character','caption'].includes(kind))return;
  const n=nowSeconds(),payload=kind==='character'?CHARACTERS[Math.abs(id)%CHARACTERS.length]:kind==='caption'?{prompt:CAPTIONS[Math.abs(id)%CAPTIONS.length]}:{questions:Array.from({length:3},(_,i)=>TRIVIA[(Math.floor(n/604800)+i)%TRIVIA.length])};
- await env.DB.prepare('INSERT OR IGNORE INTO club_games(id,kind,thread_id,opened_at,ends_at,payload) VALUES (?,?,?,?,?,?)').bind(id,kind,thread,n,n+(kind==='caption'?86400:kind==='character'?900:480),JSON.stringify(payload)).run();
+ await env.DB.prepare('INSERT OR IGNORE INTO club_games(id,kind,thread_id,opened_at,ends_at,payload,step) VALUES (?,?,?,?,?,?,-1)').bind(id,kind,thread,n,n+3600,JSON.stringify(payload)).run();
  await queueClub(env,`game:${id}:0`,'game_step',{game_id:id,step:0,requested:Boolean(user)},thread,user,n,3600);
 }
 export async function gameCommand(env,u,cmd,say){
@@ -81,7 +81,19 @@ export async function gameVote(env,a){
  const inserted=await env.DB.prepare('INSERT OR IGNORE INTO club_game_answers VALUES (?,?,?,?)').bind(round.game_id,round.round,a.user.id,correct).run();
  if(inserted.meta.changes)await gamePoints(env,`trivia:${round.game_id}:${round.round}:${a.user.id}`,a.user.id,correct?3:1,'team-trivia');return true;
 }
+export const gameInterval=kind=>kind==='trivia'?150:300;
+export async function gameDeliveryStatus(env,job){
+ const {game_id,step}=JSON.parse(job.data);
+ const game=await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(game_id).first();
+ if(!game||game.state!=='open')return 'cancel';
+ if(job.kind==='game_close')return !game.message_id?'cancel':game.ends_at>nowSeconds()?'wait':'send';
+ if(!Number.isInteger(step)||step<0||step>(game.kind==='caption'?0:2)||step<=game.step||nowSeconds()>=game.ends_at)return 'cancel';
+ if(step>game.step+1)return 'wait'; // Hold legacy/future jobs until their predecessor is delivered.
+ if(game.last_step_at!==null&&nowSeconds()<game.last_step_at+gameInterval(game.kind))return 'wait';
+ return 'send';
+}
 export async function gameBody(env,job){
+ if(await gameDeliveryStatus(env,job)!=='send')return null;
  const {game_id,step}=JSON.parse(job.data),game=await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(game_id).first();if(!game||game.state!=='open')return null;
  const payload=JSON.parse(game.payload),base={chat_id:Number(env.GROUP_ID),...(game.thread_id?{message_thread_id:game.thread_id}:{})};
  if(job.kind==='game_close'){
@@ -104,21 +116,27 @@ export async function gameBody(env,job){
   return {method:'sendPoll',body:{...base,question:`Team trivia ${game.id}, round ${step+1}/3: ${q.question}`,options:q.options,type:'quiz',correct_option_id:q.correct,is_anonymous:false,open_period:120,explanation:`Answer: ${q.options[q.correct]}. First answer counts; /team chooses your team.`}};
  }
  if(game.kind==='character')return {method:'sendMessage',body:{...base,text:`Character game ${game.id} — clue ${step+1}/3\n${payload.clues[step]}\nGuess with /answer ${game.id} <character>. First correct answer earns five points.`}};
- return {method:'sendMessage',body:{...base,text:`Caption contest ${game.id}\n${payload.prompt}\nOne original entry: /caption ${game.id} <caption>\nRead and vote: /game show ${game.id}\nEnds ${hkTime(game.ends_at)}. Peer votes and creativity earn seasonal points.`}};
+ return {method:'sendMessage',body:{...base,text:`Caption contest ${game.id}\n${payload.prompt}\nOne original entry: /caption ${game.id} <caption>\nRead and vote: /game show ${game.id}\nEnds ${hkTime(nowSeconds()+86400)}. Peer votes and creativity earn seasonal points.`}};
 }
 export async function gameDelivered(env,job,result){
  const {game_id,step}=JSON.parse(job.data),game=await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(game_id).first();if(!game)return;
  if(job.kind==='game_close'){await env.DB.prepare("UPDATE club_games SET state='closed' WHERE id=? AND state='open'").bind(game.id).run();return;}
- await env.DB.prepare('UPDATE club_games SET step=?,message_id=COALESCE(message_id,?) WHERE id=?').bind(step,result.message_id||null,game.id).run();
+ // Only a confirmed, sequential delivery advances the game or its clocks.
+ const remaining=game.kind==='caption'?86400:game.kind==='character'?(3-step)*300:(2-step)*150+180;
+ const advanced=await env.DB.prepare(`UPDATE club_games SET step=?,message_id=COALESCE(message_id,?),last_step_at=?,
+ opened_at=CASE WHEN step=-1 THEN ? ELSE opened_at END,ends_at=? WHERE id=? AND state='open' AND step=?`)
+ .bind(step,result.message_id||null,nowSeconds(),nowSeconds(),nowSeconds()+remaining,game.id,step-1).run();
+ if(!advanced.meta.changes)return;
  if(game.kind==='trivia'&&result.poll?.id){const q=JSON.parse(game.payload).questions[step];await env.DB.prepare('INSERT OR IGNORE INTO club_game_polls VALUES (?,?,?,?,?)').bind(result.poll.id,game.id,step,q.correct,nowSeconds()+125).run();}
 }
 export async function scheduleGames(env){
  const games=(await env.DB.prepare("SELECT * FROM club_games WHERE state='open'").all()).results;
  for(const g of games){
   if(g.ends_at<nowSeconds()-3600){await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(g.id).run();continue;}
+  if(g.ends_at<=nowSeconds()&&!g.message_id){await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(g.id).run();continue;}
   if(g.ends_at<=nowSeconds()){await queueClub(env,`game:${g.id}:close`,'game_close',{game_id:g.id},g.thread_id,null,nowSeconds(),3600);continue;}
-  if(g.kind==='caption')continue;
-  const step=Math.min(2,Math.floor((nowSeconds()-g.opened_at)/(g.kind==='trivia'?150:300)));
-  if(step>g.step)await queueClub(env,`game:${g.id}:${step}`,'game_step',{game_id:g.id,step},g.thread_id,null,nowSeconds(),1800);
+  if(g.kind==='caption'||g.step<0||g.step>=2||g.last_step_at===null||nowSeconds()<g.last_step_at+gameInterval(g.kind))continue;
+  const step=g.step+1;
+  await queueClub(env,`game:${g.id}:${step}`,'game_step',{game_id:g.id,step},g.thread_id,null,nowSeconds(),1800);
  }
 }
