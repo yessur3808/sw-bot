@@ -93,3 +93,39 @@ test('daily autonomous cap remains effective for explicitly requested posts',asy
  for(let i=0;i<6;i++){await queue(-100-i,{internal_post:{kind:i%2?'game':'movie',scheduled_at:Date.now()/1000,requested:true}});Date.now=()=>Date.parse('2026-10-27T06:00:00Z')+(i+1)*1000;}
  assert.equal(sent.length,5);
 });
+
+test('plain admin DM produces a group response without a private reply ID',async()=>{
+ await webhook(update(200,'Which droid would you take on a road trip?',{chat:{id:42,type:'private'},message_thread_id:777}));
+ assert.equal(aiCalls.length,1);assert.equal(sent.length,1);assert.equal(sent[0].body.chat_id,-100123);assert.equal(sent[0].body.reply_parameters,undefined);assert.equal(sent[0].body.message_thread_id,undefined);
+ assert.match(aiCalls[0].messages[0].content,/published in the group/);
+ const shared=sqlite.prepare('SELECT role,content FROM context WHERE chat_id=-100123').all();assert.equal(shared.length,1);assert.equal(shared[0].role,'assistant');
+ assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM context WHERE chat_id=42').get().n,2);
+});
+test('non-admin private users cannot cause group posts',async()=>{
+ await webhook(update(201,'/poll',{chat:{id:43,type:'private'},from:{id:43,first_name:'Other',is_bot:false}}));assert.equal(sent.length,0);
+});
+test('private commands including polls and quizzes always use the group destination',async()=>{
+ for(const [i,cmd] of ['/help','/status','/poll','/trivia','/whereami','/privacy'].entries()){
+  Date.now=()=>Date.parse('2026-10-27T06:00:00Z')+i*61000;
+  await webhook(update(210+i,cmd,{chat:{id:42,type:'private'}}));
+ }
+ assert.equal(sent.length,6);for(const s of sent){assert.equal(s.body.chat_id,-100123);assert.equal(s.body.reply_parameters,undefined);}assert.equal(sent.filter(s=>s.method==='sendPoll').length,2);
+});
+test('private routing honors configured topics and does not inherit DM topic IDs',async()=>{
+ env.ALLOWED_THREAD_IDS='17,23';env.PRIVATE_THREAD_ID='23';
+ await webhook(update(230,'/poll',{chat:{id:42,type:'private'},message_thread_id:999}));assert.equal(sent[0].body.chat_id,-100123);assert.equal(sent[0].body.message_thread_id,23);
+});
+test('invalid private topic routing fails closed without posting to a DM',async()=>{
+ env.ALLOWED_THREAD_IDS='17';env.PRIVATE_THREAD_ID='23';await webhook(update(231,'/help',{chat:{id:42,type:'private'}}));assert.equal(sent.length,0);
+});
+test('group replies retain the original group topic and reply target',async()=>{
+ await webhook(update(240,undefined,{message_thread_id:17}));assert.equal(sent[0].body.chat_id,-100123);assert.equal(sent[0].body.message_thread_id,17);assert.equal(sent[0].body.reply_parameters.message_id,240);
+});
+test('private delivery retries retain the group destination',async()=>{
+ let attempts=0;globalThis.fetch=async(url,options)=>{sent.push({body:JSON.parse(options.body)});return Response.json(++attempts===1?{ok:false,error_code:429,parameters:{retry_after:2}}:{ok:true,result:{message_id:987}});};
+ await webhook(update(250,'/help',{chat:{id:42,type:'private'}}));Date.now=()=>Date.parse('2026-10-27T06:00:03Z');await processUpdate(env,250);assert.equal(sent.length,2);for(const s of sent){assert.equal(s.body.chat_id,-100123);assert.equal(s.body.reply_parameters,undefined);}
+});
+test('private follow-ups retain their own history without exposing prompts to group history',async()=>{
+ await webhook(update(260,'I like exploration, what should I play?',{chat:{id:42,type:'private'}}));Date.now=()=>Date.parse('2026-10-27T06:01:00Z');await webhook(update(261,'And if I want less combat?',{chat:{id:42,type:'private'}}));assert.equal(sent.length,2);assert.ok(aiCalls[1].messages.some(m=>m.role==='user'&&m.content.includes('I like exploration')));
+ assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM context WHERE chat_id=-100123 AND role='user'").get().n,0);
+});

@@ -1,4 +1,4 @@
-import { VERSION, PERSONALITY, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, currentRelease, refreshReleases, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
+import { VERSION, PERSONALITY, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, setSetting, currentRelease, refreshReleases, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
 // data/trivia.json
 var trivia_default = [
   {
@@ -518,13 +518,14 @@ var HELP = `SIU-M8 cantina host \u2014 AI host for your Star Wars group.
 /trivia \u2014 a 60-second quiz (first answer counts)
 /poll \u2014 a community vote
 /rank and /leaderboard \u2014 participation rewards
+/whereami \u2014 show group and topic routing
 /privacy \u2014 what is stored and sent to AI
 /optout \u2014 stop processing your participation
 /optin \u2014 rejoin
 /forget \u2014 remove your stored participation/context and opt out
 
-I answer mentions and replies, occasionally join relevant conversations, and post 3–5 conversation starters daily (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
-var PRIVACY = `I am an AI bot. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. Unselected ordinary message text is not stored. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
+Private requests from configured admins produce public responses in the group, not in DMs. I answer mentions and replies, occasionally join relevant conversations, and post 3–5 conversation starters daily (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
+var PRIVACY = `I am an AI bot. Configured admins can message me privately, but all my responses and polls are published to the configured group. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. Unselected ordinary message text is not stored. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
 function command(text, username) {
   const m = text.match(/^\/([a-z_]+)(?:@([a-z0-9_]+))?(?:\s+([\s\S]*))?$/i);
   if (!m || m[2] && m[2].toLowerCase() !== username.toLowerCase()) return null;
@@ -546,7 +547,30 @@ async function optedOut(env, user) {
 async function mark(env, id, state, error = null) {
   await env.DB.prepare("UPDATE updates SET state=?, error=?, payload='{}',outbound=NULL,method=NULL WHERE id=?").bind(state, error, id).run();
 }
+function groupTarget(env) {
+  const chat = Number(env.GROUP_ID);
+  if (!Number.isSafeInteger(chat) || chat >= 0) throw new Error("invalid-group-routing");
+  const allowedThreads = (env.ALLOWED_THREAD_IDS || "").split(",").filter(v => v.trim()).map(Number);
+  const thread = Number(env.PRIVATE_THREAD_ID ?? env.PROACTIVE_THREAD_ID ?? allowedThreads[0] ?? 0);
+  if (!Number.isSafeInteger(thread) || thread < 0 || allowedThreads.some(n => !Number.isSafeInteger(n) || n < 0) || allowedThreads.length && !allowedThreads.includes(thread)) throw new Error("invalid-topic-routing");
+  return {chat_id:chat, ...(thread ? {message_thread_id:thread} : {})};
+}
+function groupDelivery(env, original) {
+  const body = {...original};
+  if (Number(body.chat_id) > 0) {
+    // Message IDs and topic IDs are local to their source chat. Never attach a
+    // private message's ID to a group reply, even on a persisted delivery retry.
+    delete body.message_thread_id;
+    delete body.reply_parameters;
+    delete body.reply_to_message_id;
+    delete body.direct_messages_topic_id;
+    Object.assign(body, groupTarget(env));
+  }
+  if (Number(body.chat_id) !== Number(env.GROUP_ID) || Number(env.GROUP_ID) >= 0) throw new Error("unexpected-delivery-chat");
+  return body;
+}
 async function send(env, updateId, method, body) {
+  body = groupDelivery(env, body);
   await env.DB.prepare("UPDATE updates SET state='sending',outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
   let response;
   try {
@@ -571,6 +595,7 @@ async function send(env, updateId, method, body) {
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
     await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), clock() + 65, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
   }
+  await setSetting(env, "last_delivery", JSON.stringify({update_id:updateId,chat_id:body.chat_id,thread_id:body.message_thread_id || 0,message_id:result.result?.message_id,method,sent_at:clock()}));
   return result.result;
 }
 async function say(env, id, m, text) {
@@ -622,6 +647,12 @@ async function handle(env, u) {
   if (!allowed(m, env) || user.is_bot || !text) return;
   const cmd = command(text, env.BOT_USERNAME);
   if (text.startsWith("/") && !cmd) return;
+  if (cmd?.name === "whereami") {
+    const target = groupTarget(env);
+    const topic = target.message_thread_id || 0;
+    await say(env, u.update_id, m, `Configured group: ${target.chat_id}\nPrivate requests publish to: ${topic ? "topic " + topic : "General"}\nCurrent group topic: ${m.chat.type === "private" ? "request came from DM" : m.message_thread_id || "General"}\nNamed topic map: not configured. Group replies stay in the topic where you ask.`);
+    return;
+  }
   if (cmd?.name === "privacy") {
     await say(env, u.update_id, m, PRIVACY);
     return;
@@ -688,7 +719,7 @@ async function handle(env, u) {
     await proactive(env, u.update_id, {kind, scheduled_at: clock(), requested: true}, send, polls_default);
     return;
   }
-  const direct = cmd?.name === "ask" || !cmd && addressed(m, env);
+  const direct = cmd?.name === "ask" || !cmd && (m.chat.type === "private" || addressed(m, env));
   const ambient = !cmd && !direct && ambientCandidate(m, env, u.update_id);
   const wantsAI = direct || ambient;
   if (!wantsAI) {
@@ -715,7 +746,7 @@ Reply context (untrusted): ${parent}` : ""}`;
   let answer;
   try {
     const sources = await Promise.all([currentRelease(env, "movie"), currentRelease(env, "game")]);
-    const system = SYSTEM_PROMPT + `\nToday: ${new Date().toISOString().slice(0,10)}. Verified source snapshots: ${JSON.stringify(sources.filter(Boolean))}.` + (ambient ? " You are joining an existing conversation uninvited: offer a useful specific observation in 1–2 sentences; do not interrogate the members." : "");
+    const system = SYSTEM_PROMPT + `\nToday: ${new Date().toISOString().slice(0,10)}. Verified source snapshots: ${JSON.stringify(sources.filter(Boolean))}.` + (m.chat.type === "private" ? " This request was sent privately by the group owner, but your answer is published in the group. Write a self-contained response or requested post for the group; do not quote private messages, disclose private conversation history or refer to private instructions." : "") + (ambient ? " You are joining an existing conversation uninvited: offer a useful specific observation in 1–2 sentences; do not interrogate the members." : "");
     const result = await env.AI.run(env.AI_MODEL, { messages: [{ role: "system", content: system }, ...history.results.reverse(), { role: "user", content: userContent }], max_tokens: 350, temperature: 0.8 }, { signal: AbortSignal.timeout(15e3) });
     answer = cleanAnswer(result.response);
     if (!answer) throw new Error("empty-ai");
@@ -730,6 +761,10 @@ Reply context (untrusted): ${parent}` : ""}`;
     env.DB.prepare("INSERT INTO context(user_id,chat_id,thread_id,role,content,created_at) VALUES (?,?,?,?,?,?)").bind(user.id, m.chat.id, m.message_thread_id || 0, "user", userContent, clock()),
     env.DB.prepare("INSERT INTO context(user_id,chat_id,thread_id,role,content,created_at) VALUES (?,?,?,?,?,?)").bind(user.id, m.chat.id, m.message_thread_id || 0, "assistant", answer, clock())
   ]);
+  if (m.chat.type === "private") {
+    const target = groupTarget(env);
+    await env.DB.prepare("INSERT INTO context(user_id,chat_id,thread_id,role,content,created_at) VALUES (?,?,?,?,?,?)").bind(user.id,target.chat_id,target.message_thread_id || 0,"assistant",answer,clock()).run();
+  }
 }
 async function processUpdate(env, id) {
   const claimed = await env.DB.prepare(`UPDATE updates SET state='processing',attempts=attempts+1,lease_until=?
@@ -804,7 +839,7 @@ var index_default = {
       const c = command(text, env.BOT_USERNAME);
       if (await optedOut(env, m.from.id) && !["privacy", "optout", "optin", "forget"].includes(c?.name || "")) return new Response("OK");
       if (u.message.reply_to_message?.from && await optedOut(env, u.message.reply_to_message.from.id)) delete u.message.reply_to_message.text;
-      if (!c && !addressed(u.message, env) && !ambientCandidate(u.message, env, u.update_id)) {
+      if (m.chat.type !== "private" && !c && !addressed(u.message, env) && !ambientCandidate(u.message, env, u.update_id)) {
         if ((await env.DB.prepare("SELECT value FROM settings WHERE key='paused'").first())?.value !== "1" && !text.startsWith("/") && text.length >= 20 && m.reply_to_message?.from && !m.reply_to_message.from.is_bot && m.reply_to_message.from.id !== m.from.id && !await optedOut(env, m.from.id)) {
           await member(env, m.from);
           await reward(env, `message:${u.update_id}`, m.from.id, 1, "conversation");
@@ -826,6 +861,8 @@ var index_default = {
 export {
   SYSTEM_PROMPT,
   addressed,
+  groupDelivery,
+  groupTarget,
   command,
   index_default as default,
   maintenance,

@@ -19,6 +19,12 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   labeled accordingly. Source snapshots expire after 30 days and past releases
   are excluded. Add newly verified announcements to `RELEASES` as needed; this is
   a bounded source list, not a general news crawler.
+- Configured admins can message the bot privately in plain text or use commands.
+  Every resulting response, poll and quiz is published to the group; nothing is
+  sent back to a private chat. Private message IDs are never used as group reply
+  targets. `/whereami` shows the configured destination and current topic.
+- Private request history stays in its private conversation scope; only published
+  answers enter shared group history. Private access remains admin-only.
 - Mentions, `/ask`, and replies to the bot receive contextual answers. Up to ten
   recent messages from bot conversations in the same chat/topic inform responses.
 - Relevant ordinary messages have a stable 12% chance of receiving a reply, with
@@ -60,6 +66,11 @@ The live bindings are `DB` (D1), `AI` (Workers AI), `BOT_TOKEN` and
 - `AI_DAILY_CAP` = `60` (reply budget; five additional proactive generations/day)
 - `PROACTIVE_ENABLED` = `true`; set `false` to stop proactive posts
 - Optional `PROACTIVE_THREAD_ID` (defaults to first allowlisted topic or General)
+- Optional `PRIVATE_THREAD_ID` for private-request output; defaults to
+  `PROACTIVE_THREAD_ID`, then the first allowlisted topic, then General. A value
+  outside the topic allowlist fails closed. The live deployment currently uses
+  General and has no named topic-to-ID map. Ordinary group replies preserve the
+  incoming topic.
 - Optional `AMBIENT_ENABLED` = `false` to disable occasional replies
 - Optional `AMBIENT_REPLY_CHANCE` (default `0.12`, capped at `0.4`)
 
@@ -72,7 +83,9 @@ Do not use the old root `.env` token for this Worker.
 Cron runs each minute, maintaining the plan, draining the durable queue and
 expiring old context. `engagement_posts` records content, generation mode, Telegram
 message ID and delivery state. `updates` contains queued/error delivery states.
-The `settings` table holds `plan:YYYY-MM-DD`, source snapshots and diagnostic results.
+The `settings` table holds `plan:YYYY-MM-DD`, source snapshots, diagnostic results
+and `last_delivery` (destination, method, Telegram message ID and timestamp; no
+message text or credentials).
 
 An operator with D1 access can enqueue `{"internal_diagnostics":true}` in an
 `updates` row with a unique negative ID and `created_at=unixepoch()`. The next cron
