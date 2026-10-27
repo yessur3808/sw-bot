@@ -577,7 +577,8 @@ function groupDelivery(env, original) {
 }
 async function send(env, updateId, method, body) {
   body = groupDelivery(env, body);
-  if (method === "sendPoll" && body.type !== "quiz") body.open_period = 600;
+  // Community polls are closed by maintenance, which captures final totals.
+  // Telegram may not send an update when an automatic timer closes an empty poll.
   await env.DB.prepare("UPDATE updates SET state='sending',outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
   let response;
   try {

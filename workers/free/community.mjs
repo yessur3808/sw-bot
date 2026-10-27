@@ -1,4 +1,4 @@
-import { nowSeconds, activeHours, setting, cleanAnswer } from './engagement.mjs';
+import { nowSeconds, activeHours, setting, setSetting, cleanAnswer } from './engagement.mjs';
 export const TOPICS = {game:'gaming',movie:'movies',question:'lore',poll:'lore',idea:'lore',character:'lore',quote:'lore',weekly:'lore'};
 export async function topicThread(env, kind) {
   const mapped = await env.DB.prepare('SELECT thread_id FROM topic_map WHERE name=?').bind(TOPICS[kind] || kind).first();
@@ -55,11 +55,22 @@ export async function receivePoll(env,poll) {
   await env.DB.prepare('UPDATE community_polls SET options=?,closed=1 WHERE poll_id=?').bind(JSON.stringify(poll.options.map(p=>({text:p.text,voter_count:p.voter_count}))),poll.id).run();
 }
 export async function scheduleFollowups(env) {
-  if (env.PROACTIVE_ENABLED==='false'||await setting(env,'paused')==='1') return;
-  const polls=(await env.DB.prepare('SELECT * FROM community_polls WHERE closes_at<=? AND closes_at>?').bind(nowSeconds(),nowSeconds()-86400).all()).results;
-  for(const p of polls) await env.DB.prepare('INSERT OR IGNORE INTO updates(id,payload,created_at) VALUES (?,?,?)').bind(p.followup_id,JSON.stringify({internal_followup:p.poll_id}),nowSeconds()).run();
+  const polls=(await env.DB.prepare("SELECT * FROM community_polls p WHERE closes_at<=? AND closes_at>? AND NOT EXISTS(SELECT 1 FROM updates u WHERE u.id=p.followup_id AND u.state IN ('failed','uncertain','done'))").bind(nowSeconds(),nowSeconds()-86400).all()).results;
+  for(const p of polls) {
+    if (!p.closed) {
+      try {await closePoll(env,p);} catch { /* Follow-up queue retries missing results; never guesses. */ }
+    }
+    if(env.PROACTIVE_ENABLED==='false'||await setting(env,'paused')==='1')continue;
+    await env.DB.prepare('INSERT OR IGNORE INTO updates(id,payload,created_at) VALUES (?,?,?)').bind(p.followup_id,JSON.stringify({internal_followup:p.poll_id}),nowSeconds()).run();
+  }
   await env.DB.prepare('DELETE FROM activity WHERE created_at<?').bind(nowSeconds()-86400).run();
   await env.DB.prepare('DELETE FROM community_polls WHERE closes_at<?').bind(nowSeconds()-7*86400).run();
+}
+async function closePoll(env,p) {
+  const res=await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/stopPoll`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:Number(env.GROUP_ID),message_id:p.message_id}),signal:AbortSignal.timeout(8000)});
+  const data=await res.json();
+  if(data.ok) await receivePoll(env,data.result);
+  else await setSetting(env,'poll-close-error',JSON.stringify({message_id:p.message_id,error_code:data.error_code,description:String(data.description||'').slice(0,200),at:nowSeconds()}));
 }
 export function pollResult(p) {
   const options=JSON.parse(p.options),max=Math.max(...options.map(o=>o.voter_count));
@@ -73,10 +84,7 @@ export async function followup(env,id,pollId,send,personality) {
   if (!p || nowSeconds()-p.closes_at>86400) return;
   if (!activeHours()||!await quiet(env,p.thread_id)) {await defer(env,id);return;}
   if (!p.closed) {
-    // stopPoll is idempotent in effect. A lost response never authorizes invented results.
-    const res=await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/stopPoll`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:Number(env.GROUP_ID),message_id:p.message_id}),signal:AbortSignal.timeout(8000)});
-    const data=await res.json();
-    if (data.ok) await receivePoll(env,data.result);
+    await closePoll(env,p);
     const refreshed=await env.DB.prepare('SELECT * FROM community_polls WHERE poll_id=?').bind(pollId).first();
     if (!refreshed.closed) throw Error('final-poll-results-unavailable');
     Object.assign(p,refreshed);

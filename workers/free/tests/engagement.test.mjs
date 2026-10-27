@@ -223,11 +223,19 @@ test('a 429 follow-up retries its original text and rechecks topic activity',asy
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await processUpdate(env,-4000000000010);assert.equal(sent.length,2);assert.deepEqual(sent[0],sent[1]);assert.equal(aiCalls.length,1);
 });
 test('poll recording uses Telegram IDs and scheduler deduplicates its follow-up',async()=>{
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('plan:2026-10-27','[]');
  globalThis.fetch=async(url,options)=>{const body=JSON.parse(options.body);sent.push({body});return Response.json({ok:true,result:{message_id:901,poll:{id:'real-poll',options:body.options.map(text=>({text,voter_count:0}))}}});};
- await webhook(update(1,'/poll'));assert.equal(sent[0].body.open_period,600);const p=sqlite.prepare('SELECT * FROM community_polls').get();assert.equal(p.poll_id,'real-poll');assert.equal(p.message_id,901);
+ await webhook(update(1,'/poll'));assert.equal(sent[0].body.open_period,undefined);const p=sqlite.prepare('SELECT * FROM community_polls').get();assert.equal(p.poll_id,'real-poll');assert.equal(p.message_id,901);
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await receivePoll(env,{id:'real-poll',is_closed:true,options:JSON.parse(p.options)});
  await maintenance(env);await maintenance(env);assert.equal(sent.length,2);assert.match(sent[1].body.text,/No votes/);
 });
 test('stale poll follow-ups expire rather than replaying yesterday’s discussion',async()=>{
  trackedPoll();Date.now=()=>Date.parse('2026-10-28T07:00:00Z');await queue(-4000000000010,{internal_followup:'poll-1'});assert.equal(sent.length,0);
+});
+test('maintenance closes polls and captures final totals even while their topic is busy',async()=>{
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('plan:2026-10-27','[]');
+ trackedPoll(undefined,0);await webhook(update(1,'hello',{message_thread_id:15}));
+ globalThis.fetch=async(url,options)=>{const method=String(url).split('/').at(-1);sent.push({method,body:JSON.parse(options.body)});return Response.json({ok:true,result:{id:'poll-1',is_closed:true,options:[{text:'R2-D2',voter_count:4},{text:'Chopper',voter_count:2}]}});};
+ await maintenance(env);assert.deepEqual(sent.map(s=>s.method),['stopPoll']);assert.equal(sqlite.prepare('SELECT closed FROM community_polls').get().closed,1);assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=-4000000000010').get().state,'queued');
+ Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await processUpdate(env,-4000000000010);assert.equal(sent.at(-1).method,'sendMessage');assert.match(sent.at(-1).body.text,/4 votes/);
 });

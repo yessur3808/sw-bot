@@ -20,7 +20,7 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   weekly trivia. These replace an existing slot, preserving daily caps. Curated
   questions rotate before repeating; they do not disappear when a pool is exhausted.
   Members can also request `/guess`, `/quote`, `/weeklytrivia` (shared post cap).
-- Community polls close after ten minutes. Their actual final vote totals produce
+- The worker closes community polls on the first cron after ten minutes, capturing final totals directly. Their actual final vote totals produce
   one follow-up in the original topic, discussing the winner and inviting a
   counterargument. Ties and zero votes are explicit. Follow-ups wait for quiet and
   active hours for at most 24h, then expire. They are separate from starter slots.
@@ -124,7 +124,7 @@ webhook. Diagnostics never expose Telegram tokens or the webhook secret.
 After deploying this version, an operator can enqueue `{"internal_configure":true}`
 using the same internal queue. It preserves the existing webhook URL and secret,
 subscribes to `message`, `poll`, and `poll_answer`, and keeps pending updates.
-This is needed for final poll totals after Telegram's automatic closure. Confirm
+This supports vote updates and externally stopped polls. The worker calls stopPoll to capture final totals; it does not depend on Telegram emitting an automatic-close update. Confirm
 `settings.diagnostics.getWebhookInfo.allowed_updates` includes `poll`.
 
 Rollback using the previous Worker version in Cloudflare. The additive table and
