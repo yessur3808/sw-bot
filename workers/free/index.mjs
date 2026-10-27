@@ -1,3 +1,4 @@
+import { assertDeployment, automaticDelivery, reserveAutomation, budgetStatus, readiness } from './production.mjs';
 import { handleCoreCommand, observeGroup, recordReaction, recordEventVote, welcome, memoryContext, clubPaused } from './cantina-core.mjs';
 import { gameCommand, gameVote } from './cantina-games.mjs';
 import { handleClubJob, clubJob, clubDelivered, scheduleClub, forgetClub } from './cantina-jobs.mjs';
@@ -537,7 +538,7 @@ Content topics: gaming, movies, lore, hongkong/local_events, global_events, tv, 
 /game trivia|character|caption, /team, /season — continuous games
 /interests gaming,movies — opt-in interests
 /prompts off — stop follow-ups to your discussions
-Admins: /pending, /approve, /dismiss, /quiet 60, /settings
+Admins: /pending, /approve, /dismiss, /quiet 60, /settings, /readiness
 /privacy \u2014 what is stored and sent to AI
 /optout \u2014 stop processing your participation
 /optin \u2014 rejoin
@@ -590,7 +591,11 @@ function groupDelivery(env, original) {
   return body;
 }
 async function send(env, updateId, method, body) {
+  await assertDeployment(env);
   body = groupDelivery(env, body);
+  const club=await clubJob(env,updateId);
+  const deliveryUpdate=await env.DB.prepare('SELECT payload FROM updates WHERE id=?').bind(updateId).first();
+  if(['sendMessage','sendPoll'].includes(method)&&automaticDelivery(JSON.parse(deliveryUpdate?.payload||'{}'),club,env.BOT_USERNAME,botID(env))&&!await reserveAutomation(env,updateId))throw Error('automated-budget-exhausted');
   // Community polls are closed by maintenance, which captures final totals.
   // Telegram may not send an update when an automatic timer closes an empty poll.
   await env.DB.prepare("UPDATE updates SET state='sending',outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
@@ -617,7 +622,6 @@ async function send(env, updateId, method, body) {
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
     await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), clock() + (body.open_period || 60) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
   }
-  const club=await clubJob(env,updateId);
   if (method === "sendPoll" && !club) await recordPoll(env,updateId,body,result.result);
   if(method==='sendMessage'&&body.reply_parameters?.message_id&&result.result?.message_id)await env.DB.prepare('INSERT OR IGNORE INTO club_messages(message_id,user_id,thread_id,text,parent_id,kind,created_at) VALUES (?,0,?,?,?,?,?)').bind(result.result.message_id,body.message_thread_id||0,String(body.text||'').slice(0,600),body.reply_parameters.message_id,'bot',clock()).run();
   if(club)await clubDelivered(env,updateId,method,body,result.result);
@@ -678,6 +682,7 @@ async function handle(env, u) {
     const result=await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/setWebhook`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:info.result.url,secret_token:env.WEBHOOK_SECRET,allowed_updates:['message','poll','poll_answer','message_reaction'],drop_pending_updates:false}),signal:AbortSignal.timeout(8000)});
     if(!(await result.json()).ok)throw Error('webhook-configure-failed');return;
   }
+  if(u.internal_readiness){await setSetting(env,'launch_readiness',JSON.stringify({checked_at:clock(),...await readiness(env)}));return;}
   if (u.internal_diagnostics) { await diagnose(env); return; }
   if (u.internal_post) { await proactive(env, u.update_id, u.internal_post, send, polls_default, trivia_default); return; }
   const m = u.message;
@@ -687,6 +692,11 @@ async function handle(env, u) {
   if (!allowed(m, env) || user.is_bot || !text) return;
   const cmd = command(text, env.BOT_USERNAME);
   if (text.startsWith("/") && !cmd) return;
+  if(cmd?.name==='readiness'){
+    if(!admins(env).includes(user.id)){await say(env,u.update_id,m,'This command is for configured admins.');return;}
+    const report=await readiness(env);
+    await say(env,u.update_id,m,`Launch readiness: ${report.issues.length?'needs attention':'checks passed'}\n${report.issues.map(s=>'• '+s).join('\n')}\n${report.notes.join('\n')}`);return;
+  }
   if (cmd?.name === "whereami") {
     const target = groupTarget(env);
     const topic = target.message_thread_id || 0;
@@ -711,7 +721,7 @@ async function handle(env, u) {
       await env.DB.batch(["rewards", "members", "answers", "quota", "fan_preferences"].map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id=?`).bind(user.id)));
       await env.DB.prepare("UPDATE updates SET state='done',payload='{}',outbound=NULL,method=NULL WHERE id<>? AND json_extract(payload,'$.message.from.id')=?").bind(u.update_id, user.id).run();
     }
-    await say(env, u.update_id, m, out ? "You\u2019re opted out. Your stored conversation context has been removed." + (cmd.name === "forget" ? " Your participation records were deleted too." : "") : "You\u2019re opted in. Use /privacy to review how testing works.");
+    await say(env, u.update_id, m, out ? "You\u2019re opted out. Your stored conversation context has been removed." + (cmd.name === "forget" ? " Your participation records were deleted too." : "") : "You\u2019re opted in. Use /privacy to review data handling.");
     return;
   }
   if (await optedOut(env, user.id)) return;
@@ -738,12 +748,17 @@ async function handle(env, u) {
       await say(env, u.update_id, m, "This command is for the configured admins.");
       return;
     }
+    if(cmd.name==='resume'&&env.DEPLOYMENT_ENV==='production'){
+      const report=await readiness(env);
+      if(report.issues.length){await say(env,u.update_id,m,`Production stays paused:\n${report.issues.join('\n')}`);return;}
+    }
     if (cmd.name !== "status") await env.DB.prepare("INSERT INTO settings(key,value) VALUES ('paused',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(cmd.name === "pause" ? "1" : "0").run();
     const paused = await env.DB.prepare("SELECT value FROM settings WHERE key='paused'").first();
     const errors = await env.DB.prepare("SELECT COUNT(*) AS n FROM updates WHERE state IN ('uncertain','failed')").first();
     const policy=await postingPolicy(env);
     const starters=await starterCount(env);
-    await say(env, u.update_id, m, `Testing bot ${paused?.value === "1" ? "paused" : "active"}. Proactive starters: ${starters}/${policy.target} today (baseline 5, ceiling 10). Current spacing: ${policy.gap/60}min; wait for 10 quiet minutes in the topic. Engagement over 4h: ${policy.participants} participants, score ${policy.score}. Active hours: 10:00–23:00 Hong Kong. Busy topics, pauses and delivery failures can prevent the target; no catch-up bursts. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
+    const budget=await budgetStatus(env);
+    await say(env, u.update_id, m, `Bot ${paused?.value === "1" ? "paused" : "active"}. Proactive starters: ${starters}/${policy.target} today (baseline 5, ceiling 10). Automated sends reserved: ${budget.used}/${budget.cap} today across starters, follow-ups, briefings, game rounds, welcomes, ambient replies and reminders. Direct requests and moderation actions are excluded. Current spacing: ${policy.gap/60}min; wait for 10 quiet minutes in the topic. Engagement over 4h: ${policy.participants} participants, score ${policy.score}. Active hours: 10:00–23:00 Hong Kong. Busy topics, pauses and delivery failures can prevent the target; no catch-up bursts. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
     return;
   }
   if (cmd?.name === "start" || cmd?.name === "help") {
@@ -842,6 +857,7 @@ Reply context (untrusted): ${parent}` : ""}`;
   }
 }
 async function processUpdate(env, id) {
+  await assertDeployment(env);
   const claimed = await env.DB.prepare(`UPDATE updates SET state='processing',attempts=attempts+1,lease_until=?
     WHERE id=? AND attempts<3 AND ready_at<=? AND (state='queued' OR (state='processing' AND lease_until<?)) RETURNING payload,outbound,method`).bind(clock() + 90, id, clock(), clock()).first();
   if (!claimed) return;
@@ -867,7 +883,17 @@ async function processUpdate(env, id) {
     } else await handle(env, payload);
     const after = await env.DB.prepare('SELECT state FROM updates WHERE id=?').bind(id).first();
     if (after?.state !== 'queued') await mark(env, id, "done");
-  } catch {
+  } catch (error) {
+    if(error.message==='automated-budget-exhausted'){
+      const job=await clubJob(env,id);
+      if(job){
+        await env.DB.prepare("UPDATE club_jobs SET state='budget_limited' WHERE id=?").bind(job.id).run();
+        const data=JSON.parse(job.data);
+        if(data.game_id)await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(data.game_id).run();
+      }
+      await env.DB.prepare("UPDATE engagement_posts SET state='budget_limited' WHERE update_id=?").bind(id).run();
+      await mark(env,id,'done','automated-budget-exhausted');return;
+    }
     const state = await env.DB.prepare("SELECT state,attempts FROM updates WHERE id=?").bind(id).first();
     if (state?.state === "sending") await mark(env, id, "uncertain", "delivery-or-recording-uncertain");
     else if (state?.state === "queued" && state.attempts >= 3) await mark(env, id, "failed", "retry-exhausted");
@@ -878,6 +904,7 @@ async function processUpdate(env, id) {
   }
 }
 async function maintenance(env) {
+  await assertDeployment(env);
   await scheduleProactive(env);
   await scheduleFollowups(env);
   await scheduleClub(env);
@@ -885,6 +912,7 @@ async function maintenance(env) {
   const pending = await env.DB.prepare("SELECT id FROM updates WHERE attempts<3 AND ready_at<=? AND (state='queued' OR (state='processing' AND lease_until<?)) ORDER BY id LIMIT 3").bind(clock(), clock()).all();
   for (const item of pending.results) await processUpdate(env, item.id);
   await env.DB.batch([
+    env.DB.prepare("DELETE FROM automated_budget WHERE day < date('now','-7 days')"),
     env.DB.prepare("DELETE FROM engagement_posts WHERE created_at<?").bind(clock() - 30 * 86400),
     env.DB.prepare("DELETE FROM context WHERE created_at<?").bind(clock() - 86400),
     env.DB.prepare("DELETE FROM quota WHERE created_at<?").bind(clock() - 172800),
@@ -899,7 +927,7 @@ var index_default = {
     const path = new URL(request.url).pathname;
     if (path === "/healthz" && request.method === "GET") {
       try {
-        await env.DB.prepare("SELECT 1").first();
+        await assertDeployment(env);
         return Response.json({ status: "ok", mode: "engaging", version: VERSION, configured: Boolean(env.BOT_TOKEN && env.WEBHOOK_SECRET && Number(env.GROUP_ID) < 0) });
       } catch {
         return Response.json({ status: "unavailable" }, { status: 503 });
@@ -908,6 +936,7 @@ var index_default = {
     if (path !== "/telegram" || request.method !== "POST") return new Response("Not found", { status: 404 });
     if (!env.WEBHOOK_SECRET || request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== env.WEBHOOK_SECRET) return new Response("Unauthorized", { status: 401 });
     if (!env.BOT_TOKEN) return new Response("Not configured", { status: 503 });
+    try{await assertDeployment(env);}catch{return new Response("Deployment not ready",{status:503});}
     if (Number(request.headers.get("Content-Length") || 0) > 65536) return new Response("Too large", { status: 413 });
     const raw = await request.text();
     if (raw.length > 65536) return new Response("Too large", { status: 413 });

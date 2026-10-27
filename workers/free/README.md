@@ -122,6 +122,7 @@ From this directory, with Wrangler authenticated to the existing account:
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0002_engagement.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0003_community.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0004_cantina.sql
+npx wrangler d1 execute sw-bot-test --remote --file migrations/0005_production.sql
 npx wrangler deploy
 ```
 
@@ -290,3 +291,19 @@ attendance, scores, entries, votes, controls, pending proposals and review recor
 Confirmed public activities remain community records with the member linkage
 removed; approved shared memory remains until an admin removes it. Telegram posts
 and data already processed by the AI provider cannot be recalled by `/forget`.
+
+
+## Production preparation
+
+See [PRODUCTION.md](PRODUCTION.md) for the prepared production database, explicit
+identity binding, cutover and rollback instructions, member notice and acceptance
+checks. Do not merely change GROUP_ID on the test database. Migration 0005 needs
+an explicitly provisioned deployment_identity row before this Worker can run.
+
+`AUTOMATED_DAILY_CAP` defaults to 20 across all automated messages per Hong Kong
+day, including briefings, game rounds, welcomes and reminders. Direct requests
+and approved moderation are excluded. Reservations survive retries and uncertain
+sends; exhausted automated jobs are suppressed, not carried into tomorrow.
+`/status` and `/settings` show usage; `/readiness` checks production prerequisites.
+Production `/resume` requires those checks to pass. The prepared production
+configuration is disabled and has no real group ID yet; it has not been deployed.

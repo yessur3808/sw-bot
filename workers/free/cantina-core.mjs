@@ -1,3 +1,4 @@
+import {budgetStatus} from './production.mjs';
 import {nowSeconds,localDay,activeHours,setting,setSetting,cleanAnswer} from './engagement.mjs';
 import {quiet,topicThread,topicSummary,topicName} from './community.mjs';
 export const CLUB_OFFSET=30000000000000;
@@ -135,9 +136,10 @@ export async function handleCoreCommand(env,u,cmd,say){
   await respond(arg==='off'?'Temporary quiet mode ended.':`Automatic posting is quiet for ${arg} minutes. Direct commands still work.`);return true;
  }
  if(name==='settings'){
+  const budget=await budgetStatus(env);
   const pending=(await env.DB.prepare("SELECT COUNT(*) n FROM club_jobs WHERE state='pending'").first()).n;
   const schedule=(await env.DB.prepare("SELECT kind,run_at FROM club_jobs WHERE state='pending' ORDER BY run_at LIMIT 5").all()).results;
-  await respond(`Community settings\nDaily briefing: 21:00 HKT\nWeekly team trivia: Mondays 19:00 HKT\nProgressive character game: Wednesdays 19:00 HKT\nCaption contest: Fridays 19:00 HKT\nQuiet until: ${Number(await setting(env,'quiet_until'))?hkTime(Number(await setting(env,'quiet_until'))):'off'}\nPending jobs: ${pending}\nProactive policy: ${await setting(env,'posting_policy')||'not evaluated yet'}\nStarter plan: ${await setting(env,'adaptive-plan:'+localDay())||'not yet planned'}\n${schedule.map(j=>j.kind+' — '+hkTime(j.run_at)).join('\n')}\n\n${await topicSummary(env)}\n\n/preferences on is opt-in; /pending shows admin review items. Review reports are posted in the group, including requests made privately.`);return true;
+  await respond(`Community settings\nAutomated daily budget: ${budget.used}/${budget.cap} reserved (HKT). Direct requests and approved moderation excluded.\nDaily briefing: 21:00 HKT\nWeekly team trivia: Mondays 19:00 HKT\nProgressive character game: Wednesdays 19:00 HKT\nCaption contest: Fridays 19:00 HKT\nQuiet until: ${Number(await setting(env,'quiet_until'))?hkTime(Number(await setting(env,'quiet_until'))):'off'}\nPending jobs: ${pending}\nProactive policy: ${await setting(env,'posting_policy')||'not evaluated yet'}\nStarter plan: ${await setting(env,'adaptive-plan:'+localDay())||'not yet planned'}\n${schedule.map(j=>j.kind+' — '+hkTime(j.run_at)).join('\n')}\n\n${await topicSummary(env)}\n\n/preferences on is opt-in; /pending shows admin review items. Review reports are posted in the group, including requests made privately.`);return true;
  }
  if(name==='pending'){
   const reviews=(await env.DB.prepare("SELECT * FROM club_reviews WHERE state='pending' ORDER BY id DESC LIMIT 5").all()).results;

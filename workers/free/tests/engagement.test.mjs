@@ -12,6 +12,8 @@ function database() {
   db.exec(readFileSync(new URL('../migrations/0002_engagement.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0003_community.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0004_cantina.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0005_production.sql', import.meta.url), 'utf8'));
+  db.exec("INSERT INTO deployment_identity VALUES (1,'-100123','test')");
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];
 }
@@ -358,7 +360,7 @@ test('a newly bound category can enter the current day without increasing its da
 
 import {queueClub,CLUB_OFFSET,parseHK,nextWeekend,makeBriefing,memoryContext,messageLink} from '../cantina-core.mjs';
 import {scheduleClub} from '../cantina-jobs.mjs';
-import {startGame,gamePoints} from '../cantina-games.mjs';
+import {startGame,gamePoints,scheduleGames} from '../cantina-games.mjs';
 async function drainClub(){
  await scheduleClub(env);
  for(const row of sqlite.prepare("SELECT id FROM updates WHERE id < -30000000000000 AND state='queued' AND ready_at<=? ORDER BY id").all(Date.now()/1000))await processUpdate(env,row.id);
@@ -489,4 +491,85 @@ test('new-member opt-out before welcome delivery suppresses the queued greeting'
 });
 test('game points are capped and cannot be earned twice from the same event',async()=>{
  for(let i=0;i<10;i++)await gamePoints(env,'score:'+i,77,3,'test');await gamePoints(env,'score:0',77,3,'test');assert.equal(sqlite.prepare('SELECT SUM(points) n FROM club_points').get().n,18);
+});
+
+// Production isolation and shared automation budget regressions.
+import {assertDeployment,automaticDelivery,reserveAutomation,budgetStatus,readiness} from '../production.mjs';
+test('changing the group refuses webhook, cron and queued sends before touching test data',async()=>{
+ env.GROUP_ID='-100999';
+ assert.equal((await webhook(update())).status,503);
+ await assert.rejects(maintenance(env),/database-group-mismatch/);
+ sqlite.prepare('INSERT INTO updates(id,payload,created_at) VALUES (1,?,?)').run(JSON.stringify(update()),Date.now()/1000);
+ await assert.rejects(processUpdate(env,1),/database-group-mismatch/);
+ assert.equal(sqlite.prepare('SELECT state FROM updates').get().state,'queued');
+ assert.equal(sent.length,0);assert.equal(aiCalls.length,0);
+});
+test('missing identity, production/test mismatch and disabled deployments fail closed',async()=>{
+ env.DEPLOYMENT_ENV='production';await assert.rejects(assertDeployment(env),/database-group-mismatch/);
+ env.DEPLOYMENT_ENV='test';env.DEPLOYMENT_ENABLED='false';await assert.rejects(assertDeployment(env),/deployment-disabled/);
+ delete env.DEPLOYMENT_ENABLED;sqlite.exec('DELETE FROM deployment_identity');await assert.rejects(assertDeployment(env),/database-group-mismatch/);
+ assert.equal((await worker.fetch(new Request('https://test/healthz'),env,{})).status,503);
+});
+test('budget reservations are atomic, shared, retry-idempotent and reset at HK midnight',async()=>{
+ env.AUTOMATED_DAILY_CAP='5';
+ const result=await Promise.all(Array.from({length:12},(_,i)=>reserveAutomation(env,i+1)));
+ assert.equal(result.filter(Boolean).length,5);assert.equal(await reserveAutomation(env,1),true);
+ assert.deepEqual(await budgetStatus(env),{used:5,cap:5});
+ Date.now=()=>Date.parse('2026-10-27T16:00:01Z');assert.equal(await reserveAutomation(env,1),true);assert.equal((await budgetStatus(env)).used,1);
+});
+test('automation classification includes welcomes, game rounds, reminders and ambient but excludes direct requests',()=>{
+ for(const kind of ['game_step','game_close','event_reminder','host','text','briefing'])assert.equal(automaticDelivery({}, {kind,job_key:'job',data:'{}'},env.BOT_USERNAME,123),true);
+ assert.equal(automaticDelivery({internal_followup:'poll'},null,env.BOT_USERNAME,123),true);
+ assert.equal(automaticDelivery({internal_post:{requested:false}},null,env.BOT_USERNAME,123),true);
+ assert.equal(automaticDelivery({internal_post:{requested:true}},null,env.BOT_USERNAME,123),false);
+ assert.equal(automaticDelivery({}, {kind:'briefing',job_key:'job',data:'{"requested":true}'},env.BOT_USERNAME,123),false);
+ assert.equal(automaticDelivery({}, {kind:'moderation',job_key:'job',data:'{}'},env.BOT_USERNAME,123),false);
+ assert.equal(automaticDelivery(update(1,'Which droid?'),null,env.BOT_USERNAME,123),true);
+ assert.equal(automaticDelivery(update(),null,env.BOT_USERNAME,123),false);
+ assert.equal(automaticDelivery(update(1,'/settings'),null,env.BOT_USERNAME,123),false);
+});
+test('full budget blocks a real queued club send but still delivers direct member replies',async()=>{
+ env.AUTOMATED_DAILY_CAP='5';for(let i=0;i<5;i++)await reserveAutomation(env,100+i);
+ const job=await queueClub(env,'budget-welcome','text',{text:'Welcome'},0);
+ await queue(-30000000000000-job.id,{internal_club:job.id});
+ assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM club_jobs WHERE id=?').get(job.id).state,'budget_limited');
+ await webhook(update(999));assert.equal(sent.length,1);assert.equal((await budgetStatus(env)).used,5);
+});
+test('429 automated delivery retry uses one budget slot',async()=>{
+ let tries=0;globalThis.fetch=async()=>Response.json(++tries===1?{ok:false,error_code:429,parameters:{retry_after:2}}:{ok:true,result:{message_id:700}});
+ const job=await queueClub(env,'retry-budget','text',{text:'Hello'},0),id=-30000000000000-job.id;
+ await queue(id,{internal_club:job.id});assert.equal((await budgetStatus(env)).used,1);
+ Date.now=()=>Date.parse('2026-10-27T06:00:03Z');await processUpdate(env,id);
+ assert.equal(tries,2);assert.equal((await budgetStatus(env)).used,1);assert.equal(sqlite.prepare('SELECT state FROM club_jobs').get().state,'sent');
+});
+test('readiness reports missing mappings, rules and Telegram permissions without publishing automatically',async()=>{
+ const report=await readiness(env);assert.ok(report.issues.includes('Bind topic: gaming'));assert.ok(report.issues.includes('Add and approve the real group rules'));assert.ok(report.issues.includes('Missing restrict-members permission'));
+ assert.ok(sent.every(r=>r.method.startsWith('get')));
+});
+test('production resume remains paused until real permissions, topics, rules and webhook pass',async()=>{
+ env.DEPLOYMENT_ENV='production';env.EXPECTED_WEBHOOK_URL='https://production.example/telegram';
+ sqlite.exec("UPDATE deployment_identity SET environment='production'; INSERT INTO settings VALUES ('paused','1')");
+ await webhook(update(100,'/resume'));assert.equal(sqlite.prepare("SELECT value FROM settings WHERE key='paused'").get().value,'1');
+ sqlite.exec("INSERT INTO topic_map VALUES ('gaming',2),('movies',4),('lore',6); INSERT INTO club_memory(id,title,body,kind,proposed_by,status,created_at) VALUES(1,'Rules','Be kind','rule',42,'approved',1)");
+ sent=[];globalThis.fetch=async(url,options)=>{const method=String(url).split('/').at(-1),body=JSON.parse(options.body);sent.push({method,body});const result=method==='getMe'?{username:env.BOT_USERNAME}:method==='getChat'?{id:-100123,is_forum:true}:method==='getChatMember'?{status:'administrator',can_delete_messages:true,can_restrict_members:true}:method==='getWebhookInfo'?{url:env.EXPECTED_WEBHOOK_URL,allowed_updates:['message','poll','poll_answer','message_reaction'],pending_update_count:0}:{message_id:901};return Response.json({ok:true,result});};
+ await webhook(update(101,'/resume'));assert.equal(sqlite.prepare("SELECT value FROM settings WHERE key='paused'").get().value,'0');assert.equal(sent.filter(r=>r.method==='sendMessage').length,1);
+});
+test('readiness command is restricted to configured admins',async()=>{
+ await webhook(update(1,'/readiness',{from:{id:99,is_bot:false,first_name:'Member'}}));assert.equal(sent.length,1);assert.match(sent[0].body.text,/configured admins/);
+});
+test('a group switch during AI generation is caught at final delivery boundary',async()=>{
+ env.AI.run=async()=>{env.GROUP_ID='-100999';return {response:'Do not leak this answer.'};};await webhook(update());assert.equal(sent.length,0);
+});
+test('full budget expires a game instead of leaving scheduled rounds to flood tomorrow',async()=>{
+ env.AUTOMATED_DAILY_CAP='5';for(let i=0;i<5;i++)await reserveAutomation(env,100+i);
+ await startGame(env,500,'character',6);
+ const job=sqlite.prepare("SELECT id FROM club_jobs WHERE job_key='game:500:0'").get();await queue(-30000000000000-job.id,{internal_club:job.id});
+ assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM club_games WHERE id=500').get().state,'expired');
+ await scheduleGames(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_jobs').get().n,1);
+});
+test('webhook cannot trigger internal launch readiness or network permission probes',async()=>{
+ await webhook({update_id:200,internal_readiness:true});assert.equal(sent.length,0);assert.equal(sqlite.prepare("SELECT value FROM settings WHERE key='launch_readiness'").get(),undefined);
+});
+test('invalid default topic routing fails before processing member messages',async()=>{
+ env.ALLOWED_THREAD_IDS='4,6';env.PRIVATE_THREAD_ID='0';assert.equal((await webhook(update())).status,503);assert.equal(sent.length,0);
 });
