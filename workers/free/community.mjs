@@ -90,7 +90,7 @@ export function pollResult(p) {
   return `${winners.length>1?'A tie':'The winning choice'} in “${p.question}”: ${winners.map(o=>o.text).join(' / ')} (${max} vote${max===1?'':'s'}${winners.length>1?' each':''}).`;
 }
 export async function followup(env,id,pollId,send,personality) {
-  if (env.PROACTIVE_ENABLED==='false'||await setting(env,'paused')==='1') return;
+  if (env.PROACTIVE_ENABLED==='false'||await setting(env,'paused')==='1'||Number(await setting(env,'quiet_until')||0)>nowSeconds()) {await defer(env,id);return;}
   const p=await env.DB.prepare('SELECT * FROM community_polls WHERE poll_id=?').bind(pollId).first();
   if (!p || nowSeconds()-p.closes_at>86400) return;
   if (!activeHours()||!await quiet(env,p.thread_id)) {await defer(env,id);return;}

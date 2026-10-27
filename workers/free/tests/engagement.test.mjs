@@ -11,6 +11,7 @@ function database() {
   db.exec(readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0002_engagement.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0003_community.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0004_cantina.sql', import.meta.url), 'utf8'));
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];
 }
@@ -353,4 +354,139 @@ test('a newly bound category can enter the current day without increasing its da
  sqlite.prepare("INSERT INTO topic_map VALUES ('tv',21)").run();
  for(const [i,kind] of ['question','poll','idea','movie','game'].entries())sqlite.prepare('INSERT INTO engagement_posts(update_id,kind,seed,text,payload,created_at,state) VALUES (?,?,?,?,?,?,?)').run(-100-i,kind,kind,kind,'{}',at-86400,'sent');
  seedStarters(1);await scheduleProactive(env);const row=sqlite.prepare("SELECT payload FROM updates WHERE id<0").get();assert.equal(JSON.parse(row.payload).internal_post.kind,'tv');assert.equal((await postingPolicy(env)).target,5);
+});
+
+import {queueClub,CLUB_OFFSET,parseHK,nextWeekend,makeBriefing,memoryContext,messageLink} from '../cantina-core.mjs';
+import {scheduleClub} from '../cantina-jobs.mjs';
+import {startGame,gamePoints} from '../cantina-games.mjs';
+async function drainClub(){
+ await scheduleClub(env);
+ for(const row of sqlite.prepare("SELECT id FROM updates WHERE id < -30000000000000 AND state='queued' AND ready_at<=? ORDER BY id").all(Date.now()/1000))await processUpdate(env,row.id);
+}
+function nativeTelegram(){
+ globalThis.fetch=async(url,options)=>{
+  const method=String(url).split('/').at(-1),body=JSON.parse(options.body||'{}');sent.push({method,body});
+  if(method==='getChatMember')return Response.json({ok:true,result:{status:'member'}});
+  if(['deleteMessage','restrictChatMember','banChatMember'].includes(method))return Response.json({ok:true,result:true});
+  return Response.json({ok:true,result:{message_id:900+sent.length,...method==='sendPoll'?{poll:{id:'native-'+sent.length,options:body.options.map(text=>({text,voter_count:0}))}}:{}}});
+ };
+}
+test('Hong Kong event dates reject invalid calendars and weekend choices are future local afternoons',()=>{
+ assert.equal(parseHK('2026-10-28 18:30'),Date.parse('2026-10-28T10:30:00Z')/1000);assert.equal(parseHK('2026-02-30 18:30'),null);assert.equal(parseHK('tomorrow'),null);
+ const [sat,sun]=nextWeekend();assert.equal(sun-sat,86400);assert.equal(new Date((sat+28800)*1000).getUTCDay(),6);assert.equal(new Date((sat+28800)*1000).getUTCHours(),15);assert.ok(sat>Date.now()/1000);
+});
+test('natural weekend planning queues an availability poll in Hong Kong without confirming attendance',async()=>{
+ nativeTelegram();sqlite.prepare("INSERT INTO topic_map VALUES ('hongkong',20)").run();await webhook(update(100,'Is anyone free this weekend?'));await drainClub();
+ const e=sqlite.prepare('SELECT * FROM club_events').get();assert.equal(e.status,'planning');assert.equal(e.thread_id,20);assert.ok(e.poll_id);assert.equal(sent.at(-1).method,'sendPoll');assert.equal(sent.at(-1).body.is_anonymous,false);
+ await webhook({update_id:101,poll_answer:{poll_id:e.poll_id,user:{id:77,is_bot:false},option_ids:[1]}});assert.equal(sqlite.prepare('SELECT option_id FROM club_date_votes').get().option_id,1);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_rsvps').get().n,0);
+});
+test('draft event requires admin confirmation then sends group reminders only to opted-in attendees',async()=>{
+ nativeTelegram();sqlite.prepare("INSERT INTO topic_map VALUES ('hongkong',20)").run();
+ await webhook(update(100,'/event create Watch party|2026-10-28 18:00|Community room|hongkong|https://example.com/details',{from:{id:77,first_name:'Guest'}}));
+ await webhook(update(101,'/event confirm 100',{from:{id:77}}));assert.equal(sqlite.prepare('SELECT status FROM club_events').get().status,'draft');
+ await webhook(update(102,'/event confirm 100'));await drainClub();assert.equal(sqlite.prepare('SELECT status FROM club_events').get().status,'confirmed');assert.match(sent.at(-1).body.text,/Admin-confirmed/);assert.equal(sent.at(-1).body.message_thread_id,20);
+ await webhook(update(103,'/rsvp 100 yes remind',{from:{id:77,first_name:'Guest'}}));await webhook(update(104,'/rsvp 100 yes',{from:{id:78,first_name:'Silent'}}));
+ Date.now=()=>Date.parse('2026-10-28T09:31:00Z');await drainClub();const reminder=sent.find(s=>s.body.text?.startsWith('Opt-in reminder'));assert.ok(reminder);assert.deepEqual(reminder.body.entities.map(e=>e.user.id),[77]);assert.equal(reminder.body.chat_id,-100123);
+});
+test('cancelled events never deliver a queued reminder',async()=>{
+ nativeTelegram();await webhook(update(100,'/event create Test|2026-10-28 18:00|Room|hongkong'));await webhook(update(101,'/event confirm 100'));await drainClub();await webhook(update(102,'/rsvp 100 yes remind'));
+ Date.now=()=>Date.parse('2026-10-28T09:31:00Z');await scheduleClub(env);await webhook(update(103,'/event cancel 100'));await drainClub();assert.equal(sent.filter(s=>s.body.text?.startsWith('Opt-in reminder')).length,0);
+});
+test('pending memory never enters answers until an admin approves; admins can remove it',async()=>{
+ await webhook(update(100,'/remember decision|Watch party|We chose Saturday at 18:00.',{from:{id:77}}));assert.equal((await memoryContext(env,'watch party')).length,0);
+ await webhook(update(101,'/approve memory 100',{from:{id:77}}));assert.equal((await memoryContext(env,'watch party')).length,0);
+ await webhook(update(102,'/memory show 100'));assert.match(sent.at(-1).body.text,/Saturday/);
+ await webhook(update(103,'/approve memory 100'));const memory=await memoryContext(env,'watch party');assert.equal(memory.length,1);assert.match(memory[0].source,/\/100$/);
+ await webhook(update(104,'/ask What did we decide about the watch party?'));assert.match(aiCalls.at(-1).messages[0].content,/We chose Saturday/);
+ await webhook(update(105,'/memory remove 100'));assert.equal((await memoryContext(env,'watch party')).length,0);
+});
+test('briefing uses linked group excerpts, marks recorded replies and excludes private/opted-out text',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(100,'Who would join a watch party?',{from:{id:77}}));await webhook(update(101,'I would join on Saturday.',{from:{id:78},reply_to_message:{message_id:100,from:{id:77}}}));
+ await webhook(update(102,'Secret private planning',{chat:{id:42,type:'private'}}));sqlite.prepare('INSERT INTO preferences VALUES (99,1)').run();await webhook(update(103,'Do not include this in recaps?',{from:{id:99}}));
+ const briefing=await makeBriefing(env);assert.match(briefing,/Discussed \/ liked/);assert.match(briefing,/https:\/\/t.me\/c\/123\/100/);assert.doesNotMatch(briefing,/Secret private|Do not include/);
+});
+test('onboarding uses approved rules, explains privacy and offers optional preferences',async()=>{
+ await webhook(update(100,'/remember rule|Spoilers|Use spoiler formatting.'));await webhook(update(101,'/approve memory 100'));
+ await webhook(update(102,undefined,{text:undefined,new_chat_members:[{id:77,first_name:'Newbie',is_bot:false}]}));await drainClub();const welcome=sent.find(s=>s.body.text?.startsWith('Welcome aboard'));assert.ok(welcome);assert.match(welcome.body.text,/Use spoiler formatting/);assert.match(welcome.body.text,/Optional: \/preferences on/);assert.match(welcome.body.text,/\/privacy/);
+});
+test('moderation only flags possible issues and requires a configured admin’s explicit action',async()=>{
+ nativeTelegram();env.AMBIENT_ENABLED='false';await webhook(update(100,'https://a.example https://b.example https://c.example',{from:{id:77}}));
+ const review=sqlite.prepare('SELECT * FROM club_reviews').get();assert.equal(review.state,'pending');assert.equal(sent.length,0);
+ await webhook(update(101,`/approve ${review.id} mute`,{from:{id:77}}));assert.equal(sqlite.prepare('SELECT state FROM club_reviews').get().state,'pending');
+ await webhook(update(102,`/approve ${review.id} mute`));await drainClub();const mute=sent.find(s=>s.method==='restrictChatMember');assert.ok(mute);assert.equal(mute.body.user_id,77);assert.equal(mute.body.until_date,Date.now()/1000+3600);assert.equal(sqlite.prepare('SELECT state FROM club_reviews').get().state,'executed');
+ await webhook(update(103,`/approve ${review.id} mute`));await drainClub();assert.equal(sent.filter(s=>s.method==='restrictChatMember').length,1);
+});
+test('live administrator status protects targets even after moderation approval',async()=>{
+ nativeTelegram();env.AMBIENT_ENABLED='false';await webhook(update(100,'https://a.example https://b.example https://c.example',{from:{id:77}}));const review=sqlite.prepare('SELECT id FROM club_reviews').get();await webhook(update(101,`/approve ${review.id} ban`));
+ const original=globalThis.fetch;globalThis.fetch=async(url,opts)=>String(url).endsWith('/getChatMember')?Response.json({ok:true,result:{status:'administrator'}}):original(url,opts);
+ await drainClub();assert.equal(sent.filter(s=>s.method==='banChatMember').length,0);assert.equal(sqlite.prepare('SELECT state FROM club_reviews').get().state,'protected');
+});
+test('spoiler heuristics ignore Telegram spoiler formatting and flag only for human review',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(100,'Spoiler: in the finale someone dies.',{from:{id:77},entities:[{type:'spoiler',offset:0,length:35}]}));assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_reviews').get().n,0);
+ await webhook(update(101,'Spoiler: in the finale someone dies.',{from:{id:78}}));assert.equal(sqlite.prepare('SELECT state FROM club_reviews').get().state,'pending');assert.equal(sent.length,0);
+});
+test('hosting revives one unanswered question, respects opt-out and stops after a recorded answer',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(100,'Who wants to discuss this character?',{from:{id:77}}));Date.now=()=>Date.parse('2026-10-27T08:01:00Z');await drainClub();assert.ok(sent.some(s=>s.body.text?.startsWith('This question has no recorded reply')));
+ const control=sqlite.prepare('SELECT last_nudge FROM club_controls WHERE user_id=77').get();assert.ok(control.last_nudge);
+ await webhook(update(101,'/prompts off',{from:{id:78}}));await webhook(update(102,'What about another question?',{from:{id:78}}));assert.equal(sqlite.prepare('SELECT prompts FROM club_controls WHERE user_id=78').get().prompts,0);
+});
+test('positive reactions can revive a liked suggestion without prompting its author repeatedly',async()=>{
+ env.AMBIENT_ENABLED='false';await webhook(update(100,'We should organise a costume workshop.',{from:{id:77}}));
+ for(const user of [78,79])await webhook({update_id:user,message_reaction:{chat:{id:-100123},message_id:100,user:{id:user,is_bot:false},new_reaction:[{type:'emoji',emoji:'👍'}]}});
+ Date.now=()=>Date.parse('2026-10-27T08:01:00Z');await drainClub();assert.ok(sent.some(s=>s.body.text?.startsWith('This idea picked up interest')));await drainClub();assert.equal(sent.filter(s=>s.body.text?.startsWith('This idea')).length,1);
+});
+test('progressive character clues stop when solved and award only the first solver',async()=>{
+ await startGame(env,101,'character',15);await drainClub();assert.match(sent.at(-1).body.text,/clue 1\/3/);
+ Date.now=()=>Date.parse('2026-10-27T06:05:01Z');await drainClub();assert.match(sent.at(-1).body.text,/clue 2\/3/);
+ const answer=JSON.parse(sqlite.prepare('SELECT payload FROM club_games').get().payload).display;await webhook(update(200,`/answer 101 ${answer}`,{from:{id:77}}));await webhook(update(201,`/answer 101 ${answer}`,{from:{id:78}}));assert.equal(sqlite.prepare('SELECT SUM(points) n FROM club_points').get().n,5);assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'solved');
+ Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await drainClub();assert.equal(sent.filter(s=>s.body.text?.includes('clue 3/3')).length,0);
+});
+test('team trivia records the first answer, scores participation and preserves awarded team membership',async()=>{
+ nativeTelegram();await webhook(update(90,'/team rebels',{from:{id:77}}));await startGame(env,100,'trivia',15);await drainClub();const round=sqlite.prepare('SELECT * FROM club_game_polls').get();assert.ok(round);
+ await webhook({update_id:101,poll_answer:{poll_id:round.poll_id,user:{id:77,is_bot:false},option_ids:[round.correct]}});await webhook({update_id:102,poll_answer:{poll_id:round.poll_id,user:{id:77,is_bot:false},option_ids:[(round.correct+1)%4]}});assert.equal(sqlite.prepare('SELECT points FROM club_points').get().points,3);
+ await webhook(update(103,'/team empire',{from:{id:77}}));assert.equal(sqlite.prepare('SELECT team FROM club_points').get().team,'rebels');
+ Date.now=()=>Date.parse('2026-10-27T06:02:31Z');await drainClub();assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_game_polls').get().n,2);
+});
+test('caption contests award creative participation and one peer vote, with no self-voting',async()=>{
+ await startGame(env,100,'caption',15);await drainClub();await webhook(update(101,'/caption 100 These are not the invoices you are looking for.',{from:{id:77}}));await webhook(update(102,'/vote 100 77',{from:{id:77}}));assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_caption_votes').get().n,0);
+ await webhook(update(103,'/vote 100 77',{from:{id:78}}));await webhook(update(104,'/vote 100 77',{from:{id:78}}));assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_caption_votes').get().n,1);
+ Date.now=()=>Date.parse('2026-10-28T06:01:00Z');await drainClub();assert.match(sent.at(-1).body.text,/Community vote winner/);assert.equal(sqlite.prepare('SELECT SUM(points) n FROM club_points WHERE user_id=77').get().n,7);
+});
+test('briefings and weekly games are durably scheduled only once in their Hong Kong windows',async()=>{
+ Date.now=()=>Date.parse('2026-11-02T11:00:00Z');await scheduleClub(env);await scheduleClub(env);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_jobs WHERE kind='game_start'").get().n,1);
+ Date.now=()=>Date.parse('2026-11-02T13:00:00Z');await scheduleClub(env);await scheduleClub(env);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_jobs WHERE kind='briefing'").get().n,1);
+});
+test('quiet mode pauses automatic work but leaves direct admin commands available',async()=>{
+ await webhook(update(100,'/quiet 60'));await queue(-50,{internal_post:{kind:'idea',scheduled_at:Date.now()/1000}});assert.equal(sent.length,1);
+ const job=await queueClub(env,'briefing-test','briefing',{});await drainClub();assert.equal(sqlite.prepare('SELECT state FROM club_jobs WHERE id=?').get(job.id).state,'pending');await webhook(update(101,'/settings'));assert.match(sent.at(-1).body.text,/Quiet until:/);
+ await webhook(update(102,'/quiet off'));Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await drainClub();assert.ok(sent.some(s=>s.body.text?.startsWith('Cantina briefing')));
+});
+test('forget removes preferences, attendance, game records and pending proposals without leaking DMs',async()=>{
+ await webhook(update(100,'/preferences on'));await webhook(update(101,'/interests gaming,movies'));await webhook(update(102,'/team rebels'));await webhook(update(103,'/remember faq|Test|A pending answer'));await gamePoints(env,'sample',42,3,'test');
+ await webhook(update(104,'/forget'));for(const table of ['fan_interests','club_teams','club_points','club_memory','club_controls'])assert.equal(sqlite.prepare(`SELECT COUNT(*) n FROM ${table}`).get().n,0);
+});
+test('public webhook cannot inject club jobs or destructive moderation actions',async()=>{
+ await webhook({update_id:1,internal_club:1});await webhook({update_id:2,internal_action:{method:'banChatMember'}});assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_jobs').get().n,0);
+});
+test('Sunday weekend availability includes today rather than silently jumping a week',()=>{
+ const now=Date.parse('2026-11-01T02:00:00Z')/1000;const options=nextWeekend(now);assert.equal(new Date((options[0]+28800)*1000).toISOString().slice(0,10),'2026-11-01');assert.ok(options.every(t=>t>now));
+});
+test('uncertain moderation delivery is recorded and never automatically repeated',async()=>{
+ nativeTelegram();env.AMBIENT_ENABLED='false';await webhook(update(100,'https://a.example https://b.example https://c.example',{from:{id:77}}));const review=sqlite.prepare('SELECT id FROM club_reviews').get();await webhook(update(101,`/approve ${review.id} delete`));
+ let attempts=0;globalThis.fetch=async(url)=>{if(String(url).endsWith('/getChatMember'))return Response.json({ok:true,result:{status:'member'}});attempts++;throw Error('connection lost after send');};
+ await drainClub();await drainClub();assert.equal(attempts,1);assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE kind='moderation'").get().state,'uncertain');
+});
+test('event reminder retry rechecks opt-in and never mentions someone who opted out',async()=>{
+ nativeTelegram();await webhook(update(100,'/event create Test|2026-10-28 18:00|Room|hongkong'));await webhook(update(101,'/event confirm 100'));await drainClub();await webhook(update(102,'/rsvp 100 yes remind',{from:{id:77}}));
+ Date.now=()=>Date.parse('2026-10-28T09:31:00Z');globalThis.fetch=async()=>Response.json({ok:false,error_code:429,parameters:{retry_after:2}});await drainClub();
+ await webhook(update(103,'/optout',{from:{id:77}}));nativeTelegram();Date.now=()=>Date.parse('2026-10-28T09:32:00Z');await drainClub();assert.equal(sent.filter(s=>s.body.text?.startsWith('Opt-in reminder')).length,0);
+});
+test('bot answers prevent a question being falsely revived as unanswered',async()=>{
+ await webhook(update(100,'@SIU_M8_bot Which droid is useful?'));Date.now=()=>Date.parse('2026-10-27T08:01:00Z');await drainClub();assert.equal(sent.filter(s=>s.body.text?.startsWith('This question')).length,0);
+});
+test('new-member opt-out before welcome delivery suppresses the queued greeting',async()=>{
+ await webhook(update(100,undefined,{text:undefined,new_chat_members:[{id:77,first_name:'Newbie',is_bot:false}]}));await webhook(update(101,'/optout',{from:{id:77}}));await drainClub();assert.equal(sent.filter(s=>s.body.text?.startsWith('Welcome aboard')).length,0);
+});
+test('game points are capped and cannot be earned twice from the same event',async()=>{
+ for(let i=0;i<10;i++)await gamePoints(env,'score:'+i,77,3,'test');await gamePoints(env,'score:0',77,3,'test');assert.equal(sqlite.prepare('SELECT SUM(points) n FROM club_points').get().n,18);
 });

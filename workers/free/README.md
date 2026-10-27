@@ -72,8 +72,8 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   Admins can request `/post question`, `/post poll`, `/post idea`, `/post movie`,
   or `/post game` (one per minute, five explicit requests per day, subject to the ten-starter total cap).
 - `/privacy`, `/optout`, `/optin` and `/forget` are retained. Conversation text
-  expires after 24h; autonomous post history after 30 days. Nonselected ordinary
-  messages are not stored. Ambiguous Telegram delivery is recorded for inspection
+  expires after 24h; autonomous post history after 30 days. Group excerpts for the cantina briefing are retained for 24 hours; private
+  messages never enter recaps. Ambiguous Telegram delivery is recorded for inspection
   rather than blindly retried; Telegram 429 responses use the stored payload.
 
 ## Additional topic bindings
@@ -121,10 +121,11 @@ From this directory, with Wrangler authenticated to the existing account:
 ```sh
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0002_engagement.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0003_community.sql
+npx wrangler d1 execute sw-bot-test --remote --file migrations/0004_cantina.sql
 npx wrangler deploy
 ```
 
-For a fresh database, apply `schema.sql` before both additive migrations. Do not
+For a fresh database, apply `schema.sql` before the additive migrations. Do not
 point a fresh deployment at the existing webhook without configuring it first.
 
 The live bindings are `DB` (D1), `AI` (Workers AI), `BOT_TOKEN` and
@@ -177,3 +178,115 @@ This supports vote updates and externally stopped polls. The worker calls stopPo
 Rollback using the previous Worker version in Cloudflare. The additive table and
 indexes can remain in place; the old Worker ignores them. No Python service or
 Telegram polling process is needed for this deployment.
+
+## Cantina community and admin features
+
+Apply `migrations/0004_cantina.sql` before deploying this version, then enqueue
+`{"internal_configure":true}` to enable Telegram `message_reaction` updates.
+The bot needs to remain a group administrator to see group messages/reactions.
+Its existing delete/restrict permissions determine which approved moderation
+operations Telegram will accept. No action is taken just because a heuristic flags
+something; current Telegram administrators and configured admins are protected.
+
+### Daily briefings and conversation hosting
+
+- Daily briefing at 21:00 Hong Kong time, deferred during active conversation until
+  23:00. `/briefing` requests one (two per member/day). It includes sourced discussion
+  summaries, questions with no recorded reply, actual closed-poll results and
+  admin-confirmed future activities. Source links use the Telegram group/topic IDs.
+- Up to 1,500 non-command group excerpts/day, each at most 600 characters, are
+  retained for 24 hours. Private conversations never enter recaps. The privacy
+  command and onboarding explain this retention; opt-out removes stored excerpts.
+- One hosting nudge per day at most, after two hours without a recorded reply.
+  Positive reactions from at least two other members can qualify a suggestion.
+  The same author gets at most one nudge/week. `/prompts off` disables their nudges;
+  replying `/resolved` to their question marks it resolved. The bot's own replies
+  count as recorded answers. Missing replies are not proof that a question is
+  unresolved; prompts and briefings say "no recorded reply" explicitly.
+
+### Events and opt-in reminders
+
+- `/event plan Watch party` creates a non-anonymous weekend availability poll in
+  the Hong Kong topic (or the configured fallback). A group message asking
+  "anyone free this weekend?" can start the same flow. Two proposals/member/day.
+  Date votes are availability preferences, not RSVPs or automatic confirmation.
+- `/event create Watch party|2026-11-07 18:00|Community room|hongkong|https://source`
+  saves a draft. Times are parsed strictly as Hong Kong time; the source URL is
+  optional. No URL is fetched or treated as independently verified.
+- `/event show ID` shows dates, availability votes, RSVP totals and supplied source.
+  `/event list` shows activities. An admin explicitly confirms details with
+  `/event confirm ID` or `/event confirm ID | YYYY-MM-DD HH:mm | Location | URL`.
+  "Admin-confirmed" means that admin checked the details, not independent bot
+  verification. Only confirmed activities enter briefings and announcements.
+- `/rsvp ID yes remind` opts into a group reminder about 30 minutes beforehand.
+  `/rsvp ID yes silent`, `maybe`, or `no` disables reminders. Reminders never go to
+  DMs; up to 30 opted-in attendees are mentioned in the group. Opt-out and event
+  cancellation are rechecked before every delivery/retry. `/event cancel ID`
+  is admin-only. A quiet/paused bot may miss a reminder; late reminders are skipped.
+
+### Rules, memory, onboarding and controls
+
+- `/remember rule|Title|Details` proposes an entry; kinds are `rule`, `faq`,
+  `recommendation`, `decision`. `/memory show ID` lets admins inspect the full
+  proposal and its source before `/approve memory ID` or `/dismiss memory ID`.
+  Unapproved entries never enter AI answers. `/memory remove ID` retracts an entry.
+- `/rules` and `/memory watch party` retrieve approved entries. Relevant approved
+  entries and source links also inform normal answers. Shared approved memory is
+  retained until removed; it does not silently infer personal preferences.
+- Real `new_chat_members` updates trigger a welcome with topics, approved rules,
+  privacy information and optional `/preferences on`, `/era`, `/spoilers`, and
+  `/interests gaming,movies,lore`. `/preferences off` deletes interests too.
+- `/pending` shows possible moderation issues, pending memory and event drafts.
+  `/settings` shows topic configuration, schedules, pending jobs and posting policy.
+  `/quiet 60` suppresses automatic participation temporarily; `/quiet off` ends it.
+  Direct commands remain usable. `/pause` retains its broader stop behavior.
+- All responses, including admin reports requested privately, remain public in the
+  configured group. `/pending` is admin-only but **not an admin-private inbox**.
+
+### Moderation review
+
+Bounded heuristics flag link-heavy/repeated promotion, certain abusive phrases and
+possible unhidden spoilers. They are suggestions requiring context, not findings.
+`/pending` includes reasons, original-message links and suggested actions.
+`/approve ID delete`, `/approve ID mute` (one hour) or `/approve ID ban` explicitly
+authorizes that exact action; `/dismiss ID` rejects a pending flag. Only configured
+admins may approve. The bot rechecks the target's Telegram administrator status
+before execution, records the action/result, and never automatically repeats an
+ambiguous delivery. Tests exercise deletion/restriction/ban transports with mocks;
+no real member is moderated merely to test the feature.
+
+### Games with continuity
+
+- Mondays 19:00 HKT: three-round team trivia; Wednesdays: progressive character
+  clues; Fridays: a 24-hour caption contest. Scheduled starts wait for quiet.
+  These sessions, round updates, briefing, reminders and hosting nudges are separate
+  from the 5–10 general starter budget. `/game trivia|character|caption` requests a
+  session (two per member/day); an existing open session is reused.
+- `/team rebels|empire|scoundrels` explicitly joins a team; `/team off` leaves.
+  Trivia awards 3 points for the first correct answer or 1 for participation.
+  Subsequent answer changes do not earn additional points. Team membership at
+  award time is retained with the score; changing teams does not move old points.
+- `/answer ID Character` solves a progressive clue game; the first solver gets 5
+  points. Unsolved games reveal the answer. Solved games stop issuing clues.
+- `/caption ID Original caption` submits one entry (12 entries/contest maximum).
+  `/game show ID` lists entries, then `/vote ID <entry number>` casts one peer vote.
+  Self-votes are rejected. An entry earns 1 point, each peer vote 1 point, and the
+  winner(s), including ties, receive 5 bonus points. No votes means no winner.
+- `/season` shows individual/team scores for the Hong Kong calendar month. Rewards
+  are capped at 20 points/member per rolling 24 hours. Ordinary message volume no
+  longer earns participation XP; the legacy `/rank` history remains available.
+
+### Retention and operations
+
+`club_jobs` contains durable one-effect jobs; negative queue IDs map to those jobs.
+Stored approvals are distinct from executable actions. Event/reminder cancellation,
+opt-outs, pause/quiet controls and moderator protections are rechecked on retries.
+Uncertain operations are recorded for inspection and not retried automatically.
+
+Discussion excerpts/reactions expire in 24h, events/attendance and game content in
+30 days, moderation reviews in 30 days, and seasonal points in 120 days. Preferences
+and team membership persist until removed. `/forget` deletes personal preferences,
+attendance, scores, entries, votes, controls, pending proposals and review records.
+Confirmed public activities remain community records with the member linkage
+removed; approved shared memory remains until an admin removes it. Telegram posts
+and data already processed by the AI provider cannot be recalled by `/forget`.
