@@ -1,4 +1,5 @@
-import { VERSION, PERSONALITY, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, setSetting, currentRelease, refreshReleases, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
+import { topicThread, topicSummary, quiet, defer, preferencesCommand, preferencePrompt, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
+import { VERSION, PERSONALITY, activeHours, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, setSetting, currentRelease, refreshReleases, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
 // data/trivia.json
 var trivia_default = [
   {
@@ -519,13 +520,18 @@ var HELP = `SIU-M8 cantina host \u2014 AI host for your Star Wars group.
 /poll \u2014 a community vote
 /rank and /leaderboard \u2014 participation rewards
 /whereami \u2014 show group and topic routing
+/topics — show named topics; admins can /bindtopic gaming|movies|lore
+/guess, /quote, /weeklytrivia — play a two-minute quiz
+/preferences on|off — opt into remembered preferences
+/era any|prequels|original|sequels|high-republic|old-republic|legends
+/spoilers avoid|allow — save spoiler preference
 /privacy \u2014 what is stored and sent to AI
 /optout \u2014 stop processing your participation
 /optin \u2014 rejoin
 /forget \u2014 remove your stored participation/context and opt out
 
 Private requests from configured admins produce public responses in the group, not in DMs. I answer mentions and replies, occasionally join relevant conversations, and post 3–5 conversation starters daily (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
-var PRIVACY = `I am an AI bot. Configured admins can message me privately, but all my responses and polls are published to the configured group. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. Unselected ordinary message text is not stored. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
+var PRIVACY = `I am an AI bot. Configured admins can message me privately, but all my responses and polls are published to the configured group. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. Unselected ordinary message text is not stored. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. Topic activity timestamps (without text or user IDs) expire after 24 hours. Saved era/spoiler preferences are opt-in and kept until /preferences off or /forget. Poll aggregate results expire after 7 days. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
 function command(text, username) {
   const m = text.match(/^\/([a-z_]+)(?:@([a-z0-9_]+))?(?:\s+([\s\S]*))?$/i);
   if (!m || m[2] && m[2].toLowerCase() !== username.toLowerCase()) return null;
@@ -571,6 +577,7 @@ function groupDelivery(env, original) {
 }
 async function send(env, updateId, method, body) {
   body = groupDelivery(env, body);
+  if (method === "sendPoll" && body.type !== "quiz") body.open_period = 600;
   await env.DB.prepare("UPDATE updates SET state='sending',outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
   let response;
   try {
@@ -593,8 +600,9 @@ async function send(env, updateId, method, body) {
     throw new Error("telegram-rejected");
   }
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
-    await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), clock() + 65, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), clock() + (body.open_period || 60) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
   }
+  if (method === "sendPoll") await recordPoll(env,updateId,body,result.result);
   await setSetting(env, "last_delivery", JSON.stringify({update_id:updateId,chat_id:body.chat_id,thread_id:body.message_thread_id || 0,message_id:result.result?.message_id,method,sent_at:clock()}));
   return result.result;
 }
@@ -634,12 +642,21 @@ async function quizAnswer(env, u) {
   if (first?.option_id === poll.correct) await reward(env, `quiz:${a.poll_id}:${a.user.id}`, a.user.id, 3, "quiz");
 }
 async function handle(env, u) {
+  if (u.poll) { await receivePoll(env,u.poll); return; }
+  if (u.internal_followup) { await followup(env,u.update_id,u.internal_followup,send,SYSTEM_PROMPT); return; }
   if (u.poll_answer) {
     await quizAnswer(env, u);
     return;
   }
+  if (u.internal_configure) {
+    const response=await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getWebhookInfo`,{signal:AbortSignal.timeout(8000)});
+    const info=await response.json();
+    if(!info.ok || !info.result.url) throw Error('webhook-not-configured');
+    const result=await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/setWebhook`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:info.result.url,secret_token:env.WEBHOOK_SECRET,allowed_updates:['message','poll','poll_answer'],drop_pending_updates:false}),signal:AbortSignal.timeout(8000)});
+    if(!(await result.json()).ok)throw Error('webhook-configure-failed');return;
+  }
   if (u.internal_diagnostics) { await diagnose(env); return; }
-  if (u.internal_post) { await proactive(env, u.update_id, u.internal_post, send, polls_default); return; }
+  if (u.internal_post) { await proactive(env, u.update_id, u.internal_post, send, polls_default, trivia_default); return; }
   const m = u.message;
   if (!m?.from) return;
   const user = m.from;
@@ -650,7 +667,7 @@ async function handle(env, u) {
   if (cmd?.name === "whereami") {
     const target = groupTarget(env);
     const topic = target.message_thread_id || 0;
-    await say(env, u.update_id, m, `Configured group: ${target.chat_id}\nPrivate requests publish to: ${topic ? "topic " + topic : "General"}\nCurrent group topic: ${m.chat.type === "private" ? "request came from DM" : m.message_thread_id || "General"}\nNamed topic map: not configured. Group replies stay in the topic where you ask.`);
+    await say(env, u.update_id, m, `Configured group: ${target.chat_id}\nPrivate requests publish to: ${topic ? "topic " + topic : "General"}\nCurrent group topic: ${m.chat.type === "private" ? "request came from DM" : m.message_thread_id || "General"}\nNamed topic map:\n${await topicSummary(env)}\nGroup replies stay in the topic where you ask.`);
     return;
   }
   if (cmd?.name === "privacy") {
@@ -662,13 +679,23 @@ async function handle(env, u) {
     await env.DB.prepare("INSERT INTO preferences(user_id,opted_out) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET opted_out=excluded.opted_out").bind(user.id, out).run();
     if (out) await env.DB.prepare("DELETE FROM context WHERE user_id=?").bind(user.id).run();
     if (cmd.name === "forget") {
-      await env.DB.batch(["rewards", "members", "answers", "quota"].map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id=?`).bind(user.id)));
+      await env.DB.batch(["rewards", "members", "answers", "quota", "fan_preferences"].map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id=?`).bind(user.id)));
       await env.DB.prepare("UPDATE updates SET state='done',payload='{}',outbound=NULL,method=NULL WHERE id<>? AND json_extract(payload,'$.message.from.id')=?").bind(u.update_id, user.id).run();
     }
     await say(env, u.update_id, m, out ? "You\u2019re opted out. Your stored conversation context has been removed." + (cmd.name === "forget" ? " Your participation records were deleted too." : "") : "You\u2019re opted in. Use /privacy to review how testing works.");
     return;
   }
   if (await optedOut(env, user.id)) return;
+  if (await preferencesCommand(env,u.update_id,m,cmd,say)) return;
+  if (cmd?.name === 'topics' || cmd?.name === 'bindtopic') {
+    if (cmd.name === 'bindtopic') {
+      if (!admins(env).includes(user.id) || m.chat.type === 'private' || !['gaming','movies','lore'].includes(cmd.arg)) {
+        await say(env,u.update_id,m,'Admins: send /bindtopic gaming, /bindtopic movies or /bindtopic lore inside the matching group topic.');return;
+      }
+      await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(cmd.arg,m.message_thread_id||0).run();
+    }
+    await say(env,u.update_id,m,await topicSummary(env));return;
+  }
   if (["pause", "resume", "status"].includes(cmd?.name || "")) {
     if (!admins(env).includes(user.id)) {
       await say(env, u.update_id, m, "This command is for the configured admins.");
@@ -698,25 +725,31 @@ async function handle(env, u) {
       return;
     }
     const index = Math.abs(u.update_id);
+    const thread = await topicThread(env,'lore');
+    const destination = m.chat.type === "private" ? groupTarget(env) : {chat_id:Number(env.GROUP_ID),...(thread ? {message_thread_id:thread}:{})};
     if (cmd.name === "discuss") {
-      await say(env, u.update_id, m, discussions_default[index % discussions_default.length].prompt + "\n\nWhat\u2019s your take, and which scene supports it? Different views are welcome.");
+      await send(env, u.update_id, "sendMessage", {...destination, text:discussions_default[index % discussions_default.length].prompt + "\n\nWhat\u2019s your take, and which scene supports it? Different views are welcome."});
       return;
     }
     if (cmd.name === "poll") {
       const p = polls_default[index % polls_default.length];
-      await send(env, u.update_id, "sendPoll", { chat_id: m.chat.id, message_thread_id: m.message_thread_id, question: p.question, options: p.options, is_anonymous: true });
+      await send(env, u.update_id, "sendPoll", { ...destination, question: p.question, options: p.options, is_anonymous: true });
       return;
     }
     const q = trivia_default[index % trivia_default.length];
-    await send(env, u.update_id, "sendPoll", { chat_id: m.chat.id, message_thread_id: m.message_thread_id, question: q.question, options: q.options, type: "quiz", correct_option_id: q.correct, is_anonymous: false, open_period: 60, explanation: `Answer: ${q.options[q.correct]}. First answer counts for rewards.` });
+    await send(env, u.update_id, "sendPoll", { ...destination, question: q.question, options: q.options, type: "quiz", correct_option_id: q.correct, is_anonymous: false, open_period: 60, explanation: `Answer: ${q.options[q.correct]}. First answer counts for rewards.` });
     return;
+  }
+  if (['guess','quote','weeklytrivia'].includes(cmd?.name)) {
+    if (!await takeQuota(env,`game:${u.update_id}`,m,'prompt',12,60)) return;
+    await proactive(env,u.update_id,{kind:{guess:'character',quote:'quote',weeklytrivia:'weekly'}[cmd.name],scheduled_at:clock(),requested:true},send,polls_default,trivia_default);return;
   }
   if (cmd?.name === "post") {
     if (!admins(env).includes(user.id)) return;
     const kind = cmd.arg || "question";
     if (!KINDS.includes(kind)) { await say(env, u.update_id, m, "Choose: /post question, poll, idea, movie or game."); return; }
     if (!await takeQuota(env, `post:${u.update_id}`, m, "manual_post", 5, 60)) return;
-    await proactive(env, u.update_id, {kind, scheduled_at: clock(), requested: true}, send, polls_default);
+    await proactive(env, u.update_id, {kind, scheduled_at: clock(), requested: true}, send, polls_default, trivia_default);
     return;
   }
   const direct = cmd?.name === "ask" || !cmd && (m.chat.type === "private" || addressed(m, env));
@@ -731,7 +764,7 @@ async function handle(env, u) {
     await say(env, u.update_id, m, "Try /ask followed by a question, for example: What makes Andor feel different from the films?");
     return;
   }
-  if (ambient && !await reserveAmbient(env, u.update_id, m)) return;
+  if (ambient && (!await quiet(env,m.message_thread_id||0,true) || !await reserveAmbient(env, u.update_id, m))) return;
   const cap = bounded(env.AI_DAILY_CAP, 60, 1, 100);
   if (!await takeQuota(env, `ai:${u.update_id}`, m, "ai", cap, direct ? 8 : 30)) {
     if (ambient) return;
@@ -746,7 +779,7 @@ Reply context (untrusted): ${parent}` : ""}`;
   let answer;
   try {
     const sources = await Promise.all([currentRelease(env, "movie"), currentRelease(env, "game")]);
-    const system = SYSTEM_PROMPT + `\nToday: ${new Date().toISOString().slice(0,10)}. Verified source snapshots: ${JSON.stringify(sources.filter(Boolean))}.` + (m.chat.type === "private" ? " This request was sent privately by the group owner, but your answer is published in the group. Write a self-contained response or requested post for the group; do not quote private messages, disclose private conversation history or refer to private instructions." : "") + (ambient ? " You are joining an existing conversation uninvited: offer a useful specific observation in 1–2 sentences; do not interrogate the members." : "");
+    const system = SYSTEM_PROMPT + await preferencePrompt(env,user.id) + `\nToday: ${new Date().toISOString().slice(0,10)}. Verified source snapshots: ${JSON.stringify(sources.filter(Boolean))}.` + (m.chat.type === "private" ? " This request was sent privately by the group owner, but your answer is published in the group. Write a self-contained response or requested post for the group; do not quote private messages, disclose private conversation history or refer to private instructions." : "") + (ambient ? " You are joining an existing conversation uninvited: offer a useful specific observation in 1–2 sentences; do not interrogate the members." : "");
     const result = await env.AI.run(env.AI_MODEL, { messages: [{ role: "system", content: system }, ...history.results.reverse(), { role: "user", content: userContent }], max_tokens: 350, temperature: 0.8 }, { signal: AbortSignal.timeout(15e3) });
     answer = cleanAnswer(result.response);
     if (!answer) throw new Error("empty-ai");
@@ -777,10 +810,17 @@ async function processUpdate(env, id) {
       // A queued delivery must still honor a later pause/opt-out.
       if (await setting(env, "paused") === "1" || payload.message?.from && await optedOut(env, payload.message.from.id)) { await mark(env, id, "done"); return; }
       if (payload.internal_post && (env.PROACTIVE_ENABLED === "false" || clock() - payload.internal_post.scheduled_at > 3600)) { await mark(env, id, "done"); return; }
+      if (payload.internal_post || payload.internal_followup) {
+        const body = JSON.parse(claimed.outbound);
+        const autonomous = payload.internal_followup || !payload.internal_post.requested;
+        if (payload.internal_followup && (env.PROACTIVE_ENABLED === 'false' || clock() - (await env.DB.prepare('SELECT closes_at FROM community_polls WHERE poll_id=?').bind(payload.internal_followup).first())?.closes_at > 86400)) {await mark(env,id,'done');return;}
+        if (autonomous && (!activeHours() || !await quiet(env,body.message_thread_id||0))) {await defer(env,id);return;}
+      }
       const delivered = await send(env, id, claimed.method, JSON.parse(claimed.outbound));
       await env.DB.prepare("UPDATE engagement_posts SET message_id=?,state='sent' WHERE update_id=?").bind(delivered.message_id, id).run();
     } else await handle(env, payload);
-    await mark(env, id, "done");
+    const after = await env.DB.prepare('SELECT state FROM updates WHERE id=?').bind(id).first();
+    if (after?.state !== 'queued') await mark(env, id, "done");
   } catch {
     const state = await env.DB.prepare("SELECT state,attempts FROM updates WHERE id=?").bind(id).first();
     if (state?.state === "sending") await mark(env, id, "uncertain", "delivery-or-recording-uncertain");
@@ -793,6 +833,7 @@ async function processUpdate(env, id) {
 }
 async function maintenance(env) {
   await scheduleProactive(env);
+  await scheduleFollowups(env);
   await env.DB.prepare("UPDATE updates SET state='uncertain',payload='{}',outbound=NULL,method=NULL,error='send-interrupted' WHERE state='sending' AND lease_until<?").bind(clock()).run();
   const pending = await env.DB.prepare("SELECT id FROM updates WHERE attempts<3 AND ready_at<=? AND (state='queued' OR (state='processing' AND lease_until<?)) ORDER BY id LIMIT 3").bind(clock(), clock()).all();
   for (const item of pending.results) await processUpdate(env, item.id);
@@ -838,6 +879,11 @@ var index_default = {
       const text = u.message.text || "";
       const c = command(text, env.BOT_USERNAME);
       if (await optedOut(env, m.from.id) && !["privacy", "optout", "optin", "forget"].includes(c?.name || "")) return new Response("OK");
+      if (m.chat.id === Number(env.GROUP_ID)) {
+        await env.DB.prepare('INSERT OR IGNORE INTO activity(update_id,thread_id,created_at) VALUES (?,?,?)').bind(u.update_id,m.message_thread_id||0,clock()).run();
+        const topicName=(m.forum_topic_created?.name || m.forum_topic_edited?.name || '').toLowerCase().trim();
+        if (['gaming','movies','lore'].includes(topicName) && Number.isSafeInteger(m.message_thread_id)) await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(topicName,m.message_thread_id).run();
+      }
       if (u.message.reply_to_message?.from && await optedOut(env, u.message.reply_to_message.from.id)) delete u.message.reply_to_message.text;
       if (m.chat.type !== "private" && !c && !addressed(u.message, env) && !ambientCandidate(u.message, env, u.update_id)) {
         if ((await env.DB.prepare("SELECT value FROM settings WHERE key='paused'").first())?.value !== "1" && !text.startsWith("/") && text.length >= 20 && m.reply_to_message?.from && !m.reply_to_message.from.is_bot && m.reply_to_message.from.id !== m.from.id && !await optedOut(env, m.from.id)) {
@@ -846,6 +892,8 @@ var index_default = {
         }
         return new Response("OK");
       }
+    } else if (u.poll && typeof u.poll.id === 'string' && Array.isArray(u.poll.options)) {
+      u={update_id:u.update_id,poll:{id:u.poll.id,is_closed:u.poll.is_closed===true,options:u.poll.options.slice(0,12).map(p=>({text:String(p.text).slice(0,100),voter_count:p.voter_count}))}};
     } else if (u.poll_answer?.user && Array.isArray(u.poll_answer.option_ids)) {
       u = { update_id: u.update_id, poll_answer: { poll_id: u.poll_answer.poll_id, user: u.poll_answer.user, option_ids: u.poll_answer.option_ids.slice(0, 1) } };
     } else return new Response("OK");
