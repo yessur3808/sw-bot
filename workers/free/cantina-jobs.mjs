@@ -84,8 +84,8 @@ export async function handleClubJob(env,id,send){
  else if(job.kind==='game_step'||job.kind==='game_close'){
   const status=await gameDeliveryStatus(env,job);
   if(status==='wait'){await defer(env,id);return;}
-  deliveryGuard=()=>gameDeliveryStatus(env,job);
   const generated=await gameBody(env,job);if(!generated){await env.DB.prepare("UPDATE club_jobs SET state='cancelled' WHERE id=?").bind(job.id).run();return;}({method,body}=generated);
+  deliveryGuard=async()=>{const current=await gameDeliveryStatus(env,job);return current==='send'&&generated.deliveryGuard?generated.deliveryGuard():current;};
  }
  else return;
  const recheck=await clubAllowed(env,job);if(recheck==='wait'){await defer(env,id);return;}if(recheck==='cancel')return;
@@ -106,7 +106,7 @@ export async function clubDelivered(env,id,method,body,result){
  if(job.kind==='event_announcement')await env.DB.prepare('UPDATE club_events SET message_id=? WHERE id=?').bind(result.message_id||null,data.event_id).run();
  if(job.kind==='host')await env.DB.prepare('INSERT INTO club_controls(user_id,last_nudge) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET last_nudge=excluded.last_nudge').bind(job.user_id,nowSeconds()).run();
  if(job.kind==='moderation'){
-  await env.DB.prepare("UPDATE club_reviews SET state='executed' WHERE id=?").bind(data.review_id).run();await queueClub(env,`moderation-result:${data.review_id}`,'text',{text:`Approved moderation action for review ${data.review_id} completed.`},job.thread_id);
+  await env.DB.prepare("UPDATE club_reviews SET state='executed' WHERE id=?").bind(data.review_id).run(); // Completion is visible in the admin portal, without group status chatter.
  }
  if(job.kind==='game_step'||job.kind==='game_close')await gameDelivered(env,job,result);
 }
@@ -159,6 +159,9 @@ export async function forgetClub(env,user){
  await env.DB.prepare('DELETE FROM club_date_votes WHERE event_id IN (SELECT id FROM club_events WHERE creator=?)').bind(user).run();
  await env.DB.prepare('DELETE FROM club_events WHERE creator=?').bind(user).run();
  await env.DB.prepare("UPDATE club_games SET payload=json_remove(payload,'$.winner') WHERE json_extract(payload,'$.winner')=?").bind(user).run();
+ await env.DB.prepare(`UPDATE club_jobs SET data=json_set(data,'$.closing_winners',
+  (SELECT json_group_array(value) FROM json_each(data,'$.closing_winners') WHERE value<>?))
+  WHERE kind='game_close' AND json_type(data,'$.closing_winners')='array'`).bind(user).run();
  await env.DB.prepare("UPDATE club_jobs SET state='cancelled',data='{}' WHERE user_id=? AND state='pending'").bind(user).run();
  await env.DB.prepare("UPDATE club_jobs SET state='cancelled',data='{}' WHERE EXISTS(SELECT 1 FROM json_each(data,'$.welcomed') WHERE value=?)").bind(user).run();
  await env.DB.prepare("DELETE FROM club_memory WHERE proposed_by=? AND status<>'approved'").bind(user).run();

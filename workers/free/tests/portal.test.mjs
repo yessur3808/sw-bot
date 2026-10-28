@@ -39,13 +39,13 @@ test('Telegram approves only its bound browser, code is not a bearer token, and 
 test('sign-in cookies have host-only Secure HttpOnly SameSite protection',async()=>{
  const r=await request('/api/login',{}),c=r.headers.get('Set-Cookie');assert.match(c,/Secure/);assert.match(c,/HttpOnly/);assert.match(c,/SameSite=Strict/);assert.match(c,/Path=\//);assert.doesNotMatch(c,/Domain=/);
 });
-test('Telegram webhook authentication protects portal login and approval receipts route to the group',async()=>{
+test('Telegram webhook authentication protects portal login without a group receipt',async()=>{
  const code=await begin(),pending=[];
  const payload={update_id:99,message:{message_id:99,from:{id:42,is_bot:false,first_name:'Admin'},chat:{id:42,type:'private'},text:'/admin login '+code}};
  const webhook=secret=>worker.fetch(new Request('https://bot.example/telegram',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Bot-Api-Secret-Token':secret},body:JSON.stringify(payload)}),env,{waitUntil(p){pending.push(p);}});
  assert.equal((await webhook('wrong')).status,401);assert.equal((await api('/session')).state,'pending');
  assert.equal((await webhook(env.WEBHOOK_SECRET)).status,200);await Promise.all(pending);
- assert.equal((await api('/session')).state,'active');assert.equal(sent.length,1);assert.equal(sent[0].body.chat_id,Number(env.GROUP_ID));assert.doesNotMatch(sent[0].body.text,new RegExp(code));
+ assert.equal((await api('/session')).state,'active');assert.equal(sent.length,0);
 });
 test('expired challenges, expired sessions and removed admins cannot authenticate',async()=>{
  const code=await begin();now+=601000;assert.match(await portalLoginCommand(env,42,'login '+code),/expired/);await login();now+=8*3600000+1;assert.equal((await request('/api/state')).status,401);
@@ -136,4 +136,20 @@ test('portal moderation only queues an explicit approval and rejects unsupported
  await api('/command',{name:'approve',arg:review.id+' delete'});
  const r=sqlite.prepare('SELECT * FROM club_reviews').get();assert.equal(r.approved_by,42);assert.equal(r.state,'approved');assert.equal(r.action,'delete');
  assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_jobs WHERE kind='moderation'").get().n,1);assert.equal(sent.length,0);
+});
+
+test('a definite 429 recovers even when releasing the portal claim fails once',async()=>{
+ await login();const p=await queued(),id=-CLUB_OFFSET-p.job.id;await scheduleClub(env);
+ const prepare=env.DB.prepare.bind(env.DB);let fail=true,attempts=0;
+ env.DB.prepare=sql=>{const stmt=prepare(sql);if(sql.startsWith('UPDATE admin_posts SET state=?,updated_at=?')){const run=stmt.run;stmt.run=async()=>{if(fail){fail=false;throw Error('transient claim release failure');}return run();};}return stmt;};
+ globalThis.fetch=async()=>{attempts++;return Response.json({ok:false,error_code:429,parameters:{retry_after:2}});};
+ await processUpdate(env,id);assert.equal(sqlite.prepare('SELECT state FROM admin_posts').get().state,'sending');assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=?').get(id).state,'queued');
+ env.DB.prepare=prepare;now+=3000;globalThis.fetch=async()=>{attempts++;return Response.json({ok:true,result:{message_id:901}});};
+ await processUpdate(env,id);await processUpdate(env,id);assert.equal(attempts,2);assert.equal(sqlite.prepare('SELECT state FROM admin_posts').get().state,'published');
+});
+for(const reason of ['expired','removed approver'])test(`stale scheduler ${reason} snapshot cannot invalidate a new scheduled revision`,async()=>{
+ await login();const p=await queued();if(reason==='expired')now+=86401000;else env.ADMIN_USER_IDS='43';
+ const prepare=env.DB.prepare.bind(env.DB);let changed=false;
+ env.DB.prepare=sql=>{const stmt=prepare(sql);if(sql.startsWith("SELECT * FROM admin_posts WHERE state='scheduled'")){const all=stmt.all;stmt.all=async()=>{const rows=await all();if(!changed){changed=true;await changePost(env,43,p.id,1,'edit',draft({text:'New future revision'}));await changePost(env,43,p.id,2,'approve');await changePost(env,43,p.id,2,'publish',{scheduled_at:now/1000+3600});}return rows;};}return stmt;};
+ await schedulePortalPosts(env);const current=sqlite.prepare('SELECT * FROM admin_posts').get();assert.equal(current.revision,2);assert.equal(current.state,'scheduled');assert.equal(current.scheduled_at,now/1000+3600);
 });

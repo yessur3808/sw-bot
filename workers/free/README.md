@@ -48,8 +48,9 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   are excluded. Add newly verified announcements to `RELEASES` as needed; this is
   a bounded source list, not a general news crawler.
 - Configured admins can message the bot privately in plain text or use commands.
-  Every resulting response, poll and quiz is published to the group; nothing is
-  sent back to a private chat. Private message IDs are never used as group reply
+  Content answers, polls and quizzes publish to the group. Operational receipts
+  go privately to the requesting configured admin; successful portal login/logout
+  are silent. Private message IDs are never used as group reply
   targets. `/whereami` shows the configured destination and current topic.
 - Private request history stays in its private conversation scope; only published
   answers enter shared group history. Private access remains admin-only.
@@ -124,6 +125,7 @@ npx wrangler d1 execute sw-bot-test --remote --file migrations/0003_community.sq
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0004_cantina.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0005_production.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0006_safe_recaps_games.sql
+npx wrangler d1 execute sw-bot-test --remote --file migrations/0007_admin_portal.sql
 npx wrangler deploy
 ```
 
@@ -298,8 +300,10 @@ something; current Telegram administrators and configured admins are protected.
   `/settings` shows topic configuration, schedules, pending jobs and posting policy.
   `/quiet 60` suppresses automatic participation temporarily; `/quiet off` ends it.
   Direct commands remain usable. `/pause` retains its broader stop behavior.
-- All responses, including admin reports requested privately, remain public in the
-  configured group. `/pending` is admin-only but **not an admin-private inbox**.
+- Operational reports and confirmations, including `/pending`, `/settings`,
+  `/status` and `/readiness`, go privately to the requesting configured admin.
+  Failed private delivery never falls back to the group. Moderation completion
+  is recorded in the portal without a group status message.
 
 ### Moderation review
 
@@ -324,10 +328,11 @@ no real member is moderated merely to test the feature.
   Trivia awards 3 points for the first correct answer or 1 for participation.
   Subsequent answer changes do not earn additional points. Team membership at
   award time is retained with the score; changing teams does not move old points.
-- `/answer ID Character` solves a progressive clue game; the first solver gets 5
-  points. Unsolved games reveal the answer. Solved games stop issuing clues.
-- `/caption ID Original caption` submits one entry (12 entries/contest maximum).
-  `/game show ID` lists entries, then `/vote ID <entry number>` casts one peer vote.
+- `/answer Character` solves a progressive clue game; the first solver gets 5
+  points. Use the game topic or reply to its message; internal game IDs are hidden.
+  Unsolved games reveal the answer. Solved games stop issuing clues.
+- `/caption Original caption` submits one entry (12 entries/contest maximum).
+  `/game show` lists entries, then `/vote <entry number>` casts one peer vote.
   Self-votes are rejected. An entry earns 1 point, each peer vote 1 point, and the
   winner(s), including ties, receive 5 bonus points. No votes means no winner.
 - `/season` shows individual/team scores for the Hong Kong calendar month. Rewards

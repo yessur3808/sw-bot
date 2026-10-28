@@ -110,12 +110,12 @@ test('plain admin DM produces a group response without a private reply ID',async
 test('non-admin private users cannot cause group posts',async()=>{
  await webhook(update(201,'/poll',{chat:{id:43,type:'private'},from:{id:43,first_name:'Other',is_bot:false}}));assert.equal(sent.length,0);
 });
-test('private commands including polls and quizzes always use the group destination',async()=>{
+test('private content commands publish to the group while operational receipts stay private',async()=>{
  for(const [i,cmd] of ['/help','/status','/poll','/trivia','/whereami','/privacy'].entries()){
   Date.now=()=>Date.parse('2026-10-27T06:00:00Z')+i*61000;
   await webhook(update(210+i,cmd,{chat:{id:42,type:'private'}}));
  }
- assert.equal(sent.length,6);for(const s of sent){assert.equal(s.body.chat_id,-100123);assert.equal(s.body.reply_parameters,undefined);}assert.equal(sent.filter(s=>s.method==='sendPoll').length,2);
+ assert.equal(sent.length,6);for(const [i,s] of sent.entries()){assert.equal(s.body.chat_id,[1,4].includes(i)?42:-100123);assert.equal(s.body.reply_parameters,undefined);}assert.equal(sent.filter(s=>s.method==='sendPoll').length,2);
 });
 test('private routing honors configured topics and does not inherit DM topic IDs',async()=>{
  env.ALLOWED_THREAD_IDS='17,23';env.PRIVATE_THREAD_ID='23';
@@ -440,8 +440,8 @@ test('positive reactions can revive a liked suggestion without prompting its aut
  Date.now=()=>Date.parse('2026-10-27T08:01:00Z');await drainClub();assert.ok(sent.some(s=>s.body.text?.startsWith('This idea picked up interest')));await drainClub();assert.equal(sent.filter(s=>s.body.text?.startsWith('This idea')).length,1);
 });
 test('progressive character clues stop when solved and award only the first solver',async()=>{
- await startGame(env,101,'character',15);await drainClub();assert.match(sent.at(-1).body.text,/clue 1\/3/);
- Date.now=()=>Date.parse('2026-10-27T06:05:01Z');await drainClub();assert.match(sent.at(-1).body.text,/clue 2\/3/);
+ await startGame(env,101,'character',15);await drainClub();assert.match(sent.at(-1).body.text,/Clue 1 of 3/);
+ Date.now=()=>Date.parse('2026-10-27T06:05:01Z');await drainClub();assert.match(sent.at(-1).body.text,/Clue 2 of 3/);
  const answer=JSON.parse(sqlite.prepare('SELECT payload FROM club_games').get().payload).display;await webhook(update(200,`/answer 101 ${answer}`,{from:{id:77}}));await webhook(update(201,`/answer 101 ${answer}`,{from:{id:78}}));assert.equal(sqlite.prepare('SELECT SUM(points) n FROM club_points').get().n,5);assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'solved');
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await drainClub();assert.equal(sent.filter(s=>s.body.text?.includes('clue 3/3')).length,0);
 });
@@ -662,7 +662,7 @@ test('legacy excerpts with unknown spoiler metadata are not eligible for recaps'
 test('a ten-minute delayed character game starts at clue one and waits between delivered clues',async()=>{
  await startGame(env,800,'character',6);
  Date.now=()=>Date.parse('2026-10-27T06:10:01Z');await drainClub();
- const clues=()=>sent.filter(s=>s.body.text?.startsWith('Character game')).map(s=>Number(s.body.text.match(/clue (\d)/)[1]));
+ const clues=()=>sent.filter(s=>s.body.text?.startsWith('🧩 Who am I?')).map(s=>Number(s.body.text.match(/Clue (\d)/)[1]));
  assert.deepEqual(clues(),[1]);assert.equal(sqlite.prepare('SELECT last_step_at FROM club_games').get().last_step_at,Date.now()/1000);
  Date.now=()=>Date.parse('2026-10-27T06:15:00Z');await drainClub();assert.deepEqual(clues(),[1]);
  Date.now=()=>Date.parse('2026-10-27T06:15:01Z');await drainClub();assert.deepEqual(clues(),[1,2]);
@@ -672,20 +672,20 @@ test('legacy future rounds wait for predecessors and stale rounds cannot rewind 
  await startGame(env,800,'character',6);
  await queueClub(env,'game:800:2','game_step',{game_id:800,step:2},6);
  Date.now=()=>Date.parse('2026-10-27T06:10:01Z');await drainClub();
- assert.equal(sent.length,1);assert.match(sent[0].body.text,/clue 1\/3/);
+ assert.equal(sent.length,1);assert.match(sent[0].body.text,/Clue 1 of 3/);
  await queueClub(env,'stale-step-zero','game_step',{game_id:800,step:0},6);await drainClub();
  assert.equal(sent.length,1);assert.equal(sqlite.prepare("SELECT state FROM club_jobs WHERE job_key='stale-step-zero'").get().state,'cancelled');
- Date.now=()=>Date.parse('2026-10-27T06:15:01Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.text,/clue 2\/3/);
- Date.now=()=>Date.parse('2026-10-27T06:20:01Z');await drainClub();assert.equal(sent.length,3);assert.match(sent[2].body.text,/clue 3\/3/);
+ Date.now=()=>Date.parse('2026-10-27T06:15:01Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.text,/Clue 2 of 3/);
+ Date.now=()=>Date.parse('2026-10-27T06:20:01Z');await drainClub();assert.equal(sent.length,3);assert.match(sent[2].body.text,/Clue 3 of 3/);
  assert.equal(sqlite.prepare('SELECT step FROM club_games').get().step,2);
 });
 test('trivia waits for successful first delivery after 429 before scheduling the next poll',async()=>{
  await startGame(env,800,'trivia',6);globalThis.fetch=async()=>Response.json({ok:false,error_code:429,parameters:{retry_after:600}});await drainClub();
  assert.equal(sqlite.prepare('SELECT step FROM club_games').get().step,-1);
  Date.now=()=>Date.parse('2026-10-27T06:09:00Z');await scheduleClub(env);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_jobs WHERE kind='game_step'").get().n,1);
- nativeTelegram();Date.now=()=>Date.parse('2026-10-27T06:10:00Z');await drainClub();assert.equal(sent.length,1);assert.match(sent[0].body.question,/round 1\/3/);
+ nativeTelegram();Date.now=()=>Date.parse('2026-10-27T06:10:00Z');await drainClub();assert.equal(sent.length,1);assert.match(sent[0].body.question,/Round 1 of 3/);
  Date.now=()=>Date.parse('2026-10-27T06:12:29Z');await drainClub();assert.equal(sent.length,1);
- Date.now=()=>Date.parse('2026-10-27T06:12:30Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.question,/round 2\/3/);
+ Date.now=()=>Date.parse('2026-10-27T06:12:30Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.question,/Round 2 of 3/);
 });
 test('unsent games expire without revealing an answer or emitting a catch-up burst',async()=>{
  await startGame(env,800,'character',6);Date.now=()=>Date.parse('2026-10-27T07:01:00Z');await drainClub();
@@ -763,4 +763,63 @@ test('welcome is cancelled if the newcomer forgets during final queue preparatio
  };
  await webhook(update(100,'',{new_chat_members:[{id:77,first_name:'Withdrawn',is_bot:false}]}));await drainClub();
  assert.ok(withdrawn);assert.equal(sent.filter(s=>s.body.text?.startsWith('Welcome aboard')).length,0);
+});
+
+for(const kind of ['trivia','caption'])for(const withdrawal of ['/forget','/optout']){
+ test(`${kind} closing rebuilds after ${withdrawal} during final delivery preparation`,async()=>{
+  const n=Date.now()/1000;
+  sqlite.prepare("INSERT INTO club_games(id,kind,thread_id,opened_at,ends_at,message_id,payload,step) VALUES (800,?,6,?,?,900,'{}',2)").run(kind,n-600,n-1);
+  if(kind==='trivia'){sqlite.exec("INSERT INTO members(user_id,name) VALUES (77,'Withdrawn'),(78,'Remaining'); INSERT INTO club_game_answers VALUES (800,0,77,1),(800,0,78,0)");}
+  else sqlite.exec("INSERT INTO club_captions VALUES (800,77,'Withdrawn caption'),(800,78,'Remaining caption'); INSERT INTO club_caption_votes VALUES (800,79,77),(800,80,78)");
+  const originalPrepare=env.DB.prepare.bind(env.DB);let withdrawn=false;
+  env.DB.prepare=sql=>{
+   const statement=originalPrepare(sql);
+   if(sql.startsWith("UPDATE updates SET state='sending'")){
+    const bind=statement.bind,run=statement.run;let body;
+    statement.bind=(...args)=>{body=JSON.parse(args[0]);return bind(...args);};
+    statement.run=async()=>{const result=await run();if(!withdrawn&&body.text?.includes('— finished')){withdrawn=true;await webhook(update(801,withdrawal,{from:{id:77}}));}return result;};
+   }
+   return statement;
+  };
+  await drainClub();assert.ok(withdrawn);assert.equal(sent.filter(s=>s.body.text?.includes('— finished')).length,0);
+  Date.now=()=>n*1000+301000;await drainClub();
+  const closings=sent.filter(s=>s.body.text?.includes('— finished'));assert.equal(closings.length,1);assert.doesNotMatch(closings[0].body.text,/Withdrawn|entry #1\b/);assert.match(closings[0].body.text,kind==='trivia'?/Remaining/:/entry #2\b/);
+ });
+}
+
+test('character games hide internal IDs and accept short guesses in topic or reply context',async()=>{
+ const id=30000000000055;await startGame(env,id,'character',6,42);await drainClub();
+ const clue=sent.find(s=>s.body.text?.startsWith('🧩'));assert.ok(clue);assert.doesNotMatch(clue.body.text,/30000000000055|<character>/);assert.match(clue.body.text,/Clue 1 of 3\n\n/);
+ await webhook(update(901,'/answer Yoda',{message_thread_id:6}));assert.equal(sqlite.prepare('SELECT state FROM club_games WHERE id=?').get(id).state,'solved');
+ await startGame(env,101,'character',4,42);await drainClub();
+ const game=sqlite.prepare('SELECT * FROM club_games WHERE id=101').get();
+ await webhook(update(902,'/answer Chewbacca',{message_thread_id:6,reply_to_message:{message_id:game.message_id,from:{id:123,is_bot:true}}}));
+ assert.equal(sqlite.prepare('SELECT state FROM club_games WHERE id=101').get().state,'solved');
+});
+test('short caption and vote commands use displayed entry numbers',async()=>{
+ await startGame(env,30000000000054,'caption',6,42);await drainClub();
+ await webhook(update(910,'/caption A droid walks into a cantina',{message_thread_id:6,from:{id:77,first_name:'Author'}}));
+ await webhook(update(911,'/game show',{message_thread_id:6}));
+ const shown=sent.at(-1).body.text;assert.match(shown,/#1 · A droid/);assert.doesNotMatch(shown,/30000000000054|entry 77/);
+ await webhook(update(912,'/vote 1',{message_thread_id:6,from:{id:78,first_name:'Voter'}}));assert.equal(sqlite.prepare('SELECT candidate FROM club_caption_votes').get().candidate,77);
+});
+test('withdrawing a caption voter before closing changes both announcement and awarded bonus',async()=>{
+ const n=Date.now()/1000;sqlite.prepare("INSERT INTO club_games(id,kind,thread_id,opened_at,ends_at,message_id,payload,step) VALUES (800,'caption',6,?,?,900,'{}',0)").run(n-90000,n-1);
+ sqlite.exec("INSERT INTO club_captions VALUES (800,77,'Caption A'),(800,78,'Caption B'); INSERT INTO club_caption_votes VALUES (800,79,77),(800,80,78)");
+ const prepare=env.DB.prepare.bind(env.DB);let withdrawn=false;
+ env.DB.prepare=sql=>{const s=prepare(sql);if(sql.startsWith("UPDATE updates SET state='sending'")){const bind=s.bind,run=s.run;let body;s.bind=(...args)=>{body=JSON.parse(args[0]);return bind(...args);};s.run=async()=>{const r=await run();if(!withdrawn&&body.text?.includes('— finished')){withdrawn=true;await webhook(update(801,'/forget',{from:{id:79}}));}return r;};}return s;};
+ await drainClub();assert.ok(withdrawn);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_points WHERE kind='caption-winner'").get().n,0);
+ Date.now=()=>n*1000+301000;await drainClub();
+ assert.match(sent.find(s=>s.body.text?.includes('— finished')).body.text,/entry #2/);
+ assert.deepEqual(sqlite.prepare("SELECT user_id,points FROM club_points WHERE kind='caption-winner'").all().map(p=>[p.user_id,p.points]),[[78,5]]);
+});
+test('confirmed caption closing recovers scoring once without resending and forget scrubs its winner snapshot',async()=>{
+ const n=Date.now()/1000;sqlite.prepare("INSERT INTO club_games(id,kind,thread_id,opened_at,ends_at,message_id,payload,step) VALUES (800,'caption',6,?,?,900,'{}',0)").run(n-90000,n-1);
+ sqlite.exec("INSERT INTO club_captions VALUES (800,77,'Caption A'); INSERT INTO club_caption_votes VALUES (800,79,77)");
+ const prepare=env.DB.prepare.bind(env.DB);let failed=false;
+ env.DB.prepare=sql=>{const s=prepare(sql);if(sql.startsWith('INSERT OR IGNORE INTO club_points')){const run=s.run;s.run=async()=>{if(!failed){failed=true;throw Error('temporary scoring failure');}return run();};}return s;};
+ await drainClub();assert.ok(failed);assert.equal(sent.filter(s=>s.body.text?.includes('— finished')).length,1);
+ await scheduleGames(env);await scheduleGames(env);assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'closed');assert.equal(sqlite.prepare('SELECT SUM(points) n FROM club_points').get().n,5);
+ await webhook(update(920,'/forget',{from:{id:77}}));const data=JSON.parse(sqlite.prepare("SELECT data FROM club_jobs WHERE kind='game_close'").get().data);assert.deepEqual(data.closing_winners,[]);
+ assert.equal(sent.filter(s=>s.body.text?.includes('— finished')).length,1);
 });

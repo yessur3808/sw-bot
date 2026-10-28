@@ -546,8 +546,8 @@ Admins: /admin (web portal), /pending, /approve, /dismiss, /quiet 60, /settings,
 /optin \u2014 rejoin
 /forget \u2014 remove your stored participation/context and opt out
 
-Private requests from configured admins produce public responses in the group, not in DMs. I answer mentions and replies, occasionally join relevant conversations, and target five daily conversation starters, rising to seven or ten when recent participation is strong (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
-var PRIVACY = `I am an AI bot. Configured admins can message me privately, but all my responses and polls are published to the configured group. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. For briefings and hosting, up to 1,500 non-command group excerpts (600 characters each) are retained for 24 hours with message links; private messages are excluded. Reaction metadata helps find liked suggestions. /optout excludes your messages and removes stored excerpts. Approved rules/FAQs/decisions are retained until an admin removes them; proposals and other personal records can be removed with /forget. Event attendance and votes expire 30 days after the event; review records expire after 30 days; seasonal scores after 120 days. Moderation is heuristic and requires an explicit admin approval before deleting, muting or banning. Review reports requested through /pending are public group replies. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. Topic activity timestamps (without text or user IDs) expire after 24 hours. Saved era/spoiler preferences are opt-in and kept until /preferences off or /forget. Poll aggregate results expire after 7 days. Adaptive posting uses at most one text-free engagement signal per member per five minutes; signals expire after two days and /forget removes them. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
+Content requests from configured admins publish to the group. Operational command receipts go privately to the requesting configured admin; successful portal sign-in and sign-out are silent. I answer mentions and replies, occasionally join relevant conversations, and target five daily conversation starters, rising to seven or ten when recent participation is strong (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
+var PRIVACY = `I am an AI bot. Configured admins can message me privately. Content answers and polls are published to the configured group; operational command receipts go privately to the requesting configured admin. Successful portal sign-in and sign-out are silent. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. For briefings and hosting, up to 1,500 non-command group excerpts (600 characters each) are retained for 24 hours with message links; private messages are excluded. Reaction metadata helps find liked suggestions. /optout excludes your messages and removes stored excerpts. Approved rules/FAQs/decisions are retained until an admin removes them; proposals and other personal records can be removed with /forget. Event attendance and votes expire 30 days after the event; review records expire after 30 days; seasonal scores after 120 days. Moderation is heuristic and requires an explicit admin approval before deleting, muting or banning. Review reports requested by configured admins through /pending are private admin receipts. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. Topic activity timestamps (without text or user IDs) expire after 24 hours. Saved era/spoiler preferences are opt-in and kept until /preferences off or /forget. Poll aggregate results expire after 7 days. Adaptive posting uses at most one text-free engagement signal per member per five minutes; signals expire after two days and /forget removes them. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
 function command(text, username) {
   const m = text.match(/^\/([a-z_]+)(?:@([a-z0-9_]+))?(?:\s+([\s\S]*))?$/i);
   if (!m || m[2] && m[2].toLowerCase() !== username.toLowerCase()) return null;
@@ -567,7 +567,7 @@ async function optedOut(env, user) {
   return Boolean((await env.DB.prepare("SELECT opted_out FROM preferences WHERE user_id=?").bind(user).first())?.opted_out);
 }
 async function mark(env, id, state, error = null) {
-  if(id < -30000000000000 && ['failed','uncertain'].includes(state))await env.DB.prepare('UPDATE club_jobs SET state=? WHERE id=?').bind(state,-id-30000000000000).run();
+  if(id < -30000000000000 && ['failed','uncertain'].includes(state))await env.DB.prepare("UPDATE club_jobs SET state=? WHERE id=? AND state<>'sent'").bind(state,-id-30000000000000).run();
   await env.DB.prepare("UPDATE updates SET state=?, error=?, payload='{}',outbound=NULL,method=NULL WHERE id=?").bind(state, error, id).run();
 }
 function groupTarget(env) {
@@ -577,6 +577,32 @@ function groupTarget(env) {
   const thread = Number(env.PRIVATE_THREAD_ID ?? env.PROACTIVE_THREAD_ID ?? allowedThreads[0] ?? 0);
   if (!Number.isSafeInteger(thread) || thread < 0 || allowedThreads.some(n => !Number.isSafeInteger(n) || n < 0) || allowedThreads.length && !allowedThreads.includes(thread)) throw new Error("invalid-topic-routing");
   return {chat_id:chat, ...(thread ? {message_thread_id:thread} : {})};
+}
+// This capability is created only by server-side receipt handling, never from
+// Telegram fields or a persisted outbound flag. Retries rederive it from the
+// authenticated webhook payload and validate the recipient again before sending.
+const PRIVATE_ADMIN_RECEIPT = Symbol('private-admin-receipt');
+function receiptCommand(m, env) {
+  const cmd = command((m?.text || '').trim(), env.BOT_USERNAME);
+  return ['admin','pause','resume','status','whereami','readiness','bindtopic','topics',
+    'pending','approve','dismiss','quiet','settings','remember'].includes(cmd?.name) ||
+    cmd?.name === 'event' && /^(create|plan|confirm|cancel)(?: |$)/.test(cmd.arg) ||
+    cmd?.name === 'memory' && /^(show|remove)\s+\d+$/.test(cmd.arg);
+}
+function privateAdminDelivery(env, payload, method, original, routing) {
+  const m = payload.message, recipient = routing.recipient;
+  if (routing.kind !== PRIVATE_ADMIN_RECEIPT || method !== 'sendMessage' ||
+      !Number.isSafeInteger(recipient) || recipient <= 0 ||
+      !admins(env).includes(recipient) || m?.from?.id !== recipient ||
+      m.from.is_bot || !m.chat || !allowed(m, env) || !receiptCommand(m, env) ||
+      Number(original.chat_id) !== recipient) throw Error('invalid-admin-receipt-routing');
+  const body = {...original};
+  // A group command's reply/topic IDs must never be used in the admin's DM.
+  delete body.message_thread_id;
+  delete body.reply_parameters;
+  delete body.reply_to_message_id;
+  delete body.direct_messages_topic_id;
+  return body;
 }
 function groupDelivery(env, original) {
   const body = {...original};
@@ -592,20 +618,22 @@ function groupDelivery(env, original) {
   if (Number(body.chat_id) !== Number(env.GROUP_ID) || Number(env.GROUP_ID) >= 0) throw new Error("unexpected-delivery-chat");
   return body;
 }
-async function send(env, updateId, method, body, deliveryGuard) {
+async function send(env, updateId, method, body, deliveryGuard, routing) {
   await assertDeployment(env);
-  body = groupDelivery(env, body);
   const club=await clubJob(env,updateId);
   const deliveryUpdate=await env.DB.prepare('SELECT payload FROM updates WHERE id=?').bind(updateId).first();
-  if(['sendMessage','sendPoll'].includes(method)&&automaticDelivery(JSON.parse(deliveryUpdate?.payload||'{}'),club,env.BOT_USERNAME,botID(env))&&!await reserveAutomation(env,updateId))throw Error('automated-budget-exhausted');
+  const payload = JSON.parse(deliveryUpdate?.payload || '{}');
+  body = routing ? privateAdminDelivery(env, payload, method, body, routing) : groupDelivery(env, body);
+  if(['sendMessage','sendPoll'].includes(method)&&automaticDelivery(payload,club,env.BOT_USERNAME,botID(env))&&!await reserveAutomation(env,updateId))throw Error('automated-budget-exhausted');
   // Community polls are closed by maintenance, which captures final totals.
   // Telegram may not send an update when an automatic timer closes an empty poll.
-  await env.DB.prepare("UPDATE updates SET state='sending',outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
+  await env.DB.prepare("UPDATE updates SET state='sending',error=NULL,outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
   // Recheck after all queue/budget writes, immediately before the external send.
   if(deliveryGuard){
     const decision=await deliveryGuard();
     if(decision!=='send')throw Error(decision==='wait'?'delivery-deferred':'delivery-invalidated');
   }
+  if (routing) privateAdminDelivery(env, payload, method, body, routing);
   let response;
   try {
     response = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`, {
@@ -635,14 +663,14 @@ async function send(env, updateId, method, body, deliveryGuard) {
   await setSetting(env, "last_delivery", JSON.stringify({update_id:updateId,chat_id:body.chat_id,thread_id:body.message_thread_id || 0,message_id:result.result?.message_id,method,sent_at:clock()}));
   return result.result;
 }
-async function say(env, id, m, text) {
+async function say(env, id, m, text, routing) {
   return send(env, id, "sendMessage", {
-    chat_id: m.chat.id,
+    chat_id: routing ? routing.recipient : m.chat.id,
     message_thread_id: m.message_thread_id,
     text: text.slice(0, 3800),
     reply_parameters: { message_id: m.message_id, allow_sending_without_reply: true },
     link_preview_options: { is_disabled: true }
-  });
+  }, undefined, routing);
 }
 async function member(env, user) {
   await env.DB.prepare("INSERT INTO members(user_id,name) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET name=excluded.name").bind(user.id, (user.first_name || user.username || "Member").replace(/[\r\n]/g, " ").slice(0, 80)).run();
@@ -699,20 +727,30 @@ async function handle(env, u) {
   if (!allowed(m, env) || user.is_bot || !text) return;
   const cmd = command(text, env.BOT_USERNAME);
   if (text.startsWith("/") && !cmd) return;
-  if(cmd?.name==='admin'){await say(env,u.update_id,m,await portalLoginCommand(env,user.id,cmd.arg));return;}
+  const routing = admins(env).includes(user.id) && receiptCommand(m, env)
+    ? {kind: PRIVATE_ADMIN_RECEIPT, recipient: user.id} : undefined;
+  const reply = (env, id, message, text) => say(env, id, message, text, routing);
+  if(cmd?.name==='admin'){
+    const receipt = await portalLoginCommand(env,user.id,cmd.arg);
+    // The portal polls the session; successful authentication needs no Telegram
+    // receipt. Keep the portal API's existing string-returning contract intact.
+    if (receipt.startsWith('Admin portal sign-in approved for your browser.') ||
+        receipt === 'All your admin portal sessions have been signed out.') return;
+    await reply(env,u.update_id,m,receipt);return;
+  }
   if(cmd?.name==='readiness'){
-    if(!admins(env).includes(user.id)){await say(env,u.update_id,m,'This command is for configured admins.');return;}
+    if(!admins(env).includes(user.id)){await reply(env,u.update_id,m,'This command is for configured admins.');return;}
     const report=await readiness(env);
-    await say(env,u.update_id,m,`Launch readiness: ${report.issues.length?'needs attention':'checks passed'}\n${report.issues.map(s=>'• '+s).join('\n')}\n${report.notes.join('\n')}`);return;
+    await reply(env,u.update_id,m,`Launch readiness: ${report.issues.length?'needs attention':'checks passed'}\n${report.issues.map(s=>'• '+s).join('\n')}\n${report.notes.join('\n')}`);return;
   }
   if (cmd?.name === "whereami") {
     const target = groupTarget(env);
     const topic = target.message_thread_id || 0;
-    await say(env, u.update_id, m, `Configured group: ${target.chat_id}\nPrivate requests publish to: ${topic ? "topic " + topic : "General"}\nCurrent group topic: ${m.chat.type === "private" ? "request came from DM" : m.message_thread_id || "General"}\nNamed topic map:\n${await topicSummary(env)}\nGroup replies stay in the topic where you ask.`);
+    await reply(env, u.update_id, m, `Configured group: ${target.chat_id}\nContent requests publish to: ${topic ? "topic " + topic : "General"}\nCurrent group topic: ${m.chat.type === "private" ? "request came from DM" : m.message_thread_id || "General"}\nNamed topic map:\n${await topicSummary(env)}\nGroup replies stay in the topic where you ask.`);
     return;
   }
   if (cmd?.name === "privacy") {
-    await say(env, u.update_id, m, PRIVACY);
+    await reply(env, u.update_id, m, PRIVACY);
     return;
   }
   if (["forget", "optout", "optin"].includes(cmd?.name || "")) {
@@ -729,36 +767,36 @@ async function handle(env, u) {
       await env.DB.batch(["rewards", "members", "answers", "quota", "fan_preferences"].map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE user_id=?`).bind(user.id)));
       await env.DB.prepare("UPDATE updates SET state='done',payload='{}',outbound=NULL,method=NULL WHERE id<>? AND json_extract(payload,'$.message.from.id')=?").bind(u.update_id, user.id).run();
     }
-    await say(env, u.update_id, m, out ? "You\u2019re opted out. Your stored conversation context has been removed." + (cmd.name === "forget" ? " Your participation records were deleted too." : "") : "You\u2019re opted in. Use /privacy to review data handling.");
+    await reply(env, u.update_id, m, out ? "You\u2019re opted out. Your stored conversation context has been removed." + (cmd.name === "forget" ? " Your participation records were deleted too." : "") : "You\u2019re opted in. Use /privacy to review data handling.");
     return;
   }
   if (await optedOut(env, user.id)) return;
   await member(env,user);
   if(cmd?.name==='preferences'&&cmd.arg==='off')await env.DB.prepare('DELETE FROM fan_interests WHERE user_id=?').bind(user.id).run();
-  if (await preferencesCommand(env,u.update_id,m,cmd,say)) return;
-  if(await handleCoreCommand(env,u,cmd,say))return;
-  if(await gameCommand(env,u,cmd,say))return;
+  if (await preferencesCommand(env,u.update_id,m,cmd,reply)) return;
+  if(await handleCoreCommand(env,u,cmd,reply))return;
+  if(await gameCommand(env,u,cmd,reply))return;
   if(!cmd && /\banyone (?:free|available) this weekend\b/i.test(text) && !await clubPaused(env)) {
-    await handleCoreCommand(env,u,{name:'event',arg:'plan Weekend availability'},say);return;
+    await handleCoreCommand(env,u,{name:'event',arg:'plan Weekend availability'},reply);return;
   }
   if (cmd?.name === 'topics' || cmd?.name === 'bindtopic') {
     if (cmd.name === 'bindtopic') {
       const name=topicName(cmd.arg);
       if (!admins(env).includes(user.id) || m.chat.type === 'private' || !name) {
-        await say(env,u.update_id,m,'Admins: send /bindtopic <name> inside its group topic. Examples: gaming, movies, lore, hongkong, global_events, tv, memes, wallpapers. Names can contain letters, numbers and spaces/underscores (40 characters max).');return;
+        await reply(env,u.update_id,m,'Admins: send /bindtopic <name> inside its group topic. Examples: gaming, movies, lore, hongkong, global_events, tv, memes, wallpapers. Names can contain letters, numbers and spaces/underscores (40 characters max).');return;
       }
       await env.DB.prepare('INSERT INTO topic_map(name,thread_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET thread_id=excluded.thread_id').bind(name,m.message_thread_id||0).run();
     }
-    await say(env,u.update_id,m,await topicSummary(env));return;
+    await reply(env,u.update_id,m,await topicSummary(env));return;
   }
   if (["pause", "resume", "status"].includes(cmd?.name || "")) {
     if (!admins(env).includes(user.id)) {
-      await say(env, u.update_id, m, "This command is for the configured admins.");
+      await reply(env, u.update_id, m, "This command is for the configured admins.");
       return;
     }
     if(cmd.name==='resume'&&env.DEPLOYMENT_ENV==='production'){
       const report=await readiness(env);
-      if(report.issues.length){await say(env,u.update_id,m,`Production stays paused:\n${report.issues.join('\n')}`);return;}
+      if(report.issues.length){await reply(env,u.update_id,m,`Production stays paused:\n${report.issues.join('\n')}`);return;}
     }
     if (cmd.name !== "status") await env.DB.prepare("INSERT INTO settings(key,value) VALUES ('paused',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(cmd.name === "pause" ? "1" : "0").run();
     const paused = await env.DB.prepare("SELECT value FROM settings WHERE key='paused'").first();
@@ -766,11 +804,11 @@ async function handle(env, u) {
     const policy=await postingPolicy(env);
     const starters=await starterCount(env);
     const budget=await budgetStatus(env);
-    await say(env, u.update_id, m, `Bot ${paused?.value === "1" ? "paused" : "active"}. Proactive starters: ${starters}/${policy.target} today (baseline 5, ceiling 10). Automated sends reserved: ${budget.used}/${budget.cap} today across starters, follow-ups, briefings, game rounds, welcomes, ambient replies and reminders. Direct requests and moderation actions are excluded. Current spacing: ${policy.gap/60}min; wait for 10 quiet minutes in the topic. Engagement over 4h: ${policy.participants} participants, score ${policy.score}. Active hours: 10:00–23:00 Hong Kong. Busy topics, pauses and delivery failures can prevent the target; no catch-up bursts. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
+    await reply(env, u.update_id, m, `Bot ${paused?.value === "1" ? "paused" : "active"}. Proactive starters: ${starters}/${policy.target} today (baseline 5, ceiling 10). Automated sends reserved: ${budget.used}/${budget.cap} today across starters, follow-ups, briefings, game rounds, welcomes, ambient replies and reminders. Direct requests and moderation actions are excluded. Current spacing: ${policy.gap/60}min; wait for 10 quiet minutes in the topic. Engagement over 4h: ${policy.participants} participants, score ${policy.score}. Active hours: 10:00–23:00 Hong Kong. Busy topics, pauses and delivery failures can prevent the target; no catch-up bursts. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
     return;
   }
   if (cmd?.name === "start" || cmd?.name === "help") {
-    await say(env, u.update_id, m, HELP);
+    await reply(env, u.update_id, m, HELP);
     return;
   }
   if ((await env.DB.prepare("SELECT value FROM settings WHERE key='paused'").first())?.value === "1") return;
@@ -778,12 +816,12 @@ async function handle(env, u) {
   if (cmd?.name === "rank" || cmd?.name === "leaderboard") {
     const result = await env.DB.prepare(`SELECT m.name,r.user_id,SUM(r.amount) AS xp FROM rewards r JOIN members m ON m.user_id=r.user_id
       ${cmd.name === "rank" ? "WHERE r.user_id=?" : ""} GROUP BY r.user_id,m.name ORDER BY xp DESC,r.user_id LIMIT 10`).bind(...cmd.name === "rank" ? [user.id] : []).all();
-    await say(env, u.update_id, m, result.results.length ? "Participation rewards\n" + result.results.map((r, i) => `${i + 1}. ${r.name} \u2014 ${r.xp} XP`).join("\n") : "No rewards yet. Reply thoughtfully to another member or try /trivia. Rewards have cooldowns and daily caps.");
+    await reply(env, u.update_id, m, result.results.length ? "Participation rewards\n" + result.results.map((r, i) => `${i + 1}. ${r.name} \u2014 ${r.xp} XP`).join("\n") : "No rewards yet. Reply thoughtfully to another member or try /trivia. Rewards have cooldowns and daily caps.");
     return;
   }
   if (["trivia", "poll", "discuss"].includes(cmd?.name || "")) {
     if (!await takeQuota(env, `prompt:${u.update_id}`, m, "prompt", 12, 60)) {
-      await say(env, u.update_id, m, "Let\u2019s give members time to join the current conversation. Try again later.");
+      await reply(env, u.update_id, m, "Let\u2019s give members time to join the current conversation. Try again later.");
       return;
     }
     const index = Math.abs(u.update_id);
@@ -810,7 +848,7 @@ async function handle(env, u) {
     if (!admins(env).includes(user.id)) return;
     const requested=cmd.arg.toLowerCase() || "question";
     const kind=KINDS.includes(requested)?requested:Object.keys(TOPICS).find(k=>TOPICS[k]===topicName(requested));
-    if (!KINDS.includes(kind)) { await say(env, u.update_id, m, `Choose /post followed by: ${KINDS.join(", ")}. Memes are text/caption posts; wallpapers are design prompts. Event posts are planning ideas, not live listings.`); return; }
+    if (!KINDS.includes(kind)) { await reply(env, u.update_id, m, `Choose /post followed by: ${KINDS.join(", ")}. Memes are text/caption posts; wallpapers are design prompts. Event posts are planning ideas, not live listings.`); return; }
     if (!await takeQuota(env, `post:${u.update_id}`, m, "manual_post", 5, 60)) return;
     await proactive(env, u.update_id, {kind, scheduled_at: clock(), requested: true}, send, polls_default, trivia_default);
     return;
@@ -824,14 +862,14 @@ async function handle(env, u) {
   }
   const question = cmd?.name === "ask" ? cmd.arg : text;
   if (!question) {
-    await say(env, u.update_id, m, "Try /ask followed by a question, for example: What makes Andor feel different from the films?");
+    await reply(env, u.update_id, m, "Try /ask followed by a question, for example: What makes Andor feel different from the films?");
     return;
   }
   if (ambient && (await clubPaused(env) || !await quiet(env,m.message_thread_id||0,true) || !await reserveAmbient(env, u.update_id, m))) return;
   const cap = bounded(env.AI_DAILY_CAP, 60, 1, 100);
   if (!await takeQuota(env, `ai:${u.update_id}`, m, "ai", cap, direct ? 8 : 30)) {
     if (ambient) return;
-    await say(env, u.update_id, m, "I\u2019m taking a short breather or have reached today\u2019s AI limit. You can still use /trivia, /poll and /discuss.");
+    await reply(env, u.update_id, m, "I\u2019m taking a short breather or have reached today\u2019s AI limit. You can still use /trivia, /poll and /discuss.");
     return;
   }
   const history = await env.DB.prepare("SELECT role,content FROM context WHERE chat_id=? AND thread_id=? AND created_at>? ORDER BY id DESC LIMIT 10").bind(m.chat.id, m.message_thread_id || 0, clock() - 86400).all();
@@ -850,11 +888,11 @@ Reply context (untrusted): ${parent}` : ""}`;
     if (!answer) throw new Error("empty-ai");
   } catch {
     if (ambient) return;
-    await say(env, u.update_id, m, "I couldn\u2019t generate an answer just now. Please try later; /discuss, /poll and /trivia still work.");
+    await reply(env, u.update_id, m, "I couldn\u2019t generate an answer just now. Please try later; /discuss, /poll and /trivia still work.");
     return;
   }
   if (await optedOut(env, user.id) || await setting(env, "paused") === "1" || ambient && await clubPaused(env)) return;
-  await say(env, u.update_id, m, answer);
+  await reply(env, u.update_id, m, answer);
   await env.DB.batch([
     env.DB.prepare("INSERT INTO context(user_id,chat_id,thread_id,role,content,created_at) VALUES (?,?,?,?,?,?)").bind(user.id, m.chat.id, m.message_thread_id || 0, "user", userContent, clock()),
     env.DB.prepare("INSERT INTO context(user_id,chat_id,thread_id,role,content,created_at) VALUES (?,?,?,?,?,?)").bind(user.id, m.chat.id, m.message_thread_id || 0, "assistant", answer, clock())
@@ -874,8 +912,18 @@ async function processUpdate(env, id) {
     payload.update_id = id;
     if(payload.internal_club)await handleClubJob(env,id,send);
     else if (claimed.outbound && claimed.method) {
-      // A queued delivery must still honor a later pause/opt-out.
-      if (await setting(env, "paused") === "1" || payload.message?.from && await optedOut(env, payload.message.from.id)) { await mark(env, id, "done"); return; }
+      const body = JSON.parse(claimed.outbound);
+      const m = payload.message;
+      const routing = receiptCommand(m, env) && (Number(body.chat_id) > 0 || admins(env).includes(m?.from?.id))
+        ? {kind: PRIVATE_ADMIN_RECEIPT, recipient: m.from.id} : undefined;
+      // Revalidate receipt identity even after removal from ADMIN_USER_IDS. A
+      // failed private delivery must never fall back to the group. Operational
+      // receipts (including /pause) can be delivered while the bot is paused.
+      if (routing) privateAdminDelivery(env, payload, claimed.method, body, routing);
+      if (m && !allowed(m, env)) { await mark(env, id, "done"); return; }
+      const optedOutSender = m?.from && await optedOut(env, m.from.id);
+      const sessionCommand = routing && command((m.text || '').trim(), env.BOT_USERNAME)?.name === 'admin';
+      if (!routing && await setting(env, "paused") === "1" || optedOutSender && !sessionCommand) { await mark(env, id, "done"); return; }
       if (payload.internal_post && (env.PROACTIVE_ENABLED === "false" || clock() - payload.internal_post.scheduled_at > 3600)) { await mark(env, id, "done"); return; }
       if (payload.internal_post || payload.internal_followup) {
         const body = JSON.parse(claimed.outbound);
@@ -886,7 +934,7 @@ async function processUpdate(env, id) {
         if (autonomous && Number(await setting(env,'quiet_until')||0)>clock()) {await defer(env,id);return;}
         if (autonomous && (!activeHours() || !await quiet(env,body.message_thread_id||0))) {await defer(env,id);return;}
       }
-      const delivered = await send(env, id, claimed.method, JSON.parse(claimed.outbound));
+      const delivered = await send(env, id, claimed.method, body, undefined, routing);
       await env.DB.prepare("UPDATE engagement_posts SET message_id=?,state='sent' WHERE update_id=?").bind(delivered.message_id, id).run();
     } else await handle(env, payload);
     const after = await env.DB.prepare('SELECT state FROM updates WHERE id=?').bind(id).first();
@@ -913,7 +961,9 @@ async function processUpdate(env, id) {
     else if (state?.state === "queued" && state.attempts >= 3) await mark(env, id, "failed", "retry-exhausted");
     else if (state?.state === "processing") {
       if (state.attempts >= 3) await mark(env, id, "failed", "processing-failed");
-      else await env.DB.prepare("UPDATE updates SET state='queued',ready_at=?,error='processing-failed' WHERE id=?").bind(clock() + 60, id).run();
+      // Preserve proof of non-delivery through pre-send D1 failures. Entering
+      // 'sending' clears it, so a later ambiguous attempt can never use it.
+      else await env.DB.prepare("UPDATE updates SET state='queued',ready_at=?,error=CASE WHEN error='telegram-rate-limit' THEN error ELSE 'processing-failed' END WHERE id=?").bind(clock() + 60, id).run();
     }
   }
 }

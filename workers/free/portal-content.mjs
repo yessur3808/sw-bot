@@ -52,8 +52,8 @@ export async function schedulePortalPosts(env){
  const now=nowSeconds();
  const posts=(await env.DB.prepare("SELECT * FROM admin_posts WHERE state='scheduled' AND approved_revision=revision AND scheduled_at<=? ORDER BY scheduled_at LIMIT 20").bind(now).all()).results;
  for(const p of posts){
-  if(!isAdmin(env,p.approved_by)){await env.DB.prepare("UPDATE admin_posts SET state='cancelled' WHERE id=? AND state='scheduled'").bind(p.id).run();continue;}
-  if(p.scheduled_at<now-86400){await env.DB.prepare("UPDATE admin_posts SET state='expired' WHERE id=? AND state='scheduled'").bind(p.id).run();continue;}
+  if(!isAdmin(env,p.approved_by)){await env.DB.prepare("UPDATE admin_posts SET state='cancelled' WHERE id=? AND revision=? AND scheduled_at=? AND approved_by=? AND state='scheduled'").bind(p.id,p.revision,p.scheduled_at,p.approved_by).run();continue;}
+  if(p.scheduled_at<now-86400){await env.DB.prepare("UPDATE admin_posts SET state='expired' WHERE id=? AND revision=? AND scheduled_at=? AND state='scheduled'").bind(p.id,p.revision,p.scheduled_at).run();continue;}
   const job=await queueClub(env,`portal:${p.id}:${p.revision}`,'portal_post',{post_id:p.id,revision:p.revision,requested:true},p.thread_id,null,p.scheduled_at,86400);
   await env.DB.prepare("UPDATE admin_posts SET job_id=? WHERE id=? AND revision=? AND state='scheduled'").bind(job.id,p.id,p.revision).run();
  }
@@ -67,7 +67,13 @@ export async function schedulePortalPosts(env){
  await env.DB.prepare('DELETE FROM admin_actions WHERE created_at<?').bind(now-90*86400).run();
 }
 export async function portalPostBody(env,job){
- const {post_id,revision}=JSON.parse(job.data),p=await env.DB.prepare("SELECT * FROM admin_posts WHERE id=? AND revision=? AND approved_revision=revision AND state='scheduled'").bind(post_id,revision).first();
+ const {post_id,revision}=JSON.parse(job.data);
+ // A definite Telegram 429 is safe to retry even if releasing the post claim
+ // failed. Only the leased retry can recover it; uncertain sends never qualify.
+ await env.DB.prepare(`UPDATE admin_posts SET state='scheduled' WHERE id=? AND revision=? AND job_id=? AND state='sending'
+  AND EXISTS(SELECT 1 FROM updates WHERE id=? AND state='processing' AND error='telegram-rate-limit')`)
+  .bind(post_id,revision,job.id,-CLUB_OFFSET-job.id).run();
+ const p=await env.DB.prepare("SELECT * FROM admin_posts WHERE id=? AND revision=? AND approved_revision=revision AND state='scheduled'").bind(post_id,revision).first();
  if(!p||!isAdmin(env,p.approved_by))return null;
  const validated=validatePost({...p,options:JSON.parse(p.options)},env),base={chat_id:Number(env.GROUP_ID),...(validated.thread_id?{message_thread_id:validated.thread_id}:{})};
  return p.kind==='text'?{method:'sendMessage',body:{...base,text:p.text}}:{method:'sendPoll',body:{...base,question:p.text,options:validated.options,is_anonymous:p.kind!=='quiz',...(p.kind==='quiz'?{type:'quiz',correct_option_id:p.correct,open_period:120}: {})}};

@@ -1,4 +1,4 @@
-import {nowSeconds,localDay} from './engagement.mjs';
+import {nowSeconds,localDay,cleanAnswer} from './engagement.mjs';
 import {topicThread} from './community.mjs';
 import {queueClub,clubQuota,out,messageLink,hkTime} from './cantina-core.mjs';
 const TRIVIA=[
@@ -16,6 +16,16 @@ const CHARACTERS=[
 ];
 const CAPTIONS=['A stormtrooper asks IT why the login button keeps moving.','A droid discovers the cantina has a no-charging policy.','A Jedi opens the bill after saying credits are no object.'];
 const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
+const gameTitle=kind=>({character:'🧩 Who am I?',trivia:'🎲 Cantina trivia',caption:'✍️ Caption challenge'})[kind];
+const displayName=(name,fallback='Player')=>cleanAnswer(name||fallback,40).replace(/\s+/g,' ');
+async function currentGame(env,m,kind){
+ const thread=m.chat.type==='private'?await topicThread(env,kind==='caption'?'memes':'lore'):m.message_thread_id||0;
+ const reply=m.reply_to_message?.message_id;
+ if(reply){const found=await env.DB.prepare(`SELECT g.* FROM club_games g WHERE g.state='open' AND g.ends_at>? AND (? IS NULL OR g.kind=?)
+  AND (g.message_id=? OR EXISTS(SELECT 1 FROM club_jobs j WHERE j.message_id=? AND json_extract(j.data,'$.game_id')=g.id)) LIMIT 1`)
+  .bind(nowSeconds(),kind,kind,reply,reply).first();if(found)return found;}
+ return env.DB.prepare("SELECT * FROM club_games WHERE state='open' AND ends_at>? AND thread_id=? AND (? IS NULL OR kind=?) ORDER BY opened_at DESC,id DESC LIMIT 1").bind(nowSeconds(),thread,kind,kind).first();
+}
 export const season=()=>localDay().slice(0,7);
 export async function gamePoints(env,key,user,points,kind){
  if(await out(env,user))return;
@@ -45,17 +55,20 @@ export async function gameCommand(env,u,cmd,say){
  if(name==='game'){
   const [kind,key]=arg.split(/\s+/);
   if(kind==='show'){
-   const game=await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(Number(key)||0).first();if(!game){await respond('Game not found.');return true;}
-   const entries=(await env.DB.prepare('SELECT c.user_id,c.text,(SELECT COUNT(*) FROM club_caption_votes v WHERE v.game_id=c.game_id AND v.candidate=c.user_id) votes FROM club_captions c WHERE game_id=? ORDER BY votes DESC LIMIT 12').bind(game.id).all()).results;
-   await respond(`Game ${game.id}: ${game.kind} (${game.state}); ends ${hkTime(game.ends_at)}\n${messageLink(env,game.message_id,game.thread_id)}\n${entries.map(e=>`${e.user_id}: ${e.text} (${e.votes} votes)`).join('\n')}\n${game.kind==='caption'?`Vote: /vote ${game.id} <entry number>`:''}`);return true;
+   const game=key?await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(Number(key)||0).first():await currentGame(env,m,null);if(!game){await respond('There is no active game in this topic. Try /game character, /game trivia or /game caption.');return true;}
+   const entries=(await env.DB.prepare(`SELECT c.rowid entry,c.text,(SELECT COUNT(*) FROM club_caption_votes v WHERE v.game_id=c.game_id AND v.candidate=c.user_id AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=v.user_id AND p.opted_out=1)) votes
+    FROM club_captions c WHERE game_id=? AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=c.user_id AND p.opted_out=1) ORDER BY c.rowid LIMIT 12`).bind(game.id).all()).results;
+   await respond(`${gameTitle(game.kind)}\n${game.state==='open'?'Closes':'Closed'} ${hkTime(game.ends_at)}\n\n${entries.map(e=>`#${e.entry} · ${e.text}\n${e.votes} vote(s)`).join('\n\n')}${entries.length?'\n\n':''}${messageLink(env,game.message_id,game.thread_id)}${game.kind==='caption'?'\n\nVote with /vote followed by an entry number.':''}`);return true;
   }
-  if(!['trivia','character','caption'].includes(kind)){await respond('Play /game trivia, /game character or /game caption. /game show ID displays an active game. /team chooses a team; /season shows scores.');return true;}
+  if(!['trivia','character','caption'].includes(kind)){await respond('Play /game trivia, /game character or /game caption. /game show displays the active game here. /team chooses a team; /season shows scores.');return true;}
   if(!await clubQuota(env,user,'club-game',2)){await respond('Game creation limit reached today.');return true;}
-  const open=await env.DB.prepare("SELECT id FROM club_games WHERE state='open' AND kind=? AND ends_at>? LIMIT 1").bind(kind,nowSeconds()).first();if(open){await respond(`There is already an open ${kind} game: /game show ${open.id}.`);return true;}
-  await startGame(env,id,kind,await topicThread(env,kind==='caption'?'memes':'lore'),user);await respond(`Game ${id} queued. Use /team rebels|empire|scoundrels to join a team; participation and correct answers earn seasonal points.`);return true;
+  const open=await env.DB.prepare("SELECT id FROM club_games WHERE state='open' AND kind=? AND ends_at>? LIMIT 1").bind(kind,nowSeconds()).first();if(open){await respond('A round is already running. Open its topic and use /game show.');return true;}
+  await startGame(env,id,kind,await topicThread(env,kind==='caption'?'memes':'lore'),user);return true; // The game itself is the group announcement; no queue-status chatter.
  }
- const [key,...rest]=arg.split(' '),game=await env.DB.prepare("SELECT * FROM club_games WHERE id=? AND state='open' AND ends_at>?").bind(Number(key)||0,nowSeconds()).first();
- if(!game){await respond('No open game with that ID.');return true;}
+ let rest=arg.trim().split(/\s+/),game=null,legacy=false;
+ if(rest.length>1&&/^\d+$/.test(rest[0])){game=await env.DB.prepare("SELECT * FROM club_games WHERE id=? AND state='open' AND ends_at>?").bind(Number(rest[0]),nowSeconds()).first();if(game){legacy=true;rest.shift();}}
+ if(!game)game=await currentGame(env,m,name==='answer'?'character':'caption');
+ if(!game){await respond('There is no active round for that command in this topic. Reply to a game post, or start one with /game character or /game caption.');return true;}
  if(name==='answer'){
   if(game.kind!=='character'){await respond('Use /answer only for a character-clue game.');return true;}
   const payload=JSON.parse(game.payload),answer=norm(rest.join(' '));if(![payload.answer,...payload.aliases||[]].includes(answer)){await respond('Not the character I have in mind. Another clue will follow if the game stays unsolved.');return true;}
@@ -64,12 +77,12 @@ export async function gameCommand(env,u,cmd,say){
  }
  if(game.kind!=='caption'){await respond('This command is for caption contests.');return true;}
  if(name==='caption'){
-  const text=rest.join(' ').trim();if(text.length<5||text.length>240){await respond('Submit one original caption, 5–240 characters: /caption ID your caption.');return true;}
-  const inserted=await env.DB.prepare('INSERT OR IGNORE INTO club_captions SELECT ?,?,? WHERE (SELECT COUNT(*) FROM club_captions WHERE game_id=?)<12').bind(game.id,user,text,game.id).run();if(inserted.meta.changes)await gamePoints(env,`caption-entry:${game.id}:${user}`,user,1,'creative-entry');await respond(inserted.meta.changes?`Caption submitted. Your entry number is ${user}. /game show ${game.id} lists entries for voting.`:'One entry per person; this contest accepts up to 12 entries.');return true;
+  const text=rest.join(' ').trim();if(text.length<5||text.length>240){await respond('Send /caption followed by your original line (5–240 characters).');return true;}
+  const inserted=await env.DB.prepare('INSERT OR IGNORE INTO club_captions SELECT ?,?,? WHERE (SELECT COUNT(*) FROM club_captions WHERE game_id=?)<12').bind(game.id,user,text,game.id).run();if(inserted.meta.changes)await gamePoints(env,`caption-entry:${game.id}:${user}`,user,1,'creative-entry');const entry=await env.DB.prepare('SELECT rowid entry FROM club_captions WHERE game_id=? AND user_id=?').bind(game.id,user).first();await respond(inserted.meta.changes?`Your caption is entry #${entry.entry}. Use /game show to see the entries and vote.`:'One entry per person; this contest accepts up to 12 entries.');return true;
  }
  if(name==='vote'){
-  const candidate=Number(rest[0]);const entry=await env.DB.prepare('SELECT 1 FROM club_captions WHERE game_id=? AND user_id=?').bind(game.id,candidate||0).first();
-  if(!entry||candidate===user){await respond('Choose another member’s entry from /game show ID.');return true;}
+  const entry=await env.DB.prepare(`SELECT user_id FROM club_captions WHERE game_id=? AND ${legacy?'user_id':'rowid'}=? AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=club_captions.user_id AND p.opted_out=1)`).bind(game.id,Number(rest[0])||0).first(),candidate=entry?.user_id;
+  if(!entry||candidate===user){await respond('Choose another member’s entry from /game show.');return true;}
   const inserted=await env.DB.prepare('INSERT OR IGNORE INTO club_caption_votes VALUES (?,?,?)').bind(game.id,user,candidate).run();if(inserted.meta.changes)await gamePoints(env,`caption-vote:${game.id}:${user}`,candidate,1,'peer-vote');await respond(inserted.meta.changes?'Vote recorded. One vote per person per contest.':'You already voted in this contest.');return true;
  }
  return false;
@@ -82,6 +95,15 @@ export async function gameVote(env,a){
  if(inserted.meta.changes)await gamePoints(env,`trivia:${round.game_id}:${round.round}:${a.user.id}`,a.user.id,correct?3:1,'team-trivia');return true;
 }
 export const gameInterval=kind=>kind==='trivia'?150:300;
+async function closingScores(env,game){
+ if(game.kind==='trivia')return (await env.DB.prepare(`SELECT a.user_id,COALESCE(m.name,'Player') name,SUM(CASE WHEN correct=1 THEN 3 ELSE 1 END) points FROM club_game_answers a LEFT JOIN members m ON m.user_id=a.user_id
+  WHERE game_id=? AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=a.user_id AND p.opted_out=1)
+  GROUP BY a.user_id ORDER BY points DESC,a.user_id LIMIT 5`).bind(game.id).all()).results;
+ if(game.kind==='caption')return (await env.DB.prepare(`SELECT v.candidate,c.rowid entry,COUNT(*) n FROM club_caption_votes v JOIN club_captions c ON c.game_id=v.game_id AND c.user_id=v.candidate WHERE v.game_id=?
+  AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.opted_out=1 AND p.user_id IN (v.user_id,v.candidate))
+  GROUP BY candidate ORDER BY n DESC,candidate`).bind(game.id).all()).results;
+ return [];
+}
 export async function gameDeliveryStatus(env,job){
  const {game_id,step}=JSON.parse(job.data);
  const game=await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(game_id).first();
@@ -97,30 +119,41 @@ export async function gameBody(env,job){
  const {game_id,step}=JSON.parse(job.data),game=await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(game_id).first();if(!game||game.state!=='open')return null;
  const payload=JSON.parse(game.payload),base={chat_id:Number(env.GROUP_ID),...(game.thread_id?{message_thread_id:game.thread_id}:{})};
  if(job.kind==='game_close'){
-  let result='';
+  let result='';const scores=await closingScores(env,game),snapshot=JSON.stringify(scores);
   if(game.kind==='character')result=`The character was ${payload.display}. No correct guess was recorded this round.`;
   if(game.kind==='trivia'){
-   const scores=(await env.DB.prepare('SELECT user_id,SUM(CASE WHEN correct=1 THEN 3 ELSE 1 END) points FROM club_game_answers WHERE game_id=? GROUP BY user_id ORDER BY points DESC LIMIT 5').bind(game.id).all()).results;
-   result=scores.length?'Round scores: '+scores.map(x=>`player ${x.user_id}: ${x.points}`).join('; '):'No answers recorded this round.';
+   result=scores.length?'Round scores\n'+scores.map((x,i)=>`${i+1}. ${displayName(x.name)} · ${x.points} points`).join('\n'):'No answers this round. The next quiz is a fresh chance.';
   }
   if(game.kind==='caption'){
-   const votes=(await env.DB.prepare('SELECT candidate,COUNT(*) n FROM club_caption_votes WHERE game_id=? GROUP BY candidate ORDER BY n DESC').bind(game.id).all()).results;
+   const votes=scores;
    const winners=votes.filter(v=>v.n===votes[0]?.n);
-   for(const w of winners)await gamePoints(env,`caption-win:${game.id}:${w.candidate}`,w.candidate,5,'caption-winner');
-   result=winners.length?'Community vote winner'+(winners.length>1?'s (tie)':'')+': '+winners.map(w=>`entry ${w.candidate} (${w.n} votes)`).join(', ')+'. Five bonus points each.':'No votes recorded; no winner was invented.';
+   result=winners.length?'Community vote winner'+(winners.length>1?'s (tie)':'')+': '+winners.map(w=>`entry #${w.entry} (${w.n} votes)`).join(', ')+'. Five bonus points each.':'No votes recorded; no winner was invented.';
   }
-  return {method:'sendMessage',body:{...base,text:`Game ${game.id} finished. ${result}\n/season shows the monthly leaderboard.`}};
+  return {method:'sendMessage',body:{...base,text:`${gameTitle(game.kind)} — finished\n\n${result}\n\nSee the monthly leaderboard with /season.`},
+   deliveryGuard:async()=>{
+    if(JSON.stringify(await closingScores(env,game))!==snapshot)return 'wait';
+    if(game.kind==='caption'){
+     const winners=scores.filter(v=>v.n===scores[0]?.n).map(v=>v.candidate);
+     const saved=await env.DB.prepare("UPDATE club_jobs SET data=json_set(data,'$.closing_winners',json(?)) WHERE id=? AND state='pending'").bind(JSON.stringify(winners),job.id).run();
+     if(!saved.meta.changes)return 'cancel';
+     if(JSON.stringify(await closingScores(env,game))!==snapshot)return 'wait';
+    }
+    return 'send';
+   }};
  }
  if(game.kind==='trivia'){
   const q=payload.questions[step];if(!q)return null;
-  return {method:'sendPoll',body:{...base,question:`Team trivia ${game.id}, round ${step+1}/3: ${q.question}`,options:q.options,type:'quiz',correct_option_id:q.correct,is_anonymous:false,open_period:120,explanation:`Answer: ${q.options[q.correct]}. First answer counts; /team chooses your team.`}};
+  return {method:'sendPoll',body:{...base,question:`Cantina trivia · Round ${step+1} of 3\n${q.question}`,options:q.options,type:'quiz',correct_option_id:q.correct,is_anonymous:false,open_period:120,explanation:`Answer: ${q.options[q.correct]}. First answer counts; /team chooses your team.`}};
  }
- if(game.kind==='character')return {method:'sendMessage',body:{...base,text:`Character game ${game.id} — clue ${step+1}/3\n${payload.clues[step]}\nGuess with /answer ${game.id} <character>. First correct answer earns five points.`}};
- return {method:'sendMessage',body:{...base,text:`Caption contest ${game.id}\n${payload.prompt}\nOne original entry: /caption ${game.id} <caption>\nRead and vote: /game show ${game.id}\nEnds ${hkTime(nowSeconds()+86400)}. Peer votes and creativity earn seasonal points.`}};
+ if(game.kind==='character')return {method:'sendMessage',body:{...base,text:`🧩 Who am I?\nClue ${step+1} of 3\n\n${payload.clues[step]}\n\nSend /answer followed by your guess.\nFirst correct guess earns 5 points.`}};
+ return {method:'sendMessage',body:{...base,text:`✍️ Caption challenge\n\n${payload.prompt}\n\nAdd yours with /caption followed by your line.\nSee entries and vote: /game show\n\nCloses ${hkTime(nowSeconds()+86400)}.`}};
 }
 export async function gameDelivered(env,job,result){
  const {game_id,step}=JSON.parse(job.data),game=await env.DB.prepare('SELECT * FROM club_games WHERE id=?').bind(game_id).first();if(!game)return;
- if(job.kind==='game_close'){await env.DB.prepare("UPDATE club_games SET state='closed' WHERE id=? AND state='open'").bind(game.id).run();return;}
+ if(job.kind==='game_close'){
+  if(game.kind==='caption')for(const user of JSON.parse(job.data).closing_winners||[])await gamePoints(env,`caption-win:${game.id}:${user}`,user,5,'caption-winner');
+  await env.DB.prepare("UPDATE club_games SET state='closed' WHERE id=? AND state='open'").bind(game.id).run();return;
+ }
  // Only a confirmed, sequential delivery advances the game or its clocks.
  const remaining=game.kind==='caption'?86400:game.kind==='character'?(3-step)*300:(2-step)*150+180;
  const advanced=await env.DB.prepare(`UPDATE club_games SET step=?,message_id=COALESCE(message_id,?),last_step_at=?,
@@ -132,6 +165,9 @@ export async function gameDelivered(env,job,result){
 export async function scheduleGames(env){
  const games=(await env.DB.prepare("SELECT * FROM club_games WHERE state='open'").all()).results;
  for(const g of games){
+  // A confirmed delivery is durable even if scoring/closing failed afterward.
+  const deliveredClose=await env.DB.prepare("SELECT * FROM club_jobs WHERE job_key=? AND state='sent'").bind(`game:${g.id}:close`).first();
+  if(deliveredClose){await gameDelivered(env,deliveredClose,{});continue;}
   if(g.ends_at<nowSeconds()-3600){await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(g.id).run();continue;}
   if(g.ends_at<=nowSeconds()&&!g.message_id){await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(g.id).run();continue;}
   if(g.ends_at<=nowSeconds()){await queueClub(env,`game:${g.id}:close`,'game_close',{game_id:g.id},g.thread_id,null,nowSeconds(),3600);continue;}

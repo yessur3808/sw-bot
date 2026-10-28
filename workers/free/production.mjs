@@ -72,6 +72,6 @@ export async function readiness(env) {
   try{const r=await (await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/getChatMember`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:Number(env.GROUP_ID),user_id}),signal:AbortSignal.timeout(8000)})).json();if(!r.ok||!['administrator','creator'].includes(r.result.status))issues.push(`Configured admin ${user_id} is not verified as a group admin`);}catch{issues.push(`Could not verify admin ${user_id}`);}
  }
  const b=await budgetStatus(env);
- notes.push(`Automated sends reserved today: ${b.used}/${b.cap} (HKT)`,'Admin reports and private-request answers are public in the group.','Events require admin confirmation; sources are not independently verified.');
+ notes.push(`Automated sends reserved today: ${b.used}/${b.cap} (HKT)`,'Admin reports are private; content answers publish to the group. Portal sign-in/out is silent.','Events require admin confirmation; sources are not independently verified.');
  return {issues,notes};
 }

@@ -25,6 +25,17 @@ export async function queueClub(env,key,kind,data={},thread=0,user=null,at=nowSe
  await env.DB.prepare('INSERT OR IGNORE INTO club_jobs(job_key,kind,data,thread_id,user_id,run_at,expires_at) VALUES (?,?,?,?,?,?,?)').bind(key,kind,JSON.stringify(data),thread,user,at,at+ttl).run();
  return env.DB.prepare('SELECT * FROM club_jobs WHERE job_key=?').bind(key).first();
 }
+async function approveAndQueue(env,approval,key,kind,data,thread,at,ttl){
+ // D1 batches are transactional. Keep the insert immediately after the CAS:
+ // changes() gates it on this approval, and any insert error rolls approval back.
+ // A conflicting job key must fail too, rather than silently approving stale work.
+ const [result]=await env.DB.batch([
+  approval,
+  env.DB.prepare(`INSERT INTO club_jobs(job_key,kind,data,thread_id,user_id,run_at,expires_at)
+   SELECT ?,?,?,?,NULL,?,? WHERE changes()=1`).bind(key,kind,JSON.stringify(data),thread,at,at+ttl)
+ ]);
+ return result;
+}
 export async function clubPaused(env){return await setting(env,'paused')==='1'||Number(await setting(env,'quiet_until')||0)>nowSeconds();}
 export async function clubQuota(env,user,kind,cap=3){
  const n=nowSeconds();const r=await env.DB.prepare(`INSERT OR IGNORE INTO quota(event_key,user_id,thread_id,kind,created_at)
@@ -152,13 +163,13 @@ export async function handleCoreCommand(env,u,cmd,say){
   const budget=await budgetStatus(env);
   const pending=(await env.DB.prepare("SELECT COUNT(*) n FROM club_jobs WHERE state='pending'").first()).n;
   const schedule=(await env.DB.prepare("SELECT kind,run_at FROM club_jobs WHERE state='pending' ORDER BY run_at LIMIT 5").all()).results;
-  await respond(`Community settings\nAutomated daily budget: ${budget.used}/${budget.cap} reserved (HKT). Direct requests and approved moderation excluded.\nDaily briefing: 21:00 HKT\nWeekly team trivia: Mondays 19:00 HKT\nProgressive character game: Wednesdays 19:00 HKT\nCaption contest: Fridays 19:00 HKT\nQuiet until: ${Number(await setting(env,'quiet_until'))?hkTime(Number(await setting(env,'quiet_until'))):'off'}\nPending jobs: ${pending}\nProactive policy: ${await setting(env,'posting_policy')||'not evaluated yet'}\nStarter plan: ${await setting(env,'adaptive-plan:'+localDay())||'not yet planned'}\n${schedule.map(j=>j.kind+' — '+hkTime(j.run_at)).join('\n')}\n\n${await topicSummary(env)}\n\n/preferences on is opt-in; /pending shows admin review items. Review reports are posted in the group, including requests made privately.`);return true;
+  await respond(`Community settings\nAutomated daily budget: ${budget.used}/${budget.cap} reserved (HKT). Direct requests and approved moderation excluded.\nDaily briefing: 21:00 HKT\nWeekly team trivia: Mondays 19:00 HKT\nProgressive character game: Wednesdays 19:00 HKT\nCaption contest: Fridays 19:00 HKT\nQuiet until: ${Number(await setting(env,'quiet_until'))?hkTime(Number(await setting(env,'quiet_until'))):'off'}\nPending jobs: ${pending}\nProactive policy: ${await setting(env,'posting_policy')||'not evaluated yet'}\nStarter plan: ${await setting(env,'adaptive-plan:'+localDay())||'not yet planned'}\n${schedule.map(j=>j.kind+' — '+hkTime(j.run_at)).join('\n')}\n\n${await topicSummary(env)}\n\n/preferences on is opt-in; /pending shows admin review items. Review reports go privately to the requesting configured admin.`);return true;
  }
  if(name==='pending'){
   const reviews=(await env.DB.prepare("SELECT * FROM club_reviews WHERE state='pending' ORDER BY id DESC LIMIT 5").all()).results;
   const memory=(await env.DB.prepare("SELECT id,title FROM club_memory WHERE status='pending' ORDER BY id DESC LIMIT 5").all()).results;
   const events=(await env.DB.prepare("SELECT id,title,status FROM club_events WHERE status IN ('draft','planning') ORDER BY id DESC LIMIT 5").all()).results;
-  await respond(['Admin review — suggestions, not findings. This report is visible in the group.',...reviews.map(r=>`Review ${r.id}: ${r.reason} Suggested: ${r.suggestion}.\n${messageLink(env,r.message_id,r.thread_id)}\n/approve ${r.id} delete|mute|ban or /dismiss ${r.id}`),...memory.map(r=>`Memory ${r.id}: ${r.title}\n/memory show ${r.id} to inspect the full proposal.\n/approve memory ${r.id} or /dismiss memory ${r.id}`),...events.map(r=>`Event ${r.id}: ${r.title} (${r.status}) — /event show ${r.id}`)].join('\n\n').slice(0,3800));return true;
+  await respond(['Admin review — suggestions, not findings. This report is private to the requesting configured admin.',...reviews.map(r=>`Review ${r.id}: ${r.reason} Suggested: ${r.suggestion}.\n${messageLink(env,r.message_id,r.thread_id)}\n/approve ${r.id} delete|mute|ban or /dismiss ${r.id}`),...memory.map(r=>`Memory ${r.id}: ${r.title}\n/memory show ${r.id} to inspect the full proposal.\n/approve memory ${r.id} or /dismiss memory ${r.id}`),...events.map(r=>`Event ${r.id}: ${r.title} (${r.status}) — /event show ${r.id}`)].join('\n\n').slice(0,3800));return true;
  }
  if(name==='approve'||name==='dismiss'){
   const args=arg.split(/\s+/);
@@ -169,8 +180,8 @@ export async function handleCoreCommand(env,u,cmd,say){
   if(name==='approve'&&!['delete','mute','ban'].includes(action)){await respond('Use /approve <review ID> delete, mute (one hour), or ban. Inspect /pending first.');return true;}
   const row=await env.DB.prepare("SELECT * FROM club_reviews WHERE id=? AND state='pending'").bind(key).first();
   if(!row||row.created_at<nowSeconds()-86400||isAdmin(env,row.user_id)){await respond('That review is unavailable, expired, or targets a protected admin.');return true;}
-  const result=await env.DB.prepare("UPDATE club_reviews SET state=?,action=?,approved_by=? WHERE id=? AND state='pending'").bind(name==='approve'?'approved':'dismissed',action||null,user,key).run();
-  if(result.meta.changes&&name==='approve')await queueClub(env,`moderation:${key}`,'moderation',{review_id:key},row.thread_id,null,nowSeconds(),3600);
+  const at=nowSeconds(),approval=env.DB.prepare("UPDATE club_reviews SET state=?,action=?,approved_by=? WHERE id=? AND state='pending' AND user_id=? AND created_at>=?").bind(name==='approve'?'approved':'dismissed',action||null,user,key,row.user_id,at-86400);
+  const result=name==='approve'?await approveAndQueue(env,approval,`moderation:${key}`,'moderation',{review_id:key},row.thread_id,at,3600):await approval.run();
   await respond(result.meta.changes?`Review ${key}: ${name==='approve'?action+' explicitly approved and queued':'dismissed'}.`:'Already handled.');return true;
  }
  if(name==='event')return eventCommand(env,u,arg,respond);
@@ -214,7 +225,9 @@ async function eventCommand(env,u,arg,respond){
   const starts=fields[0]?parseHK(fields[0]):event.starts_at,location=fields[1]||event.location,url=fields[2]||event.source_url;
   if(!starts||starts<=nowSeconds()||starts>nowSeconds()+366*86400||location==='To be decided'||location.length>200||url&&!/^https:\/\/[^\s]{1,500}$/.test(url)){await respond('Provide the verified future date and location: /event confirm ID | YYYY-MM-DD HH:mm | Location | source URL (optional). Confirmation means an admin checked the details; the bot does not independently verify the URL.');return true;}
   if(event.status==='confirmed'){await respond('Already confirmed. Cancel and create a replacement to change details safely.');return true;}
-  await env.DB.prepare("UPDATE club_events SET status='confirmed',starts_at=?,location=?,source_url=?,confirmed_by=? WHERE id=?").bind(starts,location,url||null,user,key).run();await queueClub(env,`event-confirm:${key}`,'event_announcement',{event_id:key,requested:true},event.thread_id);
+  const approval=env.DB.prepare("UPDATE club_events SET status='confirmed',starts_at=?,location=?,source_url=?,confirmed_by=? WHERE id=? AND status=? AND status IN ('draft','planning')").bind(starts,location,url||null,user,key,event.status);
+  const result=await approveAndQueue(env,approval,`event-confirm:${key}`,'event_announcement',{event_id:key,requested:true},event.thread_id,nowSeconds(),86400);
+  if(!result.meta.changes){await respond('Event changed or was already handled. Reload it before confirming.');return true;}
   await respond(`Event ${key} confirmed by an admin and queued for its topic. Members: /rsvp ${key} yes remind (or maybe/no).`);return true;
  }
  await respond('Event commands: list, plan, create, show, confirm, cancel.');return true;
