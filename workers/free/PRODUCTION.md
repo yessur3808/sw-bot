@@ -2,15 +2,17 @@
 
 ## Separate testing and production
 
-The intended live group is https://t.me/starwarshk. Its numeric forum supergroup ID has not been verified; the public link is not a substitute for a numeric `-100…` ID. `GROUP_ID` stays empty until verified.
+The live group is https://t.me/starwarshk, **Star Wars Hong Kong Community**, verified through Telegram `getChat` as forum supergroup **`-1002432071241`** on 2026-10-28. Telegram also verified @SIU_M8_bot has Delete messages and Restrict members permissions, and the sole configured administrator `1678078373` is the group owner.
 
 - Test Worker: `sw-bot-test`, webhook `https://sw-bot-test.yaser3808.workers.dev/telegram`, configured with `wrangler.jsonc`.
 - Test database: `sw-bot-test` (`fc9c66e4-71bb-4e78-9d34-ec665fd313b4`).
 - Separate provisioned production Worker: `sw-bot-production`, webhook `https://sw-bot-production.yaser3808.workers.dev/telegram`, configured with `wrangler.production.jsonc`.
 - Production database binding: `sw-bot-production` (`dea947f5-8a8f-4e52-971f-31a07620af84`). Verify its remote schema and state before cutover.
-- Production config stays `DEPLOYMENT_ENABLED=false`, with no group or topic IDs assigned. The identity setup script explicitly pauses production in D1.
+- Production config is `DEPLOYMENT_ENABLED=true` with the verified group ID. D1 `settings.paused=1` keeps automatic posting paused while the administrator binds the real topics and approves rules.
 
-Keep testing active until the user requests cutover and the prerequisites below are ready. The disabled production Worker has been provisioned; testing remains enabled and its webhook has not moved. Production has no bot credentials yet and no active cron trigger. Never replace the test Worker's database binding with production's.
+The owner-authorized webhook switch completed on 2026-10-28. Production has its bot credential, a distinct webhook secret and the minutely cron trigger. Testing is paused and disabled, with its cron removed; its database and content remain intact. Never replace either Worker's database binding with the other's.
+
+Current portal: https://sw-bot-production.yaser3808.workers.dev/admin. The final readiness check has only seven missing topic bindings and unapproved group rules outstanding. Production stays paused until these are complete. The reviewed test content has not been transferred. The temporary authenticated cutover endpoint was removed after verification; credentials were never returned to the operator. An authenticated malformed webhook request reached input validation (HTTP 400) without inserting a fabricated Telegram update. A real administrator command is still needed to confirm Telegram-to-Worker delivery end to end.
 
 Both Workers use the same @SIU_M8_bot identity for this cutover. Telegram has one webhook destination per bot, and each Worker's cron can still run independently of that webhook. Never leave both Workers enabled, or a polling process running for the same bot token. An independently active test service after cutover needs a separate BotFather bot token and its own webhook.
 
@@ -73,7 +75,7 @@ Slots are reserved atomically before Telegram sends. Rate-limit retries reuse a 
 ## Rollback
 
 1. Run `/pause` on production and verify production D1 `settings.paused=1`. Set `DEPLOYMENT_ENABLED=false` on **sw-bot-production**, retaining its production DB and identity. Verify it is disabled and in-flight work has stopped before re-enabling test. If commands are unavailable, pause through an authorised D1 operation and disable the Worker directly.
-2. On **sw-bot-test**, restore/verify its saved test configuration: DB `sw-bot-test` (`fc9c66e4-71bb-4e78-9d34-ec665fd313b4`), `GROUP_ID=-1004441702993`, `DEPLOYMENT_ENV=test`, original topic routing/admin list, test webhook expectation and compatible guarded code. Verify test D1 is still paused, then enable only this Worker with `DEPLOYMENT_ENABLED=true`. Neither Worker's DB binding should ever be swapped.
+2. On **sw-bot-test**, restore/verify its saved test configuration: DB `sw-bot-test` (`fc9c66e4-71bb-4e78-9d34-ec665fd313b4`), `GROUP_ID=-1004441702993`, `DEPLOYMENT_ENV=test`, original topic routing/admin list, test webhook expectation and compatible guarded code. The production credential may have been rotated, so verify or securely replace the test token before rollback. Verify test D1 is still paused, then enable only this Worker with `DEPLOYMENT_ENABLED=true` and restore the minutely cron. Neither Worker's DB binding should ever be swapped.
 3. Set the bot webhook back to `https://sw-bot-test.yaser3808.workers.dev/telegram`, using **the test Worker's** `WEBHOOK_SECRET` as `secret_token`, not production's, and the required subscriptions. If the test secret was lost, securely provision a new test-specific secret before this step. Discard pending production updates with `drop_pending_updates=true` in the coordinated rollback window; never replay them in test.
 4. Verify `getWebhookInfo`, authenticated delivery, test identity, topic routing and diagnostics while test remains paused. Resume testing only after these pass. Production stays disabled and paused with its database retained for investigation; never alter its identity or transfer its jobs/member data to test.
 

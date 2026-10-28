@@ -13,8 +13,8 @@
   }],
   "vars": {
     "DEPLOYMENT_ENV": "production",
-    "DEPLOYMENT_ENABLED": "false",
-    "GROUP_ID": "",
+    "DEPLOYMENT_ENABLED": "true",
+    "GROUP_ID": "-1002432071241",
     "ADMIN_USER_IDS": "1678078373",
     "BOT_USERNAME": "SIU_M8_bot",
     "EXPECTED_WEBHOOK_URL": "https://sw-bot-production.yaser3808.workers.dev/telegram",

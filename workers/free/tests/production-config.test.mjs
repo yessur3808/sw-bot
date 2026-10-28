@@ -33,10 +33,13 @@ test('production retains its dedicated D1 identity and never binds the test data
   }
 });
 
-test('prepared production is disabled and has no inherited group, topics or secrets', () => {
+test('production targets the verified live group without inherited topics or secrets', () => {
   assert.equal(production.vars.DEPLOYMENT_ENV, 'production');
-  assert.equal(production.vars.DEPLOYMENT_ENABLED, 'false');
-  assert.equal(production.vars.GROUP_ID, '');
+  assert.equal(production.vars.DEPLOYMENT_ENABLED, 'true');
+  assert.equal(production.vars.GROUP_ID, '-1002432071241');
+  assert.equal(testing.vars.DEPLOYMENT_ENABLED, 'false');
+  assert.deepEqual(testing.triggers.crons, []);
+  assert.deepEqual(production.triggers.crons, ['* * * * *']);
   assert.notEqual(production.vars.GROUP_ID, testGroupId);
   assert.ok(!JSON.stringify(production).includes(testGroupId));
   assert.equal(production.vars.ADMIN_USER_IDS, '1678078373');
