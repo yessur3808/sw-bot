@@ -98,3 +98,37 @@ Verification: 299 tests pass; desktop/mobile browser pagination, filtering and
 fixture approval/publication pass without page errors. Test release
 `poll-library-2026-10-28`, deployment `e70a925b53504361aa69c502ba136c4b`,
 reports healthy/configured. Secret scan passed.
+
+## Trivia batch
+
+`star-wars-trivia-2026-10-28.json` contains the owner's original 10 questions,
+unchanged, followed by 100 additional questions. Every entry has four options
+and a **zero-based** `correct` index (0–3). The accompanying `.sources.json`
+records answer evidence; new entries also include the official source URL in
+`source.url`. Some questions reveal plot details; review them for the intended
+audience before approval. Legends questions are labelled separately.
+
+The poll importer also accepts `*_trivia` categories and creates native **quiz**
+drafts, retaining the answer index in both `correct` and original import metadata.
+It rejects missing/out-of-range answers and answer keys on opinion polls.
+Existing opinion-poll fingerprints remain unchanged.
+
+```sh
+node workers/free/scripts/poll-import.mjs \
+  workers/free/data/star-wars-trivia-2026-10-28.json \
+  -1004441702993 test 1678078373 > /tmp/sw-trivia-query.json
+```
+
+These entries appear under **Posts & schedule** in the test portal. Film trivia
+routes to Movies, lore to Lore, games to Gaming, and series to TV when bound
+(otherwise Lore). Import never approves, schedules or publishes. After approval,
+the existing publisher sends a Telegram quiz with the retained answer index.
+This data import requires migration 0008 already used by the poll batch; no new
+migration or Worker deployment is needed. Production remains disabled.
+
+Verified test import: 110 exact read-back matches, IDs 134–243, all unapproved
+and unscheduled drafts (55 Movies, 39 Lore, 16 Gaming). The library now has
+238 imported drafts (128 polls + 110 quizzes); 211 knowledge entries are intact.
+All 302 tests pass, including native quiz payloads, answer validation, repeat
+import protection and compatibility with existing poll fingerprints. Secret
+scan passed. None of these quizzes were published during the import.

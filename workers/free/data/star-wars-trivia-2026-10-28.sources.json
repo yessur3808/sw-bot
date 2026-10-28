@@ -1,0 +1,882 @@
+[
+  {
+    "question": "What color is Mace Windu's lightsaber?",
+    "answer": "Purple",
+    "url": "https://www.starwars.com/databank/mace-windus-lightsaber",
+    "note": "Official databank describes the blade as amethyst.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who built C-3PO?",
+    "answer": "Anakin Skywalker",
+    "url": "https://www.starwars.com/databank/c-3po",
+    "note": "Databank identifies young Anakin as the builder.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What is the name of Han Solo's ship?",
+    "answer": "Millennium Falcon",
+    "url": "https://www.starwars.com/databank/han-solo",
+    "note": "Han is identified as captain of the Millennium Falcon.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who trained Obi-Wan Kenobi as a Padawan?",
+    "answer": "Qui-Gon Jinn",
+    "url": "https://www.starwars.com/databank/obi-wan-kenobi",
+    "note": "Obi-Wan is described as Qui-Gon’s Padawan.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which planet is known as the Wookiee homeworld?",
+    "answer": "Kashyyyk",
+    "url": "https://www.starwars.com/databank/wookiee",
+    "note": "Databank identifies Kashyyyk as the Wookiee homeworld.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who created the Darksaber?",
+    "answer": "Tarre Vizsla",
+    "url": "https://www.starwars.com/news/what-is-the-darksaber",
+    "note": "Official Darksaber history credits Tarre Vizsla.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In canon, what rank does Thrawn hold in the Empire?",
+    "answer": "Grand Admiral",
+    "url": "https://www.starwars.com/databank/grand-admiral-thrawn",
+    "note": "Official character entry identifies his Imperial rank.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which battle station was destroyed at Yavin?",
+    "answer": "Death Star I",
+    "url": "https://www.starwars.com/databank/organization/theempire/",
+    "note": "Imperial history describes the first Death Star’s destruction at Yavin.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which character says 'I am one with the Force and the Force is with me'?",
+    "answer": "Chirrut Imwe",
+    "url": "https://www.starwars.com/video/i-am-one-with-the-force-and-the-force-is-with-me",
+    "note": "Official clip attributes the mantra to Chirrut.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which game first introduced Darth Revan?",
+    "answer": "KOTOR",
+    "url": "https://www.starwars.com/news/lucasfilm-games-team-star-wars-gaming-moments",
+    "note": "Official gaming retrospective recalls the Revan reveal in the 2003 Knights of the Old Republic.",
+    "origin": "user supplied",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Phantom Menace, what species is the podracer Sebulba?",
+    "answer": "Dug",
+    "url": "https://www.starwars.com/databank/sebulba",
+    "note": "The Sebulba entry identifies the racer as a Dug.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What is the name of the podrace Anakin wins in The Phantom Menace?",
+    "answer": "Boonta Eve Classic",
+    "url": "https://www.starwars.com/databank/sebulba",
+    "note": "The biography names the Boonta Eve Classic and describes Anakin beating Sebulba.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Phantom Menace, which species does the junk dealer Watto belong to?",
+    "answer": "Toydarian",
+    "url": "https://www.starwars.com/databank/watto",
+    "note": "Watto is identified as a Toydarian dealer in Mos Espa.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which Gungan leader agrees to help Queen Amidala fight the invasion in The Phantom Menace?",
+    "answer": "Boss Nass",
+    "url": "https://www.starwars.com/databank/boss-nass",
+    "note": "Nass agrees to commit his army after Amidala appeals to him.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Whose genetic material is used for the Republic clone army revealed in Attack of the Clones?",
+    "answer": "Jango Fett",
+    "url": "https://www.starwars.com/databank/Jango-Fett",
+    "note": "The biography explicitly names Jango as the genetic source of the army.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Attack of the Clones, what is Boba Fett genetically in relation to Jango Fett?",
+    "answer": "An unaltered clone",
+    "url": "https://www.starwars.com/databank/Jango-Fett",
+    "note": "The entry distinguishes Boba as Jango's unaltered clone, raised as his son.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which shapeshifting assassin do Obi-Wan and Anakin capture on Coruscant in Attack of the Clones?",
+    "answer": "Zam Wesell",
+    "url": "https://www.starwars.com/databank/Jango-Fett",
+    "note": "The biography names Zam Wesell as the captured shapeshifter who targeted Padme.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which Jedi kills Jango Fett during the arena battle in Attack of the Clones?",
+    "answer": "Mace Windu",
+    "url": "https://www.starwars.com/databank/Jango-Fett",
+    "note": "The account of Geonosis states that Windu decapitates Jango.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which storm-covered ocean planet conceals the cloning operation Obi-Wan discovers in Attack of the Clones?",
+    "answer": "Kamino",
+    "url": "https://www.starwars.com/databank/kamino",
+    "note": "The entry describes the ocean world and Obi-Wan's discovery of its clone army.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "How many lightsabers does General Grievous wield at once against Obi-Wan on Utapau in Revenge of the Sith?",
+    "answer": "Four",
+    "url": "https://www.starwars.com/databank/general-grievous",
+    "note": "The Utapau duel account explicitly says Grievous wields four simultaneously.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What weapon does Obi-Wan use to deliver the fatal shots to Grievous in Revenge of the Sith?",
+    "answer": "A blaster",
+    "url": "https://www.starwars.com/databank/general-grievous",
+    "note": "Obi-Wan retrieves Grievous's blaster with the Force and shoots his chest.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who is the captive Anakin and Obi-Wan rescue above Coruscant at the start of Revenge of the Sith?",
+    "answer": "Chancellor Palpatine",
+    "url": "https://www.starwars.com/databank/general-grievous",
+    "note": "The biography describes Palpatine's kidnapping and the Jedi rescue aboard the flagship.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which clone commander orders his troops to fire on Obi-Wan on Utapau after Order 66 in Revenge of the Sith?",
+    "answer": "Commander Cody",
+    "url": "https://www.starwars.com/databank/utapau",
+    "note": "The film-era history names Cody as the commander who orders the attack.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which local administrator quietly tells Obi-Wan where to find Grievous in Revenge of the Sith?",
+    "answer": "Tion Medon",
+    "url": "https://www.starwars.com/databank/utapau",
+    "note": "The Tion Medon summary says the administrator quietly reveals Grievous's location to Obi-Wan.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which planet does Tarkin destroy to demonstrate the Death Star's power in A New Hope?",
+    "answer": "Alderaan",
+    "url": "https://www.starwars.com/databank/grand-moff-tarkin",
+    "note": "The entry names Alderaan as the planet Tarkin destroys in the demonstration.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which political body has the Emperor dissolved by the Imperial briefing in A New Hope?",
+    "answer": "The Imperial Senate",
+    "url": "https://www.starwars.com/databank/grand-moff-tarkin",
+    "note": "The biography says the Emperor dissolves the Imperial Senate once the station is operational.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What are the huge tracked vehicles used by the Jawas in A New Hope called?",
+    "answer": "Sandcrawlers",
+    "url": "https://www.starwars.com/databank/jawa",
+    "note": "The Jawa entry calls their treaded mobile homes sandcrawlers.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In A New Hope, what component fails in the red astromech Owen initially buys from the Jawas?",
+    "answer": "Its motivator",
+    "url": "https://www.starwars.com/databank/jawa",
+    "note": "The Bad Motivator clip description says the red astromech blows a motivator.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who is Cloud City's administrator when Han and Leia arrive in The Empire Strikes Back?",
+    "answer": "Lando Calrissian",
+    "url": "https://www.starwars.com/databank/lando-calrissian",
+    "note": "The biography identifies Lando as Cloud City's administrator before Vader's trap.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What gas is mined at Cloud City in The Empire Strikes Back?",
+    "answer": "Tibanna",
+    "url": "https://www.starwars.com/databank/lando-calrissian",
+    "note": "Cloud City is described as a Tibanna gas installation in Bespin's atmosphere.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which animals do Rebel patrols ride on Hoth in The Empire Strikes Back?",
+    "answer": "Tauntauns",
+    "url": "https://www.starwars.com/databank/tauntaun",
+    "note": "The entry says Rebels domesticated tauntauns for patrols outside their base.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What creature captures Luke and hangs him upside down in an icy cave in The Empire Strikes Back?",
+    "answer": "A wampa",
+    "url": "https://www.starwars.com/databank/wampa",
+    "note": "The entry describes the wampa attack and Luke awakening suspended in its lair.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What is the name of the Rebel installation on Hoth in The Empire Strikes Back?",
+    "answer": "Echo Base",
+    "url": "https://www.starwars.com/databank/tauntaun",
+    "note": "Both the patrol description and Hoth summary identify the installation as Echo Base.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which Ewok befriends Leia after her speeder-bike crash in Return of the Jedi?",
+    "answer": "Wicket",
+    "url": "https://www.starwars.com/databank/wicket-w-warrick",
+    "note": "Wicket's biography connects Leia's crash and encounter with their new friendship.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What kind of creature does Luke face beneath Jabba's throne room in Return of the Jedi?",
+    "answer": "A rancor",
+    "url": "https://www.starwars.com/databank/rancor",
+    "note": "The entry places Jabba's rancor beneath the throne room and says Luke kills it.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What Imperial installation do the Rebels destroy on Endor to make the Death Star attack possible in Return of the Jedi?",
+    "answer": "A shield generator",
+    "url": "https://www.starwars.com/databank/wicket-w-warrick",
+    "note": "The biography states that destroying the ground shield generator enables the attack in space.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who serves as Lando's co-pilot aboard the Millennium Falcon during the Battle of Endor in Return of the Jedi?",
+    "answer": "Nien Nunb",
+    "url": "https://www.starwars.com/databank/nien-nunb",
+    "note": "The entry explicitly identifies Nien Nunb as Lando's co-pilot during that battle.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What stormtrooper designation does Finn have before his escape in The Force Awakens?",
+    "answer": "FN-2187",
+    "url": "https://www.starwars.com/databank/finn",
+    "note": "Finn's original First Order designation is given as FN-2187.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who gives Finn his new name in The Force Awakens?",
+    "answer": "Poe Dameron",
+    "url": "https://www.starwars.com/databank/finn",
+    "note": "The escape account specifically credits Poe with giving him the nickname Finn.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "How does Rey make a living on Jakku before meeting BB-8 in The Force Awakens?",
+    "answer": "Salvaging wreckage",
+    "url": "https://www.starwars.com/databank/rey",
+    "note": "The biography describes Rey scavenging and salvaging components from crashed warships.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which droid carries a star chart pointing toward Luke Skywalker while on Jakku in The Force Awakens?",
+    "answer": "BB-8",
+    "url": "https://www.starwars.com/databank/rey",
+    "note": "The biography identifies BB-8 as the astromech carrying the location clue Rey encounters.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What is the name of Rose Tico's sister, a Resistance bomber gunner in The Last Jedi?",
+    "answer": "Paige",
+    "url": "https://www.starwars.com/databank/rose-tico",
+    "note": "The biography names Paige as Rose's older sister and a bomber gunner.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which casino city do Finn and Rose visit to find the Master Codebreaker in The Last Jedi?",
+    "answer": "Canto Bight",
+    "url": "https://www.starwars.com/databank/rose-tico",
+    "note": "The mission summary names Canto Bight as the codebreaker search destination.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What animals carry Finn and Rose as they flee the police in The Last Jedi?",
+    "answer": "Fathiers",
+    "url": "https://www.starwars.com/databank/rose-tico",
+    "note": "The biography states that Finn and Rose flee the police on fathiers.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What system aboard the First Order flagship do Finn and Rose plan to disable in The Last Jedi?",
+    "answer": "The hyperspace tracker",
+    "url": "https://www.starwars.com/databank/rose-tico",
+    "note": "Their infiltration mission is explicitly intended to shut down the hyperspace tracker.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Who is revealed to be Rey's grandfather in The Rise of Skywalker?",
+    "answer": "Emperor Palpatine",
+    "url": "https://www.starwars.com/databank/rey",
+    "note": "The biography states that Kylo reveals Rey to be Palpatine's granddaughter.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "On which ocean moon does Rey explore Death Star wreckage in The Rise of Skywalker?",
+    "answer": "Kef Bir",
+    "url": "https://www.starwars.com/databank/rey",
+    "note": "Rey's biography places her search through Death Star wreckage on Kef Bir.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "On which world does the droidsmith Babu Frik work in The Rise of Skywalker?",
+    "answer": "Kijimi",
+    "url": "https://www.starwars.com/databank/babu-frik",
+    "note": "Babu's entry places his droidsmith work among the Spice Runners of Kijimi.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What hidden Sith world houses the citadel of Palpatine's followers in The Rise of Skywalker?",
+    "answer": "Exegol",
+    "url": "https://www.starwars.com/databank/exegol",
+    "note": "The Exegol entry identifies the hidden Sith world, citadel, and followers of Sidious.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which scientist deliberately seeks to introduce a fatal weakness into the Death Star in Rogue One?",
+    "answer": "Galen Erso",
+    "url": "https://www.starwars.com/databank/galen-erso",
+    "note": "Galen's entry explicitly says he seeks to build in a fatal flaw for the Alliance.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "On which remote world is Galen Erso hiding when Krennic finds him in Rogue One?",
+    "answer": "Lah'mu",
+    "url": "https://www.starwars.com/databank/galen-erso",
+    "note": "The biography says Galen flees to Lah'mu and Krennic tracks him there.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What type of Imperial droid was K-2SO before his reprogramming, as established in Rogue One?",
+    "answer": "A security droid",
+    "url": "https://www.starwars.com/databank/k-2so-kay-tuesso",
+    "note": "The introduction explicitly identifies K-2SO as a reprogrammed Imperial security droid.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which planet houses the vault that Jyn and Cassian infiltrate to steal the Death Star plans in Rogue One?",
+    "answer": "Scarif",
+    "url": "https://www.starwars.com/databank/k-2so-kay-tuesso",
+    "note": "The Rogue One mission account describes K-2SO leading Jyn and Cassian to Scarif's vault.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What was Bodhi Rook's occupation before he joined the Rebellion in Rogue One?",
+    "answer": "Imperial pilot",
+    "url": "https://www.starwars.com/databank/bodhi-rook",
+    "note": "Bodhi's entry explicitly calls him a former Imperial pilot.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which Imperial director oversees Advanced Weapons Research in Rogue One?",
+    "answer": "Orson Krennic",
+    "url": "https://www.starwars.com/databank/jyn-erso",
+    "note": "The Krennic summary identifies him as director of Advanced Weapons Research.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which droid sparks a revolt among the enslaved workers and droids on Kessel in Solo?",
+    "answer": "L3-37",
+    "url": "https://www.starwars.com/databank/l3-37",
+    "note": "The biography describes L3-37 freeing workers and droids during the Kessel infiltration.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What valuable fuel is the target of Beckett's train robbery on Vandor in Solo?",
+    "answer": "Coaxium",
+    "url": "https://www.starwars.com/databank/coaxium",
+    "note": "The Conveyex summary identifies the train cargo Beckett's gang targets as coaxium.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What is the name of the swoop gang led by Enfys Nest in Solo?",
+    "answer": "The Cloud-Riders",
+    "url": "https://www.starwars.com/databank/enfys-nest",
+    "note": "Enfys's introduction identifies her as leader of the Cloud-Riders.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which crime syndicate does Dryden Vos publicly represent in Solo?",
+    "answer": "Crimson Dawn",
+    "url": "https://www.starwars.com/databank/dryden-vos",
+    "note": "Dryden's introduction identifies him as the public representative of Crimson Dawn.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What is the name of Dryden Vos's luxury yacht in Solo?",
+    "answer": "First Light",
+    "url": "https://www.starwars.com/databank/dryden-vos",
+    "note": "The entry names Dryden's lavish yacht First Light.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Clone Wars, what nickname does Anakin use for Ahsoka?",
+    "answer": "Snips",
+    "url": "https://www.starwars.com/databank/ahsoka-tano",
+    "note": "Ahsoka's biography identifies Snips as Anakin's nickname for her.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Clone Wars, who framed Ahsoka for the Jedi Temple bombing?",
+    "answer": "Barriss Offee",
+    "url": "https://www.starwars.com/databank/ahsoka-tano",
+    "note": "The biography identifies Barriss as the bomber whose guilt Anakin uncovered.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Clone Wars, which icy world do Ahsoka and Huyang visit with younglings for the Gathering?",
+    "answer": "Ilum",
+    "url": "https://www.starwars.com/databank/ahsoka-tano",
+    "note": "The biography places Ahsoka's youngling expedition with Huyang on Ilum.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Clone Wars, which brother does Savage Opress seek at Mother Talzin's direction?",
+    "answer": "Maul",
+    "url": "https://www.starwars.com/databank/Savage-Opress",
+    "note": "Talzin sends Savage into the Outer Rim to locate his lost brother Maul.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Clone Wars, whose magic transforms Savage Opress into a hulking warrior?",
+    "answer": "Mother Talzin",
+    "url": "https://www.starwars.com/databank/Savage-Opress",
+    "note": "Savage's biography attributes his physical transformation to Talzin's magic.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Clone Wars, Duchess Satine rules which world while pursuing a pacifist policy?",
+    "answer": "Mandalore",
+    "url": "https://www.starwars.com/databank/duchess-satine-kryze/",
+    "note": "Satine's entry identifies her as Mandalore's leader and describes her pacifist government.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Rebels, on which planet did Ezra grow up as an orphan?",
+    "answer": "Lothal",
+    "url": "https://www.starwars.com/databank/ezra-bridger",
+    "note": "Ezra's biography places his childhood on the streets of Lothal.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Rebels, who takes Ezra Bridger as a Jedi apprentice?",
+    "answer": "Kanan Jarrus",
+    "url": "https://www.starwars.com/databank/ezra-bridger",
+    "note": "The entry names Kanan as Ezra's Jedi mentor.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Rebels, Chopper Base is established on which planet?",
+    "answer": "Atollon",
+    "url": "https://www.starwars.com/databank/ezra-bridger",
+    "note": "Ezra's biography locates the rebels' Chopper Base on Atollon.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What was Rebels hero Kanan Jarrus called before he adopted that identity?",
+    "answer": "Caleb Dume",
+    "url": "https://www.starwars.com/databank/kanan-jarrus",
+    "note": "Kanan's entry states that he was previously known as Caleb Dume.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Rebels, which Jedi gives Ezra a kyber crystal during his first visit to Lothal's Jedi Temple?",
+    "answer": "Yoda",
+    "url": "https://www.starwars.com/databank/lothal-jedi-temple",
+    "note": "The temple entry says Yoda gives Ezra the crystal for his first lightsaber.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Rebels, the Temple Guard who knights Kanan is revealed to be which figure?",
+    "answer": "The Grand Inquisitor",
+    "url": "https://www.starwars.com/databank/lothal-jedi-temple",
+    "note": "The temple history identifies Kanan's knighting guard as the Grand Inquisitor.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Mandalorian's first season, what ship carries Din Djarin and the Child between worlds?",
+    "answer": "Razor Crest",
+    "url": "https://www.starwars.com/databank/the-mandalorian",
+    "note": "Din's biography names the Razor Crest as their transport while evading bounty hunters.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Mandalorian's first season, which creature becomes Din Djarin's signet?",
+    "answer": "Mudhorn",
+    "url": "https://www.starwars.com/databank/the-mandalorian",
+    "note": "The Armorer awards Din the Mudhorn signet when declaring his clan of two.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Mandalorian, who discovers the Child's name is Grogu by communicating through the Force?",
+    "answer": "Ahsoka Tano",
+    "url": "https://www.starwars.com/databank/the-mandalorian",
+    "note": "Din's biography credits Ahsoka with learning Grogu's name through the Force.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Mandalorian, Kuiil belongs to which species?",
+    "answer": "Ugnaught",
+    "url": "https://www.starwars.com/databank/kuiil",
+    "note": "Kuiil's Databank species field lists Ugnaught.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Mandalorian, on which world does Kuiil work as a vapor farmer?",
+    "answer": "Arvala-7",
+    "url": "https://www.starwars.com/databank/kuiil",
+    "note": "Kuiil's entry places his vapor farm on Arvala-7.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Mandalorian's first season, who rebuilds and reprograms IG-11 as a nurse droid?",
+    "answer": "Kuiil",
+    "url": "https://www.starwars.com/news/kuiil-ig-11",
+    "note": "The article describes Kuiil rebuilding IG-11 and teaching it caregiving tasks.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Andor, which planet was Cassian's childhood home when he was known as Kassa?",
+    "answer": "Kenari",
+    "url": "https://www.starwars.com/databank/cassian-andor",
+    "note": "Cassian's biography places Kassa on Kenari before his adoption.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Andor, what name does Cassian use with the rebel heist team on Aldhani?",
+    "answer": "Clem",
+    "url": "https://www.starwars.com/databank/cassian-andor",
+    "note": "The biography says Cassian asks the Aldhani rebels to call him Clem.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Andor's first season, where is Cassian imprisoned after his arrest on Niamos?",
+    "answer": "Narkina 5",
+    "url": "https://www.starwars.com/databank/cassian-andor",
+    "note": "The biography states that his Niamos arrest results in imprisonment on Narkina 5.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Andor, rebel operative Vel Sartha is the cousin of which senator?",
+    "answer": "Mon Mothma",
+    "url": "https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3",
+    "note": "The official recap identifies Vel as Mon Mothma's cousin.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Andor's 'One Way Out,' which ISB officer is revealed as Luthen's undercover source?",
+    "answer": "Lonni Jung",
+    "url": "https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3",
+    "note": "The recap identifies Lonni Jung as the ISB officer secretly working for Luthen.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Andor, what built-in feature lets guards punish barefoot prisoners on Narkina 5?",
+    "answer": "Electrified floors",
+    "url": "https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3",
+    "note": "The recap explains that electric floors deliver shocks to control the prisoners.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Bad Batch, which clone leads Clone Force 99?",
+    "answer": "Hunter",
+    "url": "https://www.starwars.com/databank/hunter",
+    "note": "Hunter's entry identifies him as the squad's leader.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Bad Batch, on which planet does Cid arrange jobs for the squad?",
+    "answer": "Ord Mantell",
+    "url": "https://www.starwars.com/databank/hunter",
+    "note": "Hunter's biography places his work arrangement with Cid on Ord Mantell.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Bad Batch's second season, which world offers the squad a peaceful potential home?",
+    "answer": "Pabu",
+    "url": "https://www.starwars.com/databank/hunter",
+    "note": "The biography describes Hunter trying to settle the squad on peaceful Pabu.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Bad Batch, which squad member is the computer specialist?",
+    "answer": "Tech",
+    "url": "https://www.starwars.com/news/the-bad-batch-recon",
+    "note": "The official season-one recap identifies Tech as the group's computer expert.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Before joining the Bad Batch, Omega worked as an assistant to which Kaminoan scientist?",
+    "answer": "Nala Se",
+    "url": "https://www.starwars.com/news/the-bad-batch-recon",
+    "note": "The recap states that Omega assisted Nala Se.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In The Bad Batch's premiere, which squad member stays with the Empire when the others escape with Omega?",
+    "answer": "Crosshair",
+    "url": "https://www.starwars.com/news/the-bad-batch-recon",
+    "note": "The recap says Crosshair stays behind with the Empire as his squad escapes Kamino.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Ahsoka, Shin Hati is the apprentice of which mercenary?",
+    "answer": "Baylan Skoll",
+    "url": "https://www.starwars.com/databank/shin-hati",
+    "note": "Shin's entry explicitly identifies Baylan Skoll as her master.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Ahsoka, what is Morgan Elsbeth's enormous hyperspace ring called?",
+    "answer": "Eye of Sion",
+    "url": "https://www.starwars.com/databank/the-eye-of-sion",
+    "note": "The Databank names Elsbeth's intergalactic hyperspace ring the Eye of Sion.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "Which droid in Ahsoka preserves records of the lightsabers he helped Jedi construct?",
+    "answer": "Huyang",
+    "url": "https://www.starwars.com/databank/professor-huyang",
+    "note": "Huyang's entry describes his long supervision of lightsaber construction and retained records.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Ahsoka's first season, on which distant world are Ezra Bridger and Thrawn found in exile?",
+    "answer": "Peridea",
+    "url": "https://www.starwars.com/databank/peridea",
+    "note": "Peridea's entry identifies it as Ezra and Thrawn's place of exile.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Ahsoka, what do the Noti resemble when they withdraw into their shells to hide?",
+    "answer": "Rocks",
+    "url": "https://www.starwars.com/databank/peridea",
+    "note": "The related Noti description explains their rock disguise when hiding in their shells.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Fallen Order, who was Cal Kestis's Jedi Master before Order 66?",
+    "answer": "Jaro Tapal",
+    "url": "https://www.starwars.com/databank/cal-kestis/",
+    "note": "Cal's biography names Jaro Tapal as his original Jedi Master.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "At the start of Jedi: Fallen Order, on which planet does Cal work as a scrapper?",
+    "answer": "Bracca",
+    "url": "https://www.starwars.com/databank/cal-kestis/",
+    "note": "Cal's biography states that he hides and works as a scrapper on Bracca.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "What is Cal's ability to sense an object's past called in Jedi: Fallen Order?",
+    "answer": "Psychometry",
+    "url": "https://www.starwars.com/databank/cal-kestis/",
+    "note": "The entry names Cal's perception of an object's past as psychometry.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Fallen Order, Greez Dritus belongs to which four-armed species?",
+    "answer": "Latero",
+    "url": "https://www.starwars.com/databank/greez",
+    "note": "Greez's entry identifies him as a four-armed Latero.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Fallen Order, which crime syndicate is owed Greez's gambling debt?",
+    "answer": "Haxion Brood",
+    "url": "https://www.starwars.com/databank/greez",
+    "note": "The biography names the Haxion Brood as Greez's creditor.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Fallen Order, what is the name of the ship captained by Greez?",
+    "answer": "Stinger Mantis",
+    "url": "https://www.starwars.com/databank/stinger-mantis",
+    "note": "The ship's Databank entry identifies Greez as captain of the Stinger Mantis.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Fallen Order, which companion droid supplies Cal with healing stims?",
+    "answer": "BD-1",
+    "url": "https://www.starwars.com/news/10-of-the-best-star-wars-video-game-characters",
+    "note": "The article's BD-1 section describes the droid providing life-saving stims.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Survivor, what is Greez's cantina in Rambler's Reach called?",
+    "answer": "Pyloon's Saloon",
+    "url": "https://www.starwars.com/databank/greez",
+    "note": "Greez's biography names his Rambler's Reach establishment Pyloon's Saloon.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Survivor, what has kept Dagan Gera alive for centuries before Cal frees him?",
+    "answer": "A bacta tank",
+    "url": "https://www.starwars.com/databank/dagan-gera",
+    "note": "Dagan's entry states he has been preserved for centuries in a bacta tank.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Jedi: Survivor, Dagan Gera is obsessed with returning to which hidden planet?",
+    "answer": "Tanalorr",
+    "url": "https://www.starwars.com/databank/dagan-gera",
+    "note": "The entry identifies Tanalorr as the hidden world Dagan is determined to reclaim.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Battlefront II's campaign, which Imperial special-forces unit does Iden Versio initially command?",
+    "answer": "Inferno Squad",
+    "url": "https://www.starwars.com/databank/commander-iden-versio",
+    "note": "Iden's Databank entry names her as Inferno Squad's commander.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Battlefront II's campaign, which Imperial admiral is Iden Versio's father?",
+    "answer": "Garrick Versio",
+    "url": "https://www.starwars.com/databank/commander-iden-versio",
+    "note": "The entry explicitly identifies Admiral Garrick Versio as Iden's father.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In Battlefront II's campaign, which planet is Iden Versio's homeworld?",
+    "answer": "Vardos",
+    "url": "https://www.starwars.com/databank/commander-iden-versio",
+    "note": "The entry names Vardos as Iden's homeworld and the site of her military schooling.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In the Legends game Knights of the Old Republic, what insulting term does HK-47 use for organic beings?",
+    "answer": "Meatbags",
+    "url": "https://www.starwars.com/news/10-of-the-deadliest-droids-in-star-wars",
+    "note": "The HK-47 section explicitly labels KOTOR Legends and identifies his term for organics.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  },
+  {
+    "question": "In the Legends game Knights of the Old Republic, whom does HK-47 recognize as his master?",
+    "answer": "Revan",
+    "url": "https://www.starwars.com/news/10-of-the-deadliest-droids-in-star-wars",
+    "note": "The HK-47 section names Revan as the droid's master.",
+    "origin": "generated; official source checked",
+    "checked_on": "2026-10-28"
+  }
+]

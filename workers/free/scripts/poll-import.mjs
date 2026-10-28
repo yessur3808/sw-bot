@@ -5,20 +5,22 @@ import {validatePost} from '../portal-content.mjs';
 
 const text=(s,n)=>typeof s==='string'&&s.trim().length>0&&s.length<=n;
 export function pollRows(entries){
- if(!Array.isArray(entries)||!entries.length||entries.length>1000)throw Error('Supply 1–1000 polls.');
+ if(!Array.isArray(entries)||!entries.length||entries.length>1000)throw Error('Supply 1–1000 polls or trivia questions.');
  const seen=new Set();
  return entries.map(e=>{
-  if(!e||!/^\w+_poll$/.test(e.category)||!text(e.category,60)||!text(e.source?.type,80)||
+  if(!e||!/^\w+_(poll|trivia)$/.test(e.category)||!text(e.category,60)||!text(e.source?.type,80)||
    (e.source.title!==undefined&&!text(e.source.title,160))||!Array.isArray(e.topics)||!e.topics.length||e.topics.length>10||e.topics.some(t=>!text(t,60)))throw Error('Invalid poll metadata.');
-  const p=validatePost({kind:'poll',text:e.question,options:e.options},{});
-  const metadata={category:e.category,question:e.question,options:e.options,source:e.source,topics:e.topics};
+  const quiz=e.category.endsWith('_trivia');
+  if(!quiz&&e.correct!==undefined)throw Error('Opinion polls cannot have a correct answer.');
+  const p=validatePost({kind:quiz?'quiz':'poll',text:e.question,options:e.options,correct:e.correct},{});
+  const metadata={category:e.category,question:e.question,options:e.options,source:e.source,topics:e.topics,...(quiz?{correct:e.correct}:{})};
   const key=createHash('sha256').update(JSON.stringify(metadata)).digest('hex');
   if(seen.has(key))throw Error('Duplicate poll.');seen.add(key);
   // Specific media categories route to their topic; mixed lore stays in Lore.
-  const topic=e.category==='game_poll'||e.source.type==='game'?'gaming':
+  const topic=e.category==='lore_trivia'?'lore':e.category==='game_poll'||e.source.type==='game'?'gaming':
    ['watch_party_poll','rewatch_poll','music_poll','scene_poll','ranking_poll'].includes(e.category)||e.source.type==='movie'?'movies':
    ['meme_poll','humor_poll'].includes(e.category)?'memes':e.source.type==='series'?'tv':'lore';
-  return {key,text:p.text,options:p.options,metadata,topic};
+  return {key,kind:p.kind,correct:p.correct,text:p.text,options:p.options,metadata,topic};
  });
 }
 
@@ -26,8 +28,8 @@ export function pollRows(entries){
 export function pollImport(entries,{groupId,environment,adminId}){
  if(!/^-100\d+$/.test(String(groupId))||!['test','production'].includes(environment)||!Number.isSafeInteger(adminId)||adminId<=0)throw Error('Explicit group identity and admin required.');
  const rows=pollRows(entries);
- return {sql:`INSERT INTO admin_posts(kind,text,options,thread_id,state,created_by,created_at,updated_at,import_key,import_metadata)
- SELECT 'poll',json_extract(j.value,'$.text'),json_extract(j.value,'$.options'),
+ return {sql:`INSERT INTO admin_posts(kind,text,options,correct,thread_id,state,created_by,created_at,updated_at,import_key,import_metadata)
+ SELECT json_extract(j.value,'$.kind'),json_extract(j.value,'$.text'),json_extract(j.value,'$.options'),json_extract(j.value,'$.correct'),
  COALESCE((SELECT thread_id FROM topic_map WHERE name=json_extract(j.value,'$.topic')),
           (SELECT thread_id FROM topic_map WHERE name='lore'),0),
  'draft',?,unixepoch(),unixepoch(),json_extract(j.value,'$.key'),json_extract(j.value,'$.metadata')
