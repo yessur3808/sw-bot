@@ -42,11 +42,33 @@ export async function changePost(env,user,id,revision,action,value={}){
  }else if(action==='publish'){
   const at=value.scheduled_at??nowSeconds();
   if(!Number.isSafeInteger(at)||at<nowSeconds()-60||at>nowSeconds()+90*86400)throw portalError('Choose now or a Hong Kong time within the next 90 days.');
-  row=await env.DB.prepare("UPDATE admin_posts SET state='scheduled',scheduled_at=?,updated_at=? WHERE id=? AND revision=? AND state='approved' AND approved_revision=revision RETURNING *").bind(Math.max(at,nowSeconds()),nowSeconds(),id,revision).first();
+  const current=await env.DB.prepare('SELECT * FROM admin_posts WHERE id=? AND revision=?').bind(id,revision).first();
+  if(!current)throw portalError('This post changed. Refresh before trying again.',409);
+  const thread=await publicationTopic(env,current,Math.max(at,nowSeconds()));
+  row=await env.DB.prepare("UPDATE admin_posts SET state='scheduled',scheduled_at=?,thread_id=?,updated_at=? WHERE id=? AND revision=? AND state='approved' AND approved_revision=revision RETURNING *").bind(Math.max(at,nowSeconds()),thread,nowSeconds(),id,revision).first();
   // Maintenance reconstructs the durable job if the process stops after this write.
  }else throw portalError('Unknown post action.');
  if(!row)throw portalError('This post changed or is already being delivered. Refresh before trying again.',409);
  await audit(env,user,'post.'+action,id);return row;
+}
+// Curated topic content must never fall back to General or outlive its event.
+async function publicationTopic(env,p,at){
+ const meta=p.import_metadata?JSON.parse(p.import_metadata):{};
+ if(meta.expires_at!==undefined&&(!Number.isSafeInteger(meta.expires_at)||at>=meta.expires_at))throw Object.assign(portalError('This event content has expired. Create a newly verified draft.',409),{publicationBlock:'expired'});
+ let thread=p.thread_id;
+ if(meta.required_topic){
+  const target=await env.DB.prepare('SELECT thread_id FROM topic_map WHERE name=?').bind(meta.required_topic).first();
+  if(!target||!Number.isSafeInteger(target.thread_id)||target.thread_id<=0)throw Object.assign(portalError('Bind the '+meta.required_topic+' topic before publishing this post.',409),{publicationBlock:'topic'});
+  thread=target.thread_id;
+ }
+ validatePost({...p,options:JSON.parse(p.options),thread_id:thread},env);
+ return thread;
+}
+async function blockPublication(env,job,p,reason){
+ const row=await env.DB.prepare(`UPDATE admin_posts SET state=?,revision=revision+1,approved_revision=NULL,approved_by=NULL,scheduled_at=NULL,job_id=NULL,updated_at=?
+  WHERE id=? AND revision=? AND job_id=? AND state IN ('scheduled','sending') RETURNING id`)
+  .bind(reason==='expired'?'expired':'draft',nowSeconds(),p.id,p.revision,job.id).first();
+ if(row)await audit(env,0,reason==='expired'?'post.blocked.expired':'post.blocked.topic_changed_reapprove',p.id);
 }
 export async function schedulePortalPosts(env){
  const now=nowSeconds();
@@ -75,15 +97,26 @@ export async function portalPostBody(env,job){
   .bind(post_id,revision,job.id,-CLUB_OFFSET-job.id).run();
  const p=await env.DB.prepare("SELECT * FROM admin_posts WHERE id=? AND revision=? AND approved_revision=revision AND state='scheduled'").bind(post_id,revision).first();
  if(!p||!isAdmin(env,p.approved_by))return null;
+ try{if(await publicationTopic(env,p,nowSeconds())!==p.thread_id){await blockPublication(env,job,p,'topic');return null;}}
+ catch(e){if(!e.publicationBlock)throw e;await blockPublication(env,job,p,e.publicationBlock);return null;}
  const validated=validatePost({...p,options:JSON.parse(p.options)},env),base={chat_id:Number(env.GROUP_ID),...(validated.thread_id?{message_thread_id:validated.thread_id}:{})};
  return p.kind==='text'?{method:'sendMessage',body:{...base,text:p.text}}:{method:'sendPoll',body:{...base,question:p.text,options:validated.options,is_anonymous:p.kind!=='quiz',...(p.kind==='quiz'?{type:'quiz',correct_option_id:p.correct,open_period:120}: {})}};
 }
 export async function claimPortalPost(env,job){
  const {post_id,revision}=JSON.parse(job.data);
- const p=await env.DB.prepare('SELECT approved_by FROM admin_posts WHERE id=?').bind(post_id).first();
- if(!p||!isAdmin(env,p.approved_by))return 'cancel';
- const r=await env.DB.prepare("UPDATE admin_posts SET state='sending',updated_at=? WHERE id=? AND revision=? AND approved_revision=revision AND state='scheduled' AND scheduled_at<=?").bind(nowSeconds(),post_id,revision,nowSeconds()).run();
- return r.meta.changes?'send':'cancel';
+ const p=await env.DB.prepare('SELECT * FROM admin_posts WHERE id=?').bind(post_id).first();
+ if(!p||p.revision!==revision||!isAdmin(env,p.approved_by))return 'cancel';
+ try{if(await publicationTopic(env,p,nowSeconds())!==p.thread_id){await blockPublication(env,job,p,'topic');return 'cancel';}}
+ catch(e){if(!e.publicationBlock)throw e;await blockPublication(env,job,p,e.publicationBlock);return 'cancel';}
+ const r=await env.DB.prepare(`UPDATE admin_posts SET state='sending',updated_at=? WHERE id=? AND revision=? AND approved_revision=revision AND state='scheduled' AND scheduled_at<=?
+  AND (json_extract(import_metadata,'$.required_topic') IS NULL OR thread_id=(SELECT thread_id FROM topic_map WHERE name=json_extract(admin_posts.import_metadata,'$.required_topic')))
+  AND (json_extract(import_metadata,'$.expires_at') IS NULL OR json_extract(import_metadata,'$.expires_at')>unixepoch())`).bind(nowSeconds(),post_id,revision,nowSeconds()).run();
+ // Time can cross the cutoff during the final database await. No further await
+ // occurs on the successful path between this check and returning the send claim.
+ const expiry=p.import_metadata?JSON.parse(p.import_metadata).expires_at:null;
+ if(expiry&&nowSeconds()>=expiry){await blockPublication(env,job,p,'expired');return 'cancel';}
+ if(!r.meta.changes){await blockPublication(env,job,p,'topic');return 'cancel';}
+ return 'send';
 }
 export async function portalPostDelivered(env,job,result){
  const {post_id,revision}=JSON.parse(job.data);

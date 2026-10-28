@@ -132,3 +132,44 @@ and unscheduled drafts (55 Movies, 39 Lore, 16 Gaming). The library now has
 All 302 tests pass, including native quiz payloads, answer validation, repeat
 import protection and compatibility with existing poll fingerprints. Secret
 scan passed. None of these quizzes were published during the import.
+
+## Topic content and editorial review
+
+`star-wars-topic-content-2026-10-28.json` adds 24 posts: six each for wallpapers,
+memes, global events and Hong Kong events. Wallpapers include official gallery
+links and explicitly labelled design concepts; memes are original text jokes,
+caption prompts and a poll. Twelve event posts retain official organiser links,
+verification notes, and Hong Kong/local timezone information. No image attachment
+or unannounced Star Wars programme is claimed. Event publication expires after
+seven days from verification or the event cutoff, whichever comes first.
+
+```sh
+node workers/free/scripts/topic-content-import.mjs \
+  workers/free/data/star-wars-topic-content-2026-10-28.json \
+  -1004441702993 test 1678078373 > /tmp/sw-topic-query.json
+```
+
+Import creates drafts only. `required_topic` in original metadata makes the
+destination explicit. Missing topic bindings block publishing rather than falling
+back to General. Publishing resolves the current binding; a later mapping change
+revokes approval and returns the post to draft. Delivery checks expiry again and
+marks stale event content expired. Create a newly verified draft when renewing
+an event; original source metadata remains immutable.
+
+At the owner's explicit request, `star-wars-library-review-2026-10-28.json`
+records accuracy/quality decisions on all 238 previously imported polls/quizzes:
+227 approved and 11 rejected (cancelled in the portal), with reasons and proposed
+corrections. The 63 approved entries identified as potentially spoilery gained
+`[Spoilers]` warnings in their editable post text. These labels do not hide poll
+questions/options; admins must still choose an appropriate audience. Source
+datasets and original import metadata were preserved. Changed wording increments
+the revision and the resulting revision is approved. Every live mutation checked
+the original content, revision and test identity; review actions are audited.
+
+All 24 new posts passed review and exact database read-back (IDs 244–267) and were
+approved. Test now contains 251 approved imported posts and 11 rejected imported
+posts; no imported post was scheduled or published by this review. Existing
+published/test-cancelled posts and 211 knowledge records were retained. The four
+new topic bindings remain required before their posts can publish. Production
+uses a separate disabled Worker and empty paused database; test approvals and
+topic IDs are not transferred automatically.

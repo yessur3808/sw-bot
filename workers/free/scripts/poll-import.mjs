@@ -26,12 +26,14 @@ export function pollRows(entries){
 
 // Produces a parameterized single INSERT; never approves, schedules or sends.
 export function pollImport(entries,{groupId,environment,adminId}){
+ return insertDrafts(pollRows(entries),{groupId,environment,adminId});
+}
+export function insertDrafts(rows,{groupId,environment,adminId}){
  if(!/^-100\d+$/.test(String(groupId))||!['test','production'].includes(environment)||!Number.isSafeInteger(adminId)||adminId<=0)throw Error('Explicit group identity and admin required.');
- const rows=pollRows(entries);
  return {sql:`INSERT INTO admin_posts(kind,text,options,correct,thread_id,state,created_by,created_at,updated_at,import_key,import_metadata)
  SELECT json_extract(j.value,'$.kind'),json_extract(j.value,'$.text'),json_extract(j.value,'$.options'),json_extract(j.value,'$.correct'),
  COALESCE((SELECT thread_id FROM topic_map WHERE name=json_extract(j.value,'$.topic')),
-          (SELECT thread_id FROM topic_map WHERE name='lore'),0),
+          CASE WHEN json_extract(j.value,'$.metadata.required_topic') IS NULL THEN (SELECT thread_id FROM topic_map WHERE name='lore') END,0),
  'draft',?,unixepoch(),unixepoch(),json_extract(j.value,'$.key'),json_extract(j.value,'$.metadata')
  FROM json_each(?) j
  WHERE EXISTS(SELECT 1 FROM deployment_identity WHERE id=1 AND group_id=? AND environment=?)
