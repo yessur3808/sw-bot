@@ -1,15 +1,22 @@
 # Cloudflare Telegram host
 
-This is the live **sw-bot-test** Worker serving **Star Wars Test**. Its webhook is
-`https://sw-bot-test.yaser3808.workers.dev/telegram`; `/healthz` reports the deployed
-version. The Python bot at the repository root is a separate, older deployment.
+The live **sw-bot-production** Worker serves **Star Wars Hong Kong Community**.
+Its webhook is `https://sw-bot-production.yaser3808.workers.dev/telegram`; `/healthz`
+reports the deployed version. **sw-bot-test** is disabled with its data retained. The Python bot at the repository root is a separate, older deployment.
 The previously dashboard-only Worker was recovered on 2026-10-27, including its
 quiz, rewards, privacy controls and durable Telegram delivery queue.
 
 ## Behavior
 
+- Proactive and scheduled posts run only from 08:00 until midnight HKT. Direct
+  mentions, replies and questions remain available overnight. Ambient replies,
+  reminders, portal posts and multi-round games respect the quiet period.
+  Portal scheduling rejects overnight publication times; jobs delayed across
+  midnight wait until waking hours, subject to their existing expiry rules.
+  `/game` starts also wait overnight; direct questions and `/quiz` remain available.
+
 - Five baseline starters per Hong Kong day, with a persisted random plan between
-  10:00 and 23:00. The target rises to seven or ten as recent participation grows.
+  08:00 and midnight. The target rises to seven or ten as recent participation grows.
   Baseline spacing is two hours, moderate engagement 90 minutes, strong engagement
   60 minutes. All starter reservations, including requested posts, share a hard
   ten-per-day ceiling. Poll follow-ups and conversational replies are separate.

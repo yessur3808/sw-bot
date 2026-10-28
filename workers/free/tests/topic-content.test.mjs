@@ -1,9 +1,18 @@
-import {test} from 'node:test';
+import {test,beforeEach,afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {portalFixture} from './portal-fixture.mjs';
 import {topicContentImport} from '../scripts/topic-content-import.mjs';
 import {changePost,schedulePortalPosts,portalPostBody,claimPortalPost} from '../portal-content.mjs';
 const now=()=>Math.floor(Date.now()/1000);
+let realNow;
+beforeEach(()=>{
+ realNow=Date.now;
+ // Tomorrow at 12:00 HKT: deterministic waking hours, later than SQLite's
+ // wall clock used by the atomic event-expiry predicate.
+ const at=Math.floor((realNow()+28800000)/86400000)*86400000+86400000+14400000;
+ Date.now=()=>at;
+});
+afterEach(()=>{Date.now=realNow;});
 const entry={topic:'hongkong',kind:'text',text:'Confirmed event details and official source.',source:{title:'Organizer',type:'official',url:'https://example.org/event'},topics:['local events']};
 const identity={groupId:'-100123',environment:'test',adminId:42};
 test('curated topic drafts never publish to a fallback and resolve a later binding',async()=>{

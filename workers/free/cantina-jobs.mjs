@@ -12,6 +12,9 @@ export async function clubAllowed(env,job){
  if(data.welcomed)for(const user of data.welcomed)if(await out(env,user))return 'cancel';
  if(job.kind==='moderation')return 'send';
  if(await setting(env,'paused')==='1')return 'wait';
+ // Background jobs, including portal schedules and later game rounds, respect
+ // waking hours. Explicitly requested replies retain their existing exception.
+ if(!activeHours()&&(!data.requested||job.kind==='portal_post'))return 'wait';
  if(Number(await setting(env,'quiet_until')||0)>nowSeconds()&&!data.requested)return 'wait';
  if(['event_announcement','event_poll','event_reminder'].includes(job.kind)){
   const e=await env.DB.prepare('SELECT status,starts_at FROM club_events WHERE id=?').bind(data.event_id).first();if(!e||e.status==='cancelled')return 'cancel';

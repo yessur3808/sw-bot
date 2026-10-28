@@ -1,10 +1,19 @@
-import {test} from 'node:test';
+import {test,beforeEach,afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {portalFixture} from './portal-fixture.mjs';
 import {pollImport,pollRows} from '../scripts/poll-import.mjs';
 import {changePost,schedulePortalPosts,portalPostBody} from '../portal-content.mjs';
+
+let realNow;
+beforeEach(()=>{
+ realNow=Date.now;
+ // Keep publish tests in waking hours, after SQLite's real wall clock.
+ const at=Math.floor((realNow()+28800000)/86400000)*86400000+86400000+14400000;
+ Date.now=()=>at;
+});
+afterEach(()=>{Date.now=realNow;});
 
 const entries=JSON.parse(readFileSync(new URL('../data/star-wars-polls-2026-10-28.json',import.meta.url),'utf8'));
 const identity={groupId:'-100123',environment:'test',adminId:42};

@@ -546,7 +546,7 @@ Admins: /admin (web portal), /pending, /approve, /dismiss, /quiet 60, /settings,
 /optin \u2014 rejoin
 /forget \u2014 remove your stored participation/context and opt out
 
-Content requests from configured admins publish to the group. Operational command receipts go privately to the requesting configured admin; successful portal sign-in and sign-out are silent. I answer mentions and replies, occasionally join relevant conversations, and target five daily conversation starters, rising to seven or ten when recent participation is strong (10:00–23:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
+Content requests from configured admins publish to the group. Operational command receipts go privately to the requesting configured admin; successful portal sign-in and sign-out are silent. I answer mentions and replies, occasionally join relevant conversations, and target five daily conversation starters, rising to seven or ten when recent participation is strong (08:00–00:00 Hong Kong). Admins: /pause, /resume, /status, /post [question|poll|idea|movie|game].`;
 var PRIVACY = `I am an AI bot. Configured admins can message me privately. Content answers and polls are published to the configured group; operational command receipts go privately to the requesting configured admin. Successful portal sign-in and sign-out are silent. Private request text is retained in a separate private context, not copied into shared group history; my published answer can be used as group context. Direct questions, mentions, replies to me and occasional relevant group messages can be sent to Cloudflare Workers AI with recent bot-conversation context from this topic. That context expires after 24 hours. For briefings and hosting, up to 1,500 non-command group excerpts (600 characters each) are retained for 24 hours with message links; private messages are excluded. Reaction metadata helps find liked suggestions. /optout excludes your messages and removes stored excerpts. Approved rules/FAQs/decisions are retained until an admin removes them; proposals and other personal records can be removed with /forget. Event attendance and votes expire 30 days after the event; review records expire after 30 days; seasonal scores after 120 days. Moderation is heuristic and requires an explicit admin approval before deleting, muting or banning. Review reports requested by configured admins through /pending are private admin receipts. Selected messages and my replies are kept for 24 hours. Autonomous post records are kept for 30 days. Topic activity timestamps (without text or user IDs) expire after 24 hours. Saved era/spoiler preferences are opt-in and kept until /preferences off or /forget. Poll aggregate results expire after 7 days. Adaptive posting uses at most one text-free engagement signal per member per five minutes; signals expire after two days and /forget removes them. I store participation scores, your display name, quiz answers and delivery counters. Quiz answers expire after 7 days; delivery records after 7 days; scores last until /forget. /optout stops new participation processing; /forget deletes your records and opts you out. Data already delivered to Telegram or processed by the AI provider cannot be recalled by this command.`;
 function command(text, username) {
   const m = text.match(/^\/([a-z_]+)(?:@([a-z0-9_]+))?(?:\s+([\s\S]*))?$/i);
@@ -624,6 +624,9 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
   const deliveryUpdate=await env.DB.prepare('SELECT payload FROM updates WHERE id=?').bind(updateId).first();
   const payload = JSON.parse(deliveryUpdate?.payload || '{}');
   body = routing ? privateAdminDelivery(env, payload, method, body, routing) : groupDelivery(env, body);
+  const timedPost = !routing && ['sendMessage','sendPoll'].includes(method) &&
+    (club?.kind === 'portal_post' || automaticDelivery(payload,club,env.BOT_USERNAME,botID(env)));
+  if (timedPost && !activeHours()) { await defer(env,updateId); throw Error('delivery-deferred'); }
   if(['sendMessage','sendPoll'].includes(method)&&automaticDelivery(payload,club,env.BOT_USERNAME,botID(env))&&!await reserveAutomation(env,updateId))throw Error('automated-budget-exhausted');
   // Community polls are closed by maintenance, which captures final totals.
   // Telegram may not send an update when an automatic timer closes an empty poll.
@@ -634,6 +637,9 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
     if(decision!=='send')throw Error(decision==='wait'?'delivery-deferred':'delivery-invalidated');
   }
   if (routing) privateAdminDelivery(env, payload, method, body, routing);
+  // The clock may cross midnight during the final claim or database write.
+  // Record definite non-delivery so a claimed portal post can return to scheduled.
+  if (timedPost && !activeHours()) { await defer(env,updateId); throw Error('delivery-deferred'); }
   let response;
   try {
     response = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`, {
@@ -804,7 +810,7 @@ async function handle(env, u) {
     const policy=await postingPolicy(env);
     const starters=await starterCount(env);
     const budget=await budgetStatus(env);
-    await reply(env, u.update_id, m, `Bot ${paused?.value === "1" ? "paused" : "active"}. Proactive starters: ${starters}/${policy.target} today (baseline 5, ceiling 10). Automated sends reserved: ${budget.used}/${budget.cap} today across starters, follow-ups, briefings, game rounds, welcomes, ambient replies and reminders. Direct requests and moderation actions are excluded. Current spacing: ${policy.gap/60}min; wait for 10 quiet minutes in the topic. Engagement over 4h: ${policy.participants} participants, score ${policy.score}. Active hours: 10:00–23:00 Hong Kong. Busy topics, pauses and delivery failures can prevent the target; no catch-up bursts. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
+    await reply(env, u.update_id, m, `Bot ${paused?.value === "1" ? "paused" : "active"}. Proactive starters: ${starters}/${policy.target} today (baseline 5, ceiling 10). Automated sends reserved: ${budget.used}/${budget.cap} today across starters, follow-ups, briefings, game rounds, welcomes, ambient replies and reminders. Direct requests and moderation actions are excluded. Current spacing: ${policy.gap/60}min; wait for 10 quiet minutes in the topic. Engagement over 4h: ${policy.participants} participants, score ${policy.score}. Active hours: 08:00–00:00 Hong Kong. Busy topics, pauses and delivery failures can prevent the target; no catch-up bursts. Occasional replies: up to 6/day, 15min per-topic cooldown. AI reply cap: ${env.AI_DAILY_CAP}/day. Delivery failures needing inspection: ${errors?.n || 0}. Use /post to request a conversation starter; /pause stops autonomous posts and replies.`);
     return;
   }
   if (cmd?.name === "start" || cmd?.name === "help") {

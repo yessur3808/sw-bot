@@ -1,4 +1,4 @@
-import { nowSeconds } from './engagement.mjs';
+import { nowSeconds, activeHours } from './engagement.mjs';
 import { queueClub, CLUB_OFFSET, isAdmin } from './cantina-core.mjs';
 
 export function portalError(message,status=400){return Object.assign(new Error(message),{status});}
@@ -42,6 +42,7 @@ export async function changePost(env,user,id,revision,action,value={}){
  }else if(action==='publish'){
   const at=value.scheduled_at??nowSeconds();
   if(!Number.isSafeInteger(at)||at<nowSeconds()-60||at>nowSeconds()+90*86400)throw portalError('Choose now or a Hong Kong time within the next 90 days.');
+  if(!activeHours(Math.max(at,nowSeconds())))throw portalError('Schedule group posts between 08:00 and midnight Hong Kong time.');
   const current=await env.DB.prepare('SELECT * FROM admin_posts WHERE id=? AND revision=?').bind(id,revision).first();
   if(!current)throw portalError('This post changed. Refresh before trying again.',409);
   const thread=await publicationTopic(env,current,Math.max(at,nowSeconds()));

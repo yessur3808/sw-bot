@@ -173,3 +173,12 @@ published/test-cancelled posts and 211 knowledge records were retained. The four
 new topic bindings remain required before their posts can publish. Production
 uses a separate disabled Worker and empty paused database; test approvals and
 topic IDs are not transferred automatically.
+
+## Approved live-group rules
+
+`starwarshk-approved-rules-2026-10-28.json` records the eight rules approved by
+the owner for production group `-1002432071241`: respectful discussion, spoiler
+protection, topic use, spam/scam prevention, creator credits, reliable events,
+privacy and human-led moderation. They were imported as approved `rule` records
+with exact read-back verification (production IDs 1–8). This approval does not
+transfer any test conversations, preferences, posts or schedules.
