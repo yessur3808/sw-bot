@@ -1,16 +1,18 @@
 import {readFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 
-const categories=new Set(['lore_fact','movie_fact','tv_series_fact','legends_lore_fact','game_fact','comic_series_fact']);
+const categories=new Set(['lore_fact','movie_fact','tv_series_fact','legends_lore_fact','game_fact','comic_series_fact','movie_quote','tv_series_quote']);
 const validText=(s,max)=>typeof s==='string'&&s.trim().length>0&&s.length<=max;
 export function referenceRows(entries){
- if(!Array.isArray(entries)||!entries.length||entries.length>100)throw Error('Supply 1–100 reference entries.');
+ if(!Array.isArray(entries)||!entries.length||entries.length>1000)throw Error('Supply 1–1000 reference entries.');
  const seen=new Set();
  return entries.map(e=>{
-  if(!categories.has(e.category)||!validText(e.text,600)||!validText(e.source?.title,160)||!validText(e.source?.type,40)||
+  const isQuote=typeof e.category==='string'&&e.category.endsWith('_quote');
+  if(!categories.has(e.category)||!validText(isQuote?e.quote:e.text,600)||
+     (isQuote?(!validText(e.speaker,100)||e.text!==undefined):(e.quote!==undefined||e.speaker!==undefined))||!validText(e.source?.title,160)||!validText(e.source?.type,40)||
      !Array.isArray(e.topics)||!e.topics.length||e.topics.length>10||e.topics.some(t=>!validText(t,60)))throw Error('Invalid reference entry.');
   const title=`${e.source.title} · ${e.topics[0]}`.slice(0,100);
-  const body=[e.text,'',`Source: ${e.source.title}`,`Source type: ${e.source.type}`,`Category: ${e.category}`,`Topics: ${e.topics.join(', ')}`,'',
+  const body=[...(isQuote?[`Quote: ${e.quote}`,`Speaker: ${e.speaker}`]:[e.text]),'',`Source: ${e.source.title}`,`Source type: ${e.source.type}`,`Category: ${e.category}`,`Topics: ${e.topics.join(', ')}`,'',
    'User-supplied reference; not independently fact-checked. Includes interpretation and may contain plot spoilers.'].join('\n');
   if(body.length>1200)throw Error('Reference body exceeds the knowledge limit.');
   const key=JSON.stringify([title,body,e.category]);if(seen.has(key))throw Error('Duplicate reference entry.');seen.add(key);

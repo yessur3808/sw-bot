@@ -42,9 +42,14 @@ export async function clubQuota(env,user,kind,cap=3){
  SELECT ?,?,0,?,? WHERE (SELECT COUNT(*) FROM quota WHERE kind=? AND user_id=? AND created_at>?)<?`).bind(`${kind}:${crypto.randomUUID()}`,user,kind,n,kind,user,n-86400,cap).run();return r.meta.changes>0;
 }
 export async function memoryContext(env,query){
- const words=String(query||'').toLowerCase().match(/[\p{L}\p{N}]{3,}/gu)||[];
- const rows=(await env.DB.prepare("SELECT id,title,body,kind,source_message,source_thread FROM club_memory WHERE status='approved' ORDER BY created_at DESC LIMIT 100").all()).results;
- return rows.map(r=>({...r,score:words.filter(w=>(r.title+' '+r.body).toLowerCase().includes(w)).length})).filter(r=>r.kind==='rule'||r.score).sort((a,b)=>b.score-a.score).slice(0,5).map(r=>({title:r.title,text:r.body,source:messageLink(env,r.source_message,r.source_thread)}));
+ const words=(String(query||'').toLowerCase().match(/[\p{L}\p{N}]{3,}/gu)||[]).slice(0,80);
+ // Rank in D1 across all approved knowledge, then return only five records.
+ // A new import must not evict older relevant facts or rules from retrieval.
+ const rows=(await env.DB.prepare(`SELECT id,title,body,kind,source_message,source_thread,
+  (SELECT COUNT(*) FROM json_each(?) w WHERE instr(lower(m.title||' '||m.body),w.value)>0) score
+  FROM club_memory m WHERE status='approved' AND (kind='rule' OR score>0)
+  ORDER BY score DESC,created_at DESC,id DESC LIMIT 5`).bind(JSON.stringify(words)).all()).results;
+ return rows.map(r=>({title:r.title,text:r.body,source:messageLink(env,r.source_message,r.source_thread)}));
 }
 export async function observeGroup(env,m){
  if(m.chat.id!==Number(env.GROUP_ID)||m.from.is_bot||await out(env,m.from.id))return;

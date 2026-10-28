@@ -41,3 +41,33 @@ test('identity mismatch imports nothing; approval is explicit; malformed or dupl
   assert.throws(()=>referenceImport(entries,{...options,adminId:0}),/admin/);
  }finally{sqlite.close();}
 });
+
+const quotes=JSON.parse(readFileSync(new URL('../data/star-wars-quotes-2026-10-28.json',import.meta.url),'utf8'));
+test('126 quotes preserve wording, attribution and topics alongside all 85 previous references',async()=>{
+ const {sqlite,env}=portalFixture();try{
+  for(const dataset of [entries,quotes]){const r=referenceImport(dataset,options);sqlite.prepare(r.sql).run(...r.params);}
+  assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_memory').get().n,211);
+  const rows=sqlite.prepare("SELECT * FROM club_memory WHERE kind IN ('movie_quote','tv_series_quote') ORDER BY id").all();assert.equal(rows.length,126);
+  for(const [i,row] of rows.entries()){
+   const q=quotes[i];assert.ok(row.body.startsWith(`Quote: ${q.quote}\nSpeaker: ${q.speaker}\n`));
+   assert.ok(row.body.includes(`Source: ${q.source.title}\nSource type: ${q.source.type}\n`));assert.ok(row.body.includes(`Topics: ${q.topics.join(', ')}`));assert.equal(row.kind,q.category);
+  }
+  const repeat=referenceImport(quotes,options);assert.equal(sqlite.prepare(repeat.sql).run(...repeat.params).changes,0);
+  assert.ok((await memoryContext(env,'Ben Burtt')).some(r=>r.text.includes("Ben Burtt's sound design")));
+  assert.ok((await memoryContext(env,'General Dodonna')).some(r=>r.text.includes('Speaker: General Dodonna')));
+  assert.throws(()=>referenceRows([{...quotes[0],speaker:''}]),/Invalid/);
+  assert.throws(()=>referenceRows([{...quotes[0],text:'ambiguous'}]),/Invalid/);
+  for(const t of ['updates','club_jobs','admin_posts'])assert.equal(sqlite.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n,0);
+ }finally{sqlite.close();}
+});
+test('retrieval excludes removed and pending entries and keeps old rules beyond 100 records',async()=>{
+ const {sqlite,env}=portalFixture();try{
+  sqlite.exec("INSERT INTO club_memory(title,body,kind,proposed_by,status,created_at) VALUES ('Group rule','Keep spoilers hidden','rule',42,'approved',1)");
+  const r=referenceImport(quotes,options);sqlite.prepare(r.sql).run(...r.params);
+  assert.ok((await memoryContext(env,'')).some(r=>r.title==='Group rule'));
+  sqlite.exec("UPDATE club_memory SET status='removed' WHERE id=2; UPDATE club_memory SET status='pending' WHERE id=3");
+  assert.ok(!(await memoryContext(env,'General Dodonna')).some(r=>r.text.includes('Speaker: General Dodonna')));
+  assert.ok(!(await memoryContext(env,'space station')).some(r=>r.text.includes("That's no moon")));
+  assert.ok((await memoryContext(env,"' OR 1=1 --")).length<=5);
+ }finally{sqlite.close();}
+});

@@ -153,3 +153,14 @@ for(const reason of ['expired','removed approver'])test(`stale scheduler ${reaso
  env.DB.prepare=sql=>{const stmt=prepare(sql);if(sql.startsWith("SELECT * FROM admin_posts WHERE state='scheduled'")){const all=stmt.all;stmt.all=async()=>{const rows=await all();if(!changed){changed=true;await changePost(env,43,p.id,1,'edit',draft({text:'New future revision'}));await changePost(env,43,p.id,2,'approve');await changePost(env,43,p.id,2,'publish',{scheduled_at:now/1000+3600});}return rows;};}return stmt;};
  await schedulePortalPosts(env);const current=sqlite.prepare('SELECT * FROM admin_posts').get();assert.equal(current.revision,2);assert.equal(current.state,'scheduled');assert.equal(current.scheduled_at,now/1000+3600);
 });
+
+test('knowledge pagination reaches all records beyond 100 and rejects invalid offsets',async()=>{
+ await login();
+ const insert=sqlite.prepare("INSERT INTO club_memory(title,body,kind,proposed_by,status,created_at) VALUES (?,'Reference body','movie_quote',42,'approved',1)");
+ for(let i=1;i<=211;i++)insert.run('Entry '+i);
+ const pages=[];for(const offset of [0,100,200])pages.push(await api('/state?memory_offset='+offset));
+ assert.deepEqual(pages.map(p=>p.memory.length),[100,100,11]);assert.equal(new Set(pages.flatMap(p=>p.memory.map(r=>r.id))).size,211);
+ assert.deepEqual(pages[2].memory_page,{offset:200,limit:100,total:211});assert.equal(pages[2].memory.at(-1).title,'Entry 1');
+ for(const offset of ['-1','1.5','Infinity','1000001','abc'])assert.equal((await request('/api/state?memory_offset='+offset)).status,400);
+ cookie='';assert.equal((await request('/api/state?memory_offset=100')).status,401);
+});

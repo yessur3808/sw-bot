@@ -75,16 +75,19 @@ export async function portalFetch(request,env){
   const data=mutating?await input(request):null;
   if(path==='/admin/api/logout'&&mutating){await env.DB.prepare('DELETE FROM admin_sessions WHERE token_hash=?').bind(s.token_hash).run();return json({ok:true},200,{'Set-Cookie':cookie('',0)});}
   if(path==='/admin/api/state'&&request.method==='GET'){
+   const offset=Number(url.searchParams.get('memory_offset')||0);
+   if(!Number.isSafeInteger(offset)||offset<0||offset>1000000)throw portalError('Invalid knowledge page.');
    const results=await env.DB.batch([
     env.DB.prepare('SELECT * FROM admin_posts ORDER BY id DESC LIMIT 100'),env.DB.prepare('SELECT * FROM topic_map ORDER BY name'),
-    env.DB.prepare("SELECT * FROM club_memory WHERE status IN ('pending','approved') ORDER BY id DESC LIMIT 100"),
+    env.DB.prepare("SELECT * FROM club_memory WHERE status IN ('pending','approved') ORDER BY id DESC LIMIT 100 OFFSET ?").bind(offset),
     env.DB.prepare("SELECT * FROM club_events WHERE status<>'cancelled' AND (starts_at IS NULL OR starts_at>?) ORDER BY created_at DESC LIMIT 50").bind(nowSeconds()),
     env.DB.prepare("SELECT * FROM club_reviews WHERE state='pending' ORDER BY id DESC LIMIT 50"),
     env.DB.prepare('SELECT * FROM admin_actions ORDER BY id DESC LIMIT 50'),
-    env.DB.prepare("SELECT id,kind,state,run_at,message_id FROM club_jobs WHERE state IN ('pending','uncertain','failed') ORDER BY run_at LIMIT 50")]);
-   const [posts,topics,memory,events,reviews,actions,jobs]=results.map(r=>r.results);
+    env.DB.prepare("SELECT id,kind,state,run_at,message_id FROM club_jobs WHERE state IN ('pending','uncertain','failed') ORDER BY run_at LIMIT 50"),
+    env.DB.prepare("SELECT COUNT(*) total FROM club_memory WHERE status IN ('pending','approved')")]);
+   const [posts,topics,memory,events,reviews,actions,jobs,memoryCount]=results.map(r=>r.results);
    return json({posts:posts.map(p=>({...p,options:JSON.parse(p.options),link:messageLink(env,p.message_id,p.thread_id)})),topics,memory:memory.map(m=>({...m,link:messageLink(env,m.source_message,m.source_thread)})),events,reviews:reviews.map(r=>({...r,link:messageLink(env,r.message_id,r.thread_id)})),actions,jobs,
-    environment:env.DEPLOYMENT_ENV||'test',group_id:env.GROUP_ID,paused:await setting(env,'paused')==='1',quiet_until:Number(await setting(env,'quiet_until')||0),starter_mode:await setting(env,'portal_starter_approval')==='1'?'review':'automatic',budget:await budgetStatus(env),readiness:JSON.parse(await setting(env,'launch_readiness')||'null')});
+    memory_page:{offset,limit:100,total:memoryCount[0].total},environment:env.DEPLOYMENT_ENV||'test',group_id:env.GROUP_ID,paused:await setting(env,'paused')==='1',quiet_until:Number(await setting(env,'quiet_until')||0),starter_mode:await setting(env,'portal_starter_approval')==='1'?'review':'automatic',budget:await budgetStatus(env),readiness:JSON.parse(await setting(env,'launch_readiness')||'null')});
   }
   if(path==='/admin/api/posts'&&mutating){await limit(env,'posts:'+s.user_id,30,3600);return json({post:await createPost(env,s.user_id,data)},201);}
   const postPath=path.match(/^\/admin\/api\/posts\/(\d+)\/(edit|approve|publish|cancel)$/);
