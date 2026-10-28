@@ -164,3 +164,12 @@ test('knowledge pagination reaches all records beyond 100 and rejects invalid of
  for(const offset of ['-1','1.5','Infinity','1000001','abc'])assert.equal((await request('/api/state?memory_offset='+offset)).status,400);
  cookie='';assert.equal((await request('/api/state?memory_offset=100')).status,401);
 });
+
+test('post pagination filters the full library and counts drafts across every page',async()=>{
+ await login();const insert=sqlite.prepare("INSERT INTO admin_posts(kind,text,options,state,created_by,created_at,updated_at) VALUES ('poll',?,'[\"A\",\"B\"]',?,42,1,1)");
+ for(let i=1;i<=128;i++)insert.run('Imported poll '+i,'draft');for(let i=1;i<=5;i++)insert.run('Published '+i,'published');
+ const first=await api('/state'),second=await api('/state?post_offset=100');assert.equal(first.posts.length,100);assert.equal(second.posts.length,33);assert.equal(new Set([...first.posts,...second.posts].map(p=>p.id)).size,133);assert.equal(first.post_counts.draft,128);
+ const drafts=await api('/state?post_state=draft&post_offset=100');assert.equal(drafts.posts.length,28);assert.equal(drafts.post_page.total,128);assert.ok(drafts.posts.every(p=>p.state==='draft'));
+ assert.equal((await api('/state?post_state=published')).posts.length,5);
+ for(const q of ['post_offset=-1','post_offset=abc','post_offset=1.5','post_state=unknown'])assert.equal((await request('/api/state?'+q)).status,400);
+});

@@ -1,0 +1,2319 @@
+[
+  {
+    "category": "character_poll",
+    "options": [
+      "Luke Skywalker",
+      "Leia Organa",
+      "Han Solo",
+      "Chewbacca"
+    ],
+    "question": "Which original trilogy hero would you most want on your crew?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "original trilogy",
+      "heroes",
+      "crew picks"
+    ]
+  },
+  {
+    "category": "character_poll",
+    "options": [
+      "Obi-Wan Kenobi",
+      "Yoda",
+      "Mace Windu",
+      "Qui-Gon Jinn"
+    ],
+    "question": "Which Jedi Master would be the best mentor?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "jedi",
+      "mentors",
+      "training"
+    ]
+  },
+  {
+    "category": "character_poll",
+    "options": [
+      "Ahsoka Tano",
+      "Sabine Wren",
+      "Hera Syndulla",
+      "Bo-Katan Kryze"
+    ],
+    "question": "Which animated-series hero deserves more spotlight?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "animation",
+      "heroes",
+      "spotlight"
+    ]
+  },
+  {
+    "category": "villain_poll",
+    "options": [
+      "Darth Vader",
+      "Darth Maul",
+      "Count Dooku",
+      "Emperor Palpatine"
+    ],
+    "question": "Which Sith villain has the strongest screen presence?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "sith",
+      "villains",
+      "screen presence"
+    ]
+  },
+  {
+    "category": "villain_poll",
+    "options": [
+      "Grand Admiral Thrawn",
+      "Moff Gideon",
+      "Director Krennic",
+      "Grand Moff Tarkin"
+    ],
+    "question": "Which Imperial strategist is the most intimidating?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "empire",
+      "villains",
+      "strategy"
+    ]
+  },
+  {
+    "category": "droid_poll",
+    "options": [
+      "R2-D2",
+      "Chopper",
+      "K-2SO",
+      "BD-1"
+    ],
+    "question": "Which droid would be the most useful on a dangerous mission?",
+    "source": {
+      "type": "movie + series + game"
+    },
+    "topics": [
+      "droids",
+      "missions",
+      "companions"
+    ]
+  },
+  {
+    "category": "droid_poll",
+    "options": [
+      "C-3PO",
+      "K-2SO",
+      "Chopper",
+      "L3-37"
+    ],
+    "question": "Which droid has the funniest personality?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "droids",
+      "humor",
+      "personality"
+    ]
+  },
+  {
+    "category": "ship_poll",
+    "options": [
+      "Millennium Falcon",
+      "Ghost",
+      "Razor Crest",
+      "Ebon Hawk"
+    ],
+    "question": "Which ship would you choose as your home base?",
+    "source": {
+      "type": "movie + series + game"
+    },
+    "topics": [
+      "ships",
+      "crew life",
+      "home base"
+    ]
+  },
+  {
+    "category": "ship_poll",
+    "options": [
+      "X-wing",
+      "A-wing",
+      "Naboo N-1 Starfighter",
+      "Jedi Starfighter"
+    ],
+    "question": "Which starfighter would you want to pilot?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "starfighters",
+      "pilots",
+      "ships"
+    ]
+  },
+  {
+    "category": "ship_poll",
+    "options": [
+      "TIE Fighter",
+      "TIE Interceptor",
+      "TIE Defender",
+      "TIE Silencer"
+    ],
+    "question": "Which TIE design looks the coolest?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "empire",
+      "first order",
+      "ships"
+    ]
+  },
+  {
+    "category": "planet_poll",
+    "options": [
+      "Naboo",
+      "Alderaan",
+      "Coruscant",
+      "Chandrila"
+    ],
+    "question": "Which elegant core-world location would you most want to visit?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "planets",
+      "travel",
+      "core worlds"
+    ]
+  },
+  {
+    "category": "planet_poll",
+    "options": [
+      "Tatooine",
+      "Jakku",
+      "Jedha",
+      "Pasaana"
+    ],
+    "question": "Which desert world has the best story potential?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "planets",
+      "desert worlds",
+      "story setting"
+    ]
+  },
+  {
+    "category": "planet_poll",
+    "options": [
+      "Hoth",
+      "Ilum",
+      "Starkiller Base",
+      "Vandor"
+    ],
+    "question": "Which icy setting is the most memorable?",
+    "source": {
+      "type": "movie + game"
+    },
+    "topics": [
+      "planets",
+      "icy worlds",
+      "locations"
+    ]
+  },
+  {
+    "category": "planet_poll",
+    "options": [
+      "Dagobah",
+      "Ahch-To",
+      "Tython",
+      "Mortis"
+    ],
+    "question": "Which Force-connected location feels the most mystical?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "force",
+      "mystical locations",
+      "planets"
+    ]
+  },
+  {
+    "category": "planet_poll",
+    "options": [
+      "Kashyyyk",
+      "Endor",
+      "Yavin 4",
+      "Lothal"
+    ],
+    "question": "Which nature-filled world would make the best sanctuary?",
+    "source": {
+      "type": "movie + series + game"
+    },
+    "topics": [
+      "planets",
+      "nature",
+      "sanctuary"
+    ]
+  },
+  {
+    "category": "lightsaber_poll",
+    "options": [
+      "Blue",
+      "Green",
+      "Purple",
+      "Yellow"
+    ],
+    "question": "Which lightsaber color would you choose?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "lightsabers",
+      "jedi",
+      "personal choice"
+    ]
+  },
+  {
+    "category": "lightsaber_poll",
+    "options": [
+      "Single blade",
+      "Double-bladed",
+      "Crossguard",
+      "Dual wield"
+    ],
+    "question": "Which lightsaber setup has the best style?",
+    "source": {
+      "type": "movie + series + game"
+    },
+    "topics": [
+      "lightsabers",
+      "combat",
+      "style"
+    ]
+  },
+  {
+    "category": "lightsaber_poll",
+    "options": [
+      "Obi-Wan vs Anakin",
+      "Luke vs Vader on Cloud City",
+      "Maul vs Qui-Gon and Obi-Wan",
+      "Rey and Kylo vs Praetorian Guards"
+    ],
+    "question": "Which lightsaber duel is the most rewatchable?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "duels",
+      "lightsabers",
+      "rewatch"
+    ]
+  },
+  {
+    "category": "lightsaber_poll",
+    "options": [
+      "Darksaber",
+      "Anakin's lightsaber",
+      "Luke's green lightsaber",
+      "Maul's double-bladed saber"
+    ],
+    "question": "Which iconic saber would you display?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "lightsabers",
+      "props",
+      "collectibles"
+    ]
+  },
+  {
+    "category": "force_poll",
+    "options": [
+      "Force push",
+      "Mind trick",
+      "Force jump",
+      "Force healing"
+    ],
+    "question": "Which Force ability would be most useful in daily life?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "force",
+      "abilities",
+      "daily life"
+    ]
+  },
+  {
+    "category": "force_poll",
+    "options": [
+      "Force lightning",
+      "Force choke",
+      "Force vision",
+      "Battle meditation"
+    ],
+    "question": "Which dark or rare Force power is the most dramatic?",
+    "source": {
+      "type": "movie + lore"
+    },
+    "topics": [
+      "force powers",
+      "dark side",
+      "lore"
+    ]
+  },
+  {
+    "category": "faction_poll",
+    "options": [
+      "Rebel Alliance",
+      "Resistance",
+      "Partisans",
+      "New Republic"
+    ],
+    "question": "Which anti-Imperial faction would you join?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "rebellion",
+      "factions",
+      "resistance"
+    ]
+  },
+  {
+    "category": "faction_poll",
+    "options": [
+      "Galactic Empire",
+      "First Order",
+      "Separatists",
+      "Sith Eternal"
+    ],
+    "question": "Which villain faction has the strongest aesthetic?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "villains",
+      "factions",
+      "design"
+    ]
+  },
+  {
+    "category": "faction_poll",
+    "options": [
+      "Death Watch",
+      "Children of the Watch",
+      "Nite Owls",
+      "Clan Wren"
+    ],
+    "question": "Which Mandalorian group has the most interesting culture?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "mandalorians",
+      "clans",
+      "culture"
+    ]
+  },
+  {
+    "category": "mandalorian_poll",
+    "options": [
+      "Din Djarin",
+      "Bo-Katan Kryze",
+      "Sabine Wren",
+      "Pre Vizsla"
+    ],
+    "question": "Which Mandalorian character has the best armor design?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "mandalorians",
+      "armor",
+      "design"
+    ]
+  },
+  {
+    "category": "mandalorian_poll",
+    "options": [
+      "Beskar armor",
+      "Jetpack",
+      "Whistling birds",
+      "Grappling line"
+    ],
+    "question": "Which Mandalorian gear item would you want most?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "mandalorians",
+      "gear",
+      "beskar"
+    ]
+  },
+  {
+    "category": "clone_poll",
+    "options": [
+      "Captain Rex",
+      "Commander Cody",
+      "Fives",
+      "Echo"
+    ],
+    "question": "Which clone trooper has the best character arc?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "clones",
+      "clone wars",
+      "character arcs"
+    ]
+  },
+  {
+    "category": "clone_poll",
+    "options": [
+      "501st Legion",
+      "212th Attack Battalion",
+      "104th Wolfpack",
+      "Clone Force 99"
+    ],
+    "question": "Which clone unit would you follow into battle?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "clones",
+      "units",
+      "battle"
+    ]
+  },
+  {
+    "category": "clone_poll",
+    "options": [
+      "Hunter",
+      "Wrecker",
+      "Tech",
+      "Crosshair"
+    ],
+    "question": "Which Bad Batch member is your favorite?",
+    "source": {
+      "title": "Star Wars: The Bad Batch",
+      "type": "series"
+    },
+    "topics": [
+      "bad batch",
+      "clone force 99",
+      "characters"
+    ]
+  },
+  {
+    "category": "clone_poll",
+    "options": [
+      "Omega",
+      "Echo",
+      "Rex",
+      "Gregor"
+    ],
+    "question": "Which clone-era survivor deserves more stories?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "clones",
+      "survivors",
+      "story ideas"
+    ]
+  },
+  {
+    "category": "watch_party_poll",
+    "options": [
+      "The Phantom Menace",
+      "Attack of the Clones",
+      "Revenge of the Sith",
+      "The Clone Wars movie"
+    ],
+    "question": "Which prequel-era title should we watch next?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "watch party",
+      "prequels",
+      "movies"
+    ]
+  },
+  {
+    "category": "watch_party_poll",
+    "options": [
+      "A New Hope",
+      "The Empire Strikes Back",
+      "Return of the Jedi",
+      "Rogue One"
+    ],
+    "question": "Which rebellion-era movie should anchor the next watch party?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "watch party",
+      "original trilogy",
+      "rogue one"
+    ]
+  },
+  {
+    "category": "watch_party_poll",
+    "options": [
+      "The Force Awakens",
+      "The Last Jedi",
+      "The Rise of Skywalker",
+      "Resistance episodes"
+    ],
+    "question": "Which sequel-era pick should we revisit?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "watch party",
+      "sequels",
+      "resistance"
+    ]
+  },
+  {
+    "category": "watch_party_poll",
+    "options": [
+      "Siege of Mandalore",
+      "Umbara arc",
+      "Mortis arc",
+      "Ahsoka trial arc"
+    ],
+    "question": "Which Clone Wars arc should we binge first?",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series"
+    },
+    "topics": [
+      "clone wars",
+      "watch party",
+      "arcs"
+    ]
+  },
+  {
+    "category": "watch_party_poll",
+    "options": [
+      "Twin Suns",
+      "Twilight of the Apprentice",
+      "A World Between Worlds",
+      "Family Reunion and Farewell"
+    ],
+    "question": "Which Rebels episode or finale deserves a group rewatch?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "topics": [
+      "rebels",
+      "watch party",
+      "episodes"
+    ]
+  },
+  {
+    "category": "series_poll",
+    "options": [
+      "Andor",
+      "The Mandalorian",
+      "Ahsoka",
+      "Obi-Wan Kenobi"
+    ],
+    "question": "Which live-action series has the strongest overall tone?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "live action",
+      "series",
+      "tone"
+    ]
+  },
+  {
+    "category": "series_poll",
+    "options": [
+      "The Clone Wars",
+      "Rebels",
+      "The Bad Batch",
+      "Tales of the Jedi"
+    ],
+    "question": "Which animated series is the best starting point for new fans?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "animation",
+      "series",
+      "new fans"
+    ]
+  },
+  {
+    "category": "series_poll",
+    "options": [
+      "The Mandalorian Season 1",
+      "The Mandalorian Season 2",
+      "The Mandalorian Season 3",
+      "The Book of Boba Fett crossover episodes"
+    ],
+    "question": "Which Mandalorian-era season or stretch is your favorite?",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series"
+    },
+    "topics": [
+      "the mandalorian",
+      "new republic",
+      "series"
+    ]
+  },
+  {
+    "category": "andor_poll",
+    "options": [
+      "Aldhani heist",
+      "Narkina 5 prison arc",
+      "Ferrix finale",
+      "Mon Mothma politics"
+    ],
+    "question": "Which Andor storyline is the most gripping?",
+    "source": {
+      "title": "Andor",
+      "type": "series"
+    },
+    "topics": [
+      "andor",
+      "rebellion",
+      "story arcs"
+    ]
+  },
+  {
+    "category": "andor_poll",
+    "options": [
+      "Cassian Andor",
+      "Luthen Rael",
+      "Mon Mothma",
+      "Maarva Andor"
+    ],
+    "question": "Which Andor character gives the most powerful performance?",
+    "source": {
+      "title": "Andor",
+      "type": "series"
+    },
+    "topics": [
+      "andor",
+      "characters",
+      "performances"
+    ]
+  },
+  {
+    "category": "rebels_poll",
+    "options": [
+      "Ezra Bridger",
+      "Kanan Jarrus",
+      "Hera Syndulla",
+      "Sabine Wren"
+    ],
+    "question": "Which Ghost crew member has the best development?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "topics": [
+      "rebels",
+      "ghost crew",
+      "character development"
+    ]
+  },
+  {
+    "category": "rebels_poll",
+    "options": [
+      "Chopper",
+      "Zeb Orrelios",
+      "Agent Kallus",
+      "AP-5"
+    ],
+    "question": "Which Rebels supporting character deserves more love?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "topics": [
+      "rebels",
+      "supporting characters",
+      "community"
+    ]
+  },
+  {
+    "category": "ahsoka_poll",
+    "options": [
+      "Ahsoka Tano",
+      "Sabine Wren",
+      "Baylan Skoll",
+      "Shin Hati"
+    ],
+    "question": "Which Ahsoka character would you most like to follow in a spin-off?",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series"
+    },
+    "topics": [
+      "ahsoka",
+      "spin-off",
+      "characters"
+    ]
+  },
+  {
+    "category": "ahsoka_poll",
+    "options": [
+      "Peridea",
+      "Seatos",
+      "Lothal",
+      "Home One"
+    ],
+    "question": "Which Ahsoka location should future stories explore more?",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series"
+    },
+    "topics": [
+      "ahsoka",
+      "locations",
+      "future stories"
+    ]
+  },
+  {
+    "category": "bounty_hunter_poll",
+    "options": [
+      "Boba Fett",
+      "Cad Bane",
+      "Fennec Shand",
+      "Bossk"
+    ],
+    "question": "Which bounty hunter is the most dangerous?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "bounty hunters",
+      "underworld",
+      "danger"
+    ]
+  },
+  {
+    "category": "bounty_hunter_poll",
+    "options": [
+      "Din Djarin",
+      "Boba Fett",
+      "Jango Fett",
+      "Cad Bane"
+    ],
+    "question": "Which bounty hunter has the best reputation?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "bounty hunters",
+      "reputation",
+      "underworld"
+    ]
+  },
+  {
+    "category": "underworld_poll",
+    "options": [
+      "Hutt Clan",
+      "Pyke Syndicate",
+      "Crimson Dawn",
+      "Black Sun"
+    ],
+    "question": "Which crime syndicate would make the best main antagonist?",
+    "source": {
+      "type": "movie + series + lore"
+    },
+    "topics": [
+      "crime syndicates",
+      "underworld",
+      "villains"
+    ]
+  },
+  {
+    "category": "underworld_poll",
+    "options": [
+      "Jabba's Palace",
+      "Mos Eisley Cantina",
+      "Canto Bight",
+      "Dryden Vos's yacht"
+    ],
+    "question": "Which underworld location has the strongest atmosphere?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "underworld",
+      "locations",
+      "atmosphere"
+    ]
+  },
+  {
+    "category": "battle_poll",
+    "options": [
+      "Battle of Yavin",
+      "Battle of Hoth",
+      "Battle of Endor",
+      "Battle of Scarif"
+    ],
+    "question": "Which classic battle is the most iconic?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "battles",
+      "movies",
+      "iconic moments"
+    ]
+  },
+  {
+    "category": "battle_poll",
+    "options": [
+      "Battle of Geonosis",
+      "Battle of Coruscant",
+      "Battle of Kashyyyk",
+      "Battle of Utapau"
+    ],
+    "question": "Which prequel-era battle has the best scale?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "prequels",
+      "battles",
+      "clone wars"
+    ]
+  },
+  {
+    "category": "battle_poll",
+    "options": [
+      "Siege of Mandalore",
+      "Umbara campaign",
+      "Ryloth liberation",
+      "Christophsis battle"
+    ],
+    "question": "Which Clone Wars conflict should be adapted into a cinematic event?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "clone wars",
+      "battles",
+      "adaptations"
+    ]
+  },
+  {
+    "category": "battle_poll",
+    "options": [
+      "Starkiller Base assault",
+      "Crait escape",
+      "Exegol fleet battle",
+      "Takodana attack"
+    ],
+    "question": "Which sequel-era battle has the most memorable visuals?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "sequels",
+      "battles",
+      "visuals"
+    ]
+  },
+  {
+    "category": "creature_poll",
+    "options": [
+      "Rancor",
+      "Sarlacc",
+      "Krayt dragon",
+      "Wampa"
+    ],
+    "question": "Which Star Wars creature is the most terrifying?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "creatures",
+      "monsters",
+      "tatooine"
+    ]
+  },
+  {
+    "category": "creature_poll",
+    "options": [
+      "Bantha",
+      "Tauntaun",
+      "Loth-cat",
+      "Porg"
+    ],
+    "question": "Which creature would make the best companion?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "creatures",
+      "companions",
+      "cute"
+    ]
+  },
+  {
+    "category": "creature_poll",
+    "options": [
+      "Purrgil",
+      "Loth-wolf",
+      "Convoree",
+      "Mythosaur"
+    ],
+    "question": "Which mystical creature should be explored more?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "creatures",
+      "mystical lore",
+      "series"
+    ]
+  },
+  {
+    "category": "music_poll",
+    "options": [
+      "Duel of the Fates",
+      "The Imperial March",
+      "Binary Sunset",
+      "Battle of the Heroes"
+    ],
+    "question": "Which Star Wars music theme hits the hardest?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "music",
+      "soundtrack",
+      "themes"
+    ]
+  },
+  {
+    "category": "music_poll",
+    "options": [
+      "Cantina Band",
+      "Jabba's Palace band",
+      "Yub Nub",
+      "Jedi Rocks"
+    ],
+    "question": "Which in-universe music moment is your favorite?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "music",
+      "cantina",
+      "in-universe"
+    ]
+  },
+  {
+    "category": "quote_poll",
+    "options": [
+      "May the Force be with you",
+      "I am your father",
+      "This is the way",
+      "I have spoken"
+    ],
+    "question": "Which quote is the most instantly recognizable?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "quotes",
+      "iconic lines",
+      "community"
+    ]
+  },
+  {
+    "category": "quote_poll",
+    "options": [
+      "Do or do not",
+      "Never tell me the odds",
+      "It's a trap",
+      "Hello there"
+    ],
+    "question": "Which quote would make the best daily motto?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "quotes",
+      "mottos",
+      "favorites"
+    ]
+  },
+  {
+    "category": "jedi_poll",
+    "options": [
+      "Luke's Jedi academy",
+      "Prequel-era Jedi Temple",
+      "High Republic Jedi Order",
+      "Rey's future Jedi path"
+    ],
+    "question": "Which Jedi era would you most want to train in?",
+    "source": {
+      "type": "movie + lore"
+    },
+    "topics": [
+      "jedi",
+      "training",
+      "eras"
+    ]
+  },
+  {
+    "category": "jedi_poll",
+    "options": [
+      "Anakin Skywalker",
+      "Obi-Wan Kenobi",
+      "Ahsoka Tano",
+      "Mace Windu"
+    ],
+    "question": "Which Jedi was the best battlefield commander?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "jedi",
+      "clone wars",
+      "leadership"
+    ]
+  },
+  {
+    "category": "sith_poll",
+    "options": [
+      "Darth Bane",
+      "Darth Plagueis",
+      "Darth Sidious",
+      "Darth Vader"
+    ],
+    "question": "Which Sith Lord has the most interesting lore?",
+    "source": {
+      "type": "movie + lore"
+    },
+    "topics": [
+      "sith",
+      "lore",
+      "dark side"
+    ]
+  },
+  {
+    "category": "sith_poll",
+    "options": [
+      "Maul's survival",
+      "Dooku leaving the Jedi",
+      "Anakin's fall",
+      "Ben Solo's redemption"
+    ],
+    "question": "Which dark-side storyline is the most tragic?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "dark side",
+      "tragedy",
+      "character arcs"
+    ]
+  },
+  {
+    "category": "costume_poll",
+    "options": [
+      "Darth Vader armor",
+      "Boba Fett armor",
+      "Padme's royal gowns",
+      "Leia's Hoth outfit"
+    ],
+    "question": "Which costume design is the most iconic?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "costumes",
+      "design",
+      "iconic looks"
+    ]
+  },
+  {
+    "category": "costume_poll",
+    "options": [
+      "Jedi robes",
+      "Sith robes",
+      "Imperial uniforms",
+      "Mandalorian armor"
+    ],
+    "question": "Which outfit style would you wear for a convention?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "cosplay",
+      "costumes",
+      "community"
+    ]
+  },
+  {
+    "category": "weapon_poll",
+    "options": [
+      "Bowcaster",
+      "DL-44 blaster",
+      "EE-3 carbine",
+      "Amban phase-pulse rifle"
+    ],
+    "question": "Which non-lightsaber weapon is the coolest?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "weapons",
+      "blasters",
+      "gear"
+    ]
+  },
+  {
+    "category": "weapon_poll",
+    "options": [
+      "Thermal detonator",
+      "Vibroblade",
+      "Electrostaff",
+      "Gungan energy shield"
+    ],
+    "question": "Which unusual weapon or tool would you bring into a fight?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "weapons",
+      "combat",
+      "tools"
+    ]
+  },
+  {
+    "category": "game_poll",
+    "options": [
+      "Knights of the Old Republic",
+      "Jedi: Survivor",
+      "Battlefront II",
+      "Squadrons"
+    ],
+    "question": "Which Star Wars game would you recommend to a new player first?",
+    "source": {
+      "type": "game"
+    },
+    "topics": [
+      "games",
+      "recommendations",
+      "new players"
+    ]
+  },
+  {
+    "category": "game_poll",
+    "options": [
+      "Cal Kestis",
+      "Revan",
+      "Starkiller",
+      "Iden Versio"
+    ],
+    "question": "Which game protagonist has the best story?",
+    "source": {
+      "type": "game"
+    },
+    "topics": [
+      "games",
+      "protagonists",
+      "story"
+    ]
+  },
+  {
+    "category": "game_poll",
+    "options": [
+      "Tanalorr",
+      "Bogano",
+      "Dathomir",
+      "Koboh"
+    ],
+    "question": "Which Jedi game location would you like to explore most?",
+    "source": {
+      "type": "game"
+    },
+    "topics": [
+      "games",
+      "locations",
+      "exploration"
+    ]
+  },
+  {
+    "category": "game_poll",
+    "options": [
+      "Jedi Knight",
+      "KOTOR",
+      "Republic Commando",
+      "Empire at War"
+    ],
+    "question": "Which classic Star Wars game deserves a modern remake?",
+    "source": {
+      "type": "game"
+    },
+    "topics": [
+      "games",
+      "remakes",
+      "classics"
+    ]
+  },
+  {
+    "category": "legends_poll",
+    "options": [
+      "Mara Jade",
+      "Kyle Katarn",
+      "Dash Rendar",
+      "Corran Horn"
+    ],
+    "question": "Which Legends character should return to canon?",
+    "source": {
+      "type": "legends"
+    },
+    "topics": [
+      "legends",
+      "canon",
+      "characters"
+    ]
+  },
+  {
+    "category": "legends_poll",
+    "options": [
+      "Heir to the Empire",
+      "Shadows of the Empire",
+      "New Jedi Order",
+      "Legacy comics"
+    ],
+    "question": "Which Legends storyline would you adapt for modern Star Wars?",
+    "source": {
+      "type": "legends"
+    },
+    "topics": [
+      "legends",
+      "adaptations",
+      "expanded universe"
+    ]
+  },
+  {
+    "category": "legends_poll",
+    "options": [
+      "Darth Revan",
+      "Darth Malak",
+      "Darth Nihilus",
+      "Darth Krayt"
+    ],
+    "question": "Which Legends Sith deserves the biggest spotlight?",
+    "source": {
+      "type": "legends"
+    },
+    "topics": [
+      "legends",
+      "sith",
+      "old republic"
+    ]
+  },
+  {
+    "category": "old_republic_poll",
+    "options": [
+      "Jedi Civil War",
+      "Mandalorian Wars",
+      "Sith Empire conflict",
+      "Rakatan Infinite Empire"
+    ],
+    "question": "Which Old Republic storyline would make the best series?",
+    "source": {
+      "type": "legends"
+    },
+    "topics": [
+      "old republic",
+      "legends",
+      "story ideas"
+    ]
+  },
+  {
+    "category": "old_republic_poll",
+    "options": [
+      "Revan",
+      "Bastila Shan",
+      "Canderous Ordo",
+      "HK-47"
+    ],
+    "question": "Which KOTOR companion or figure is your favorite?",
+    "source": {
+      "title": "Knights of the Old Republic",
+      "type": "game"
+    },
+    "topics": [
+      "kotor",
+      "old republic",
+      "characters"
+    ]
+  },
+  {
+    "category": "high_republic_poll",
+    "options": [
+      "Jedi frontier missions",
+      "Nihil conflicts",
+      "Starlight Beacon",
+      "Ancient hyperspace exploration"
+    ],
+    "question": "Which High Republic concept sounds most interesting?",
+    "source": {
+      "type": "books + comics"
+    },
+    "topics": [
+      "high republic",
+      "books",
+      "lore"
+    ]
+  },
+  {
+    "category": "future_content_poll",
+    "options": [
+      "More Jedi mystery",
+      "More underworld crime",
+      "More military rebellion",
+      "More political drama"
+    ],
+    "question": "What tone should future Star Wars stories lean into?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "future content",
+      "tone",
+      "story direction"
+    ]
+  },
+  {
+    "category": "future_content_poll",
+    "options": [
+      "Animated anthology",
+      "Live-action limited series",
+      "Feature film trilogy",
+      "Open-world game"
+    ],
+    "question": "What format should the next big Star Wars story use?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "future content",
+      "formats",
+      "media"
+    ]
+  },
+  {
+    "category": "future_content_poll",
+    "options": [
+      "Young Yoda story",
+      "Prime Luke story",
+      "Old Republic Jedi story",
+      "Post-sequel Rey story"
+    ],
+    "question": "Which Jedi-focused project would you watch first?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "future content",
+      "jedi",
+      "story ideas"
+    ]
+  },
+  {
+    "category": "future_content_poll",
+    "options": [
+      "Thrawn campaign",
+      "Mandalore rebuilding",
+      "New Jedi Order",
+      "Unknown Regions exploration"
+    ],
+    "question": "Which unresolved storyline should get priority?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "future content",
+      "unresolved stories",
+      "canon"
+    ]
+  },
+  {
+    "category": "timeline_poll",
+    "options": [
+      "Before the Sith rise",
+      "Old Republic",
+      "High Republic",
+      "After the sequel trilogy"
+    ],
+    "question": "Which timeline gap should Star Wars explore more?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "timeline",
+      "eras",
+      "future stories"
+    ]
+  },
+  {
+    "category": "timeline_poll",
+    "options": [
+      "Fall of the Jedi",
+      "Reign of the Empire",
+      "Age of Rebellion",
+      "Rise of the First Order"
+    ],
+    "question": "Which canon era has the richest storytelling?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "timeline",
+      "canon eras",
+      "storytelling"
+    ]
+  },
+  {
+    "category": "relationship_poll",
+    "options": [
+      "Han and Leia",
+      "Anakin and Padme",
+      "Kanan and Hera",
+      "Din and Grogu"
+    ],
+    "question": "Which Star Wars relationship is the emotional core of its story?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "relationships",
+      "emotional arcs",
+      "characters"
+    ]
+  },
+  {
+    "category": "relationship_poll",
+    "options": [
+      "Obi-Wan and Anakin",
+      "Ahsoka and Anakin",
+      "Luke and Vader",
+      "Rey and Kylo Ren"
+    ],
+    "question": "Which complicated Force-user relationship is the most compelling?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "force users",
+      "relationships",
+      "drama"
+    ]
+  },
+  {
+    "category": "mentor_poll",
+    "options": [
+      "Qui-Gon and Obi-Wan",
+      "Obi-Wan and Anakin",
+      "Anakin and Ahsoka",
+      "Kanan and Ezra"
+    ],
+    "question": "Which master-apprentice pairing is your favorite?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "jedi",
+      "mentorship",
+      "apprentices"
+    ]
+  },
+  {
+    "category": "mentor_poll",
+    "options": [
+      "Yoda",
+      "Obi-Wan Kenobi",
+      "Luke Skywalker",
+      "Ahsoka Tano"
+    ],
+    "question": "Which mentor gives the best wisdom?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "mentors",
+      "wisdom",
+      "jedi"
+    ]
+  },
+  {
+    "category": "alien_species_poll",
+    "options": [
+      "Wookiees",
+      "Twi'leks",
+      "Togruta",
+      "Chiss"
+    ],
+    "question": "Which alien species would you like to learn more about?",
+    "source": {
+      "type": "movie + series + lore"
+    },
+    "topics": [
+      "species",
+      "aliens",
+      "lore"
+    ]
+  },
+  {
+    "category": "alien_species_poll",
+    "options": [
+      "Mon Calamari",
+      "Kaminoans",
+      "Geonosians",
+      "Nightsisters"
+    ],
+    "question": "Which culture has the most fascinating worldbuilding?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "species",
+      "culture",
+      "worldbuilding"
+    ]
+  },
+  {
+    "category": "vehicle_poll",
+    "options": [
+      "AT-AT",
+      "AT-ST",
+      "AT-TE",
+      "Juggernaut"
+    ],
+    "question": "Which walker or ground vehicle has the best design?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "vehicles",
+      "walkers",
+      "design"
+    ]
+  },
+  {
+    "category": "vehicle_poll",
+    "options": [
+      "Speeder bike",
+      "Podracer",
+      "Landspeeder",
+      "BARC speeder"
+    ],
+    "question": "Which small vehicle would be the most fun to ride?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "vehicles",
+      "speeders",
+      "transport"
+    ]
+  },
+  {
+    "category": "podracing_poll",
+    "options": [
+      "Anakin Skywalker",
+      "Sebulba",
+      "Ben Quadinaros",
+      "Gasgano"
+    ],
+    "question": "Which podracer would you root for?",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "topics": [
+      "podracing",
+      "tatooine",
+      "prequels"
+    ]
+  },
+  {
+    "category": "location_poll",
+    "options": [
+      "Jedi Temple",
+      "Sith Temple",
+      "Maz Kanata's castle",
+      "Jabba's Palace"
+    ],
+    "question": "Which location would be the best setting for a mystery story?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "locations",
+      "mystery",
+      "story ideas"
+    ]
+  },
+  {
+    "category": "location_poll",
+    "options": [
+      "Cloud City",
+      "Niamos",
+      "Canto Bight",
+      "Naboo palace"
+    ],
+    "question": "Which glamorous location would you vacation in?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "locations",
+      "travel",
+      "vacation"
+    ]
+  },
+  {
+    "category": "rebel_poll",
+    "options": [
+      "Mon Mothma",
+      "Bail Organa",
+      "Saw Gerrera",
+      "Luthen Rael"
+    ],
+    "question": "Which early Rebellion leader is the most interesting?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "rebellion",
+      "leaders",
+      "politics"
+    ]
+  },
+  {
+    "category": "rebel_poll",
+    "options": [
+      "Jyn Erso",
+      "Cassian Andor",
+      "Bodhi Rook",
+      "Chirrut Imwe"
+    ],
+    "question": "Which Rogue One team member is your favorite?",
+    "source": {
+      "title": "Rogue One",
+      "type": "movie"
+    },
+    "topics": [
+      "rogue one",
+      "rebels",
+      "characters"
+    ]
+  },
+  {
+    "category": "imperial_poll",
+    "options": [
+      "Death Star",
+      "Executor",
+      "Starkiller Base",
+      "Supremacy"
+    ],
+    "question": "Which Imperial or First Order superweapon feels most threatening?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "empire",
+      "first order",
+      "superweapons"
+    ]
+  },
+  {
+    "category": "imperial_poll",
+    "options": [
+      "Stormtroopers",
+      "Death troopers",
+      "Scout troopers",
+      "Purge troopers"
+    ],
+    "question": "Which trooper design is the coolest?",
+    "source": {
+      "type": "movie + series + game"
+    },
+    "topics": [
+      "troopers",
+      "empire",
+      "design"
+    ]
+  },
+  {
+    "category": "resistance_poll",
+    "options": [
+      "Rey",
+      "Finn",
+      "Poe Dameron",
+      "Rose Tico"
+    ],
+    "question": "Which Resistance hero deserved more screen time?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "resistance",
+      "sequels",
+      "characters"
+    ]
+  },
+  {
+    "category": "resistance_poll",
+    "options": [
+      "General Leia",
+      "Admiral Holdo",
+      "Maz Kanata",
+      "Zorii Bliss"
+    ],
+    "question": "Which sequel-era ally should get a backstory project?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "sequels",
+      "backstory",
+      "allies"
+    ]
+  },
+  {
+    "category": "food_poll",
+    "options": [
+      "Blue milk",
+      "Green milk",
+      "Ronto wrap",
+      "Meiloorun fruit"
+    ],
+    "question": "Which Star Wars food or drink would you try first?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "food",
+      "worldbuilding",
+      "fun"
+    ]
+  },
+  {
+    "category": "cantina_poll",
+    "options": [
+      "Mos Eisley Cantina",
+      "Dex's Diner",
+      "Maz Kanata's castle",
+      "Canto Bight casino"
+    ],
+    "question": "Which social spot would be the most fun to hang out in?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "cantina",
+      "locations",
+      "community"
+    ]
+  },
+  {
+    "category": "collectible_poll",
+    "options": [
+      "Lightsaber hilt",
+      "Mandalorian helmet",
+      "Holocron",
+      "Sabacc deck"
+    ],
+    "question": "Which Star Wars collectible would you want on your shelf?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "collectibles",
+      "props",
+      "fan items"
+    ]
+  },
+  {
+    "category": "collectible_poll",
+    "options": [
+      "Jedi robes",
+      "Clone helmet",
+      "Sith holocron",
+      "Rebel pilot helmet"
+    ],
+    "question": "Which prop would make the best display centerpiece?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "collectibles",
+      "props",
+      "display"
+    ]
+  },
+  {
+    "category": "ranking_poll",
+    "options": [
+      "The Empire Strikes Back",
+      "Revenge of the Sith",
+      "Rogue One",
+      "A New Hope"
+    ],
+    "question": "Which movie would you rank highest?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "movies",
+      "rankings",
+      "favorites"
+    ]
+  },
+  {
+    "category": "ranking_poll",
+    "options": [
+      "The Clone Wars finale",
+      "Rebels finale",
+      "The Mandalorian Season 2 finale",
+      "Andor Season 1 finale"
+    ],
+    "question": "Which Star Wars finale hit the hardest?",
+    "source": {
+      "type": "series"
+    },
+    "topics": [
+      "series",
+      "finales",
+      "emotional moments"
+    ]
+  },
+  {
+    "category": "scene_poll",
+    "options": [
+      "Binary sunset",
+      "Vader hallway scene",
+      "Luke returns for Grogu",
+      "Order 66 montage"
+    ],
+    "question": "Which scene gives you chills every time?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "scenes",
+      "iconic moments",
+      "emotion"
+    ]
+  },
+  {
+    "category": "scene_poll",
+    "options": [
+      "Han frozen in carbonite",
+      "Ahsoka leaves the Jedi Order",
+      "Kanan's sacrifice",
+      "Maarva's speech"
+    ],
+    "question": "Which emotional moment is the most powerful?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "emotional moments",
+      "character arcs",
+      "drama"
+    ]
+  },
+  {
+    "category": "humor_poll",
+    "options": [
+      "Han Solo sarcasm",
+      "Obi-Wan sass",
+      "K-2SO deadpan",
+      "Chopper chaos"
+    ],
+    "question": "Which type of Star Wars humor is your favorite?",
+    "source": {
+      "type": "movie + series"
+    },
+    "topics": [
+      "humor",
+      "characters",
+      "tone"
+    ]
+  },
+  {
+    "category": "training_poll",
+    "options": [
+      "Jedi youngling",
+      "Mandalorian foundling",
+      "Rebel pilot trainee",
+      "Bounty hunter apprentice"
+    ],
+    "question": "Which Star Wars training path would you choose?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "training",
+      "roleplay",
+      "community"
+    ]
+  },
+  {
+    "category": "roleplay_poll",
+    "options": [
+      "Jedi Knight",
+      "Smuggler",
+      "Mandalorian",
+      "Rebel spy"
+    ],
+    "question": "What role would you play in the galaxy?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "roleplay",
+      "identity",
+      "community"
+    ]
+  },
+  {
+    "category": "roleplay_poll",
+    "options": [
+      "Senator",
+      "Pilot",
+      "Mechanic",
+      "Archivist"
+    ],
+    "question": "Which non-combat role sounds most fun?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "roleplay",
+      "jobs",
+      "galaxy life"
+    ]
+  },
+  {
+    "category": "debate_poll",
+    "options": [
+      "Jedi Code",
+      "Mandalorian Creed",
+      "Rebel ideals",
+      "Gray morality"
+    ],
+    "question": "Which philosophy makes the best debate topic?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "debate",
+      "philosophy",
+      "factions"
+    ]
+  },
+  {
+    "category": "debate_poll",
+    "options": [
+      "The Jedi failed Anakin",
+      "The Senate doomed the Republic",
+      "The Empire was inevitable",
+      "The Sith exploited fear best"
+    ],
+    "question": "Which hot take should we discuss next?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "debate",
+      "hot takes",
+      "prequels"
+    ]
+  },
+  {
+    "category": "fan_content_poll",
+    "options": [
+      "Character ranking",
+      "Lore deep dive",
+      "Meme thread",
+      "Watch guide"
+    ],
+    "question": "What kind of Star Wars post should we make next?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "fan content",
+      "community",
+      "posting"
+    ]
+  },
+  {
+    "category": "fan_content_poll",
+    "options": [
+      "Clone Wars timeline",
+      "Mandalorian clans",
+      "Sith lineage",
+      "Rebel cells"
+    ],
+    "question": "Which lore infographic would be most useful?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "fan content",
+      "infographics",
+      "lore"
+    ]
+  },
+  {
+    "category": "meme_poll",
+    "options": [
+      "Prequel memes",
+      "Clone Wars memes",
+      "Mandalorian memes",
+      "Original trilogy memes"
+    ],
+    "question": "Which meme category should get a themed day?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "memes",
+      "community",
+      "theme day"
+    ]
+  },
+  {
+    "category": "meme_poll",
+    "options": [
+      "Hello there",
+      "High ground",
+      "This is where the fun begins",
+      "A surprise to be sure"
+    ],
+    "question": "Which prequel meme quote is the most reusable?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "memes",
+      "prequels",
+      "quotes"
+    ]
+  },
+  {
+    "category": "book_poll",
+    "options": [
+      "Thrawn novels",
+      "High Republic books",
+      "Darth Bane trilogy",
+      "Alphabet Squadron"
+    ],
+    "question": "Which Star Wars book lane should newcomers try?",
+    "source": {
+      "type": "books"
+    },
+    "topics": [
+      "books",
+      "reading guide",
+      "recommendations"
+    ]
+  },
+  {
+    "category": "comic_poll",
+    "options": [
+      "Darth Vader comics",
+      "Doctor Aphra",
+      "High Republic comics",
+      "War of the Bounty Hunters"
+    ],
+    "question": "Which comic run sounds most worth reading?",
+    "source": {
+      "type": "comics"
+    },
+    "topics": [
+      "comics",
+      "reading",
+      "expanded canon"
+    ]
+  },
+  {
+    "category": "canon_poll",
+    "options": [
+      "Movies only",
+      "Movies and live-action shows",
+      "Movies and animated shows",
+      "Everything canon"
+    ],
+    "question": "How deep into canon do you usually go?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "canon",
+      "fandom",
+      "viewing habits"
+    ]
+  },
+  {
+    "category": "canon_poll",
+    "options": [
+      "Movies",
+      "Series",
+      "Games",
+      "Books and comics"
+    ],
+    "question": "Which medium adds the best lore?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "canon",
+      "lore",
+      "media"
+    ]
+  },
+  {
+    "category": "rewatch_poll",
+    "options": [
+      "Release order",
+      "Chronological order",
+      "Machete-style order",
+      "Character-focused arcs"
+    ],
+    "question": "What's the best way to rewatch Star Wars?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "rewatch",
+      "watch order",
+      "community"
+    ]
+  },
+  {
+    "category": "rewatch_poll",
+    "options": [
+      "Skywalker Saga only",
+      "Saga plus spin-off films",
+      "Full canon timeline",
+      "Only favorite arcs"
+    ],
+    "question": "How ambitious should our next rewatch be?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "rewatch",
+      "watch party",
+      "planning"
+    ]
+  },
+  {
+    "category": "finale_poll",
+    "options": [
+      "Return of the Jedi",
+      "Revenge of the Sith",
+      "The Rise of Skywalker",
+      "Rogue One"
+    ],
+    "question": "Which movie ending is the most memorable?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "movies",
+      "endings",
+      "finales"
+    ]
+  },
+  {
+    "category": "opening_poll",
+    "options": [
+      "A New Hope blockade runner",
+      "Revenge of the Sith space battle",
+      "The Force Awakens Jakku attack",
+      "Rogue One prologue"
+    ],
+    "question": "Which opening sequence pulls you in fastest?",
+    "source": {
+      "type": "movie"
+    },
+    "topics": [
+      "movies",
+      "openings",
+      "scenes"
+    ]
+  },
+  {
+    "category": "spinoff_poll",
+    "options": [
+      "Young Leia political thriller",
+      "Bail Organa rebellion series",
+      "Mace Windu survival story",
+      "Qui-Gon Jinn prequel"
+    ],
+    "question": "Which character spin-off would you greenlight?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "spin-offs",
+      "future content",
+      "characters"
+    ]
+  },
+  {
+    "category": "spinoff_poll",
+    "options": [
+      "Wookiee homeworld story",
+      "Chiss Ascendancy story",
+      "Nightsister survival story",
+      "Mon Cala naval story"
+    ],
+    "question": "Which species-focused spin-off sounds best?",
+    "source": {
+      "type": "community"
+    },
+    "topics": [
+      "spin-offs",
+      "species",
+      "worldbuilding"
+    ]
+  }
+]

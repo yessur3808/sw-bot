@@ -126,6 +126,7 @@ npx wrangler d1 execute sw-bot-test --remote --file migrations/0004_cantina.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0005_production.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0006_safe_recaps_games.sql
 npx wrangler d1 execute sw-bot-test --remote --file migrations/0007_admin_portal.sql
+npx wrangler d1 execute sw-bot-test --remote --file migrations/0008_imported_polls.sql
 npx wrangler deploy
 ```
 

@@ -59,3 +59,42 @@ retrieval found both an older Ben Burtt reference and the new General Dodonna
 quote. Test release `knowledge-quotes-2026-10-28`, deployment
 `253cd2927e504dd5b5ce44c659a6a0b0`, reports healthy/configured. Production
 knowledge remains empty, paused and unassigned.
+
+## Poll batch
+
+`star-wars-polls-2026-10-28.json` preserves the owner's `pasted-text-2.txt`
+attachment byte-for-byte: 128 unique community polls. These belong in
+**Posts & schedule** as native poll drafts, separate from the 211 reference
+knowledge entries. Import never approves, schedules or publishes them.
+
+Apply `migrations/0008_imported_polls.sql` once before import. It adds an immutable
+import fingerprint and original metadata to `admin_posts`; it does not alter
+existing post content or states. Generate the parameterized import request:
+
+```sh
+node workers/free/scripts/poll-import.mjs \
+  workers/free/data/star-wars-polls-2026-10-28.json \
+  -1004441702993 test 1678078373 > /tmp/sw-polls-query.json
+```
+
+The identity guard prevents importing into a mismatched group/environment.
+Fingerprints make repeat imports safe even after an admin edits, approves or
+cancels a draft. Original question, options, category, source and topic tags are
+retained in `import_metadata`; portal cards display the original dataset details.
+Edits affect the draft, not the retained original metadata.
+
+Game polls route to Gaming; film-specific and watch-party/rewatch/music/scene
+polls to Movies. Series and meme polls prefer TV/Memes when bound and otherwise
+fall back to Lore, then General. Always review the displayed destination before
+approval. All 128 test inserts matched their originals on read-back (IDs 6–133):
+30 Movies, 93 Lore and 5 Gaming. The previous 211 knowledge records remain intact.
+
+Posts now support pagination and filtering across the full library; overview
+counts cover every page. Import required migration 0008 only on the test database;
+production remains untouched and disabled. No live poll was published for this
+import. Fixture checks exercise approval and native poll delivery.
+
+Verification: 299 tests pass; desktop/mobile browser pagination, filtering and
+fixture approval/publication pass without page errors. Test release
+`poll-library-2026-10-28`, deployment `e70a925b53504361aa69c502ba136c4b`,
+reports healthy/configured. Secret scan passed.
