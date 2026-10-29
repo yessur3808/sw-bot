@@ -184,7 +184,7 @@ test('recurring daily game slot alternates characters/quotes with Monday weekly 
 test('character game uses native quiz, topic mapping, correct answer and full answer window',async()=>{
  sqlite.prepare("INSERT INTO topic_map VALUES ('lore',15)").run();globalThis.fetch=async(url,options)=>{sent.push({method:String(url).split('/').at(-1),body:JSON.parse(options.body)});return Response.json({ok:true,result:{message_id:901,poll:{id:'quiz-game'}}});};
  await queue(-10,{internal_post:{kind:'character',scheduled_at:Date.now()/1000}});const body=sent[0].body;
- assert.equal(body.type,'quiz');assert.equal(body.message_thread_id,15);assert.equal(body.open_period,120);assert.ok(Number.isInteger(body.correct_option_id));
+ assert.equal(body.type,'quiz');assert.equal(body.message_thread_id,15);assert.equal(body.close_date,Date.now()/1000+120);assert.equal(body.open_period,undefined);assert.ok(Number.isInteger(body.correct_option_id));
  assert.equal(sqlite.prepare('SELECT expires_at FROM polls').get().expires_at,Date.now()/1000+125);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM community_polls').get().n,0);
 });
 function trackedPoll(options=[{text:'R2-D2',voter_count:3},{text:'Chopper',voter_count:1}],closed=1){sqlite.prepare('INSERT INTO community_polls VALUES (?,?,?,?,?,?,?,?)').run('poll-1',800,15,'Which droid?',JSON.stringify(options),Date.now()/1000-60,closed,-4000000000010);}
@@ -218,7 +218,7 @@ test('recurring games continue after every curated question has appeared',async(
 });
 test('quote and weekly trivia quizzes have valid choices and correct answers',async()=>{
  for(const kind of ['quote','weekly'])await queue(kind==='quote'?-10:-11,{internal_post:{kind,scheduled_at:Date.now()/1000,requested:true}});
- assert.equal(sent.length,2);for(const x of sent){assert.equal(x.body.type,'quiz');assert.ok(x.body.options[x.body.correct_option_id]);assert.equal(x.body.open_period,120);}
+ assert.equal(sent.length,2);for(const x of sent){assert.equal(x.body.type,'quiz');assert.ok(x.body.options[x.body.correct_option_id]);assert.equal(x.body.close_date,Date.now()/1000+120);assert.equal(x.body.open_period,undefined);}
 });
 test('a 429 follow-up retries its original text and rechecks topic activity',async()=>{
  trackedPoll();let attempts=0;
@@ -233,6 +233,23 @@ test('poll recording uses Telegram IDs and scheduler deduplicates its follow-up'
  await webhook(update(1,'/poll'));assert.equal(sent[0].body.open_period,undefined);const p=sqlite.prepare('SELECT * FROM community_polls').get();assert.equal(p.poll_id,'real-poll');assert.equal(p.message_id,901);
  Date.now=()=>Date.parse('2026-10-27T08:00:00Z');await receivePoll(env,{id:'real-poll',is_closed:true,options:JSON.parse(p.options)});
  await maintenance(env);await maintenance(env);assert.equal(sent.length,2);assert.match(sent[1].body.text,/No votes/);
+});
+test('rate-limited polls get one fresh HKT deadline matching Telegram and stored follow-up time',async()=>{
+ let attempts=0;
+ globalThis.fetch=async(url,options)=>{
+  const body=JSON.parse(options.body);sent.push({body});
+  return Response.json(++attempts===1?{ok:false,error_code:429,parameters:{retry_after:2}}:{ok:true,result:{message_id:901,poll:{id:'retry-poll',options:body.options.map(text=>({text,voter_count:0}))}}});
+ };
+ await webhook(update(1,'/poll'));
+ assert.match(sent[0].body.question,/Ends at 16:00:00 HKT · 27 Oct$/);
+ const saved=JSON.parse(sqlite.prepare('SELECT outbound FROM updates WHERE id=1').get().outbound);
+ assert.doesNotMatch(saved.question,/Ends at/);assert.equal(saved.close_date,undefined);
+ Date.now=()=>Date.parse('2026-10-27T06:01:03Z');await processUpdate(env,1);
+ assert.equal(sent.length,2);assert.match(sent[1].body.question,/Ends at 16:01:03 HKT · 27 Oct$/);
+ assert.equal(sent[1].body.question.match(/Ends at/g).length,1);
+ const poll=sqlite.prepare("SELECT * FROM community_polls WHERE poll_id='retry-poll'").get();
+ assert.equal(poll.closes_at,sent[1].body.close_date);assert.equal(poll.closes_at,Date.now()/1000+7200);
+ assert.equal(poll.question,saved.question);
 });
 test('stale poll follow-ups expire rather than replaying yesterday’s discussion',async()=>{
  trackedPoll();Date.now=()=>Date.parse('2026-10-28T07:00:00Z');await queue(-4000000000010,{internal_followup:'poll-1'});assert.equal(sent.length,0);

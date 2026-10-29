@@ -5,7 +5,7 @@ import { handleCoreCommand, observeGroup, recordReaction, recordEventVote, welco
 import { gameCommand, gameVote } from './cantina-games.mjs';
 import { handleClubJob, clubJob, clubDelivered, scheduleClub, forgetClub } from './cantina-jobs.mjs';
 import { postingPolicy, starterCount, recordEngagement, starterSpacingBlocked } from './adaptive.mjs';
-import { topicThread, topicSummary, topicName, TOPICS, quiet, defer, preferencesCommand, preferencePrompt, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
+import { topicThread, topicSummary, topicName, TOPICS, quiet, defer, preferencesCommand, preferencePrompt, pollWithDeadline, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
 import { VERSION, PERSONALITY, activeHours, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, setSetting, currentRelease, refreshReleases, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
 // data/trivia.json
 var trivia_default = [
@@ -640,6 +640,10 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
   // The clock may cross midnight during the final claim or database write.
   // Record definite non-delivery so a claimed portal post can return to scheduled.
   if (timedPost && !activeHours()) { await defer(env,updateId); throw Error('delivery-deferred'); }
+  // The saved outbound body remains undecorated: a definite non-delivery retry
+  // gets a fresh deadline and exactly one label, after all awaited claims.
+  const originalQuestion=body.question;
+  if(method==='sendPoll')body=pollWithDeadline(body,body.type!=='quiz'&&(!club||club.kind==='portal_post'));
   let response;
   try {
     response = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`, {
@@ -661,9 +665,9 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
     throw new Error("telegram-rejected");
   }
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
-    await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), clock() + (body.open_period || 60) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), (body.close_date || clock() + (body.open_period || 60)) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
   }
-  if (method === "sendPoll" && (!club||club.kind==='portal_post')) await recordPoll(env,updateId,body,result.result);
+  if (method === "sendPoll" && (!club||club.kind==='portal_post')) await recordPoll(env,updateId,{...body,question:originalQuestion},result.result);
   if(method==='sendMessage'&&body.reply_parameters?.message_id&&result.result?.message_id)await env.DB.prepare('INSERT OR IGNORE INTO club_messages(message_id,user_id,thread_id,text,parent_id,kind,created_at) VALUES (?,0,?,?,?,?,?)').bind(result.result.message_id,body.message_thread_id||0,String(body.text||'').slice(0,600),body.reply_parameters.message_id,'bot',clock()).run();
   if(club)await clubDelivered(env,updateId,method,body,result.result);
   await setSetting(env, "last_delivery", JSON.stringify({update_id:updateId,chat_id:body.chat_id,thread_id:body.message_thread_id || 0,message_id:result.result?.message_id,method,sent_at:clock()}));

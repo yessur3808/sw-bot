@@ -52,10 +52,23 @@ export async function preferencePrompt(env,user) {
   return ` Public group spoiler policy: ${p?.spoilers==='allow'&&!avoid?'the requester opted in; warn before plot spoilers and only include them if explicitly requested':'no plot twists, deaths or endings; keep this answer spoiler-free even if asked for spoilers'}.`+(p?` This member explicitly saved favorite era: ${p.era}. Use it only when relevant, never announce their stored preferences.`:'');
 }
 export const DISCUSSION_POLL_SECONDS = 2 * 60 * 60;
+export function pollWithDeadline(body,discussion,now=nowSeconds()) {
+  const duration=body.open_period || (discussion?DISCUSSION_POLL_SECONDS:0);
+  if(!duration&&!body.close_date)return body; // Event date-choice polls have no automatic deadline.
+  const closes=body.close_date || now+duration;
+  const date=new Date((closes+8*3600)*1000);
+  const month=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][date.getUTCMonth()];
+  const label=`Ends at ${date.toISOString().slice(11,19)} HKT · ${date.getUTCDate()} ${month}`;
+  const result={...body,close_date:closes};delete result.open_period;
+  // Keep the complete question. Long questions can use Telegram's description.
+  if([...body.question+'\n\n'+label].length<=300)result.question=body.question+'\n\n'+label;
+  else result.description=[body.description,label].filter(Boolean).join('\n\n');
+  return result;
+}
 export async function recordPoll(env,id,body,result) {
   if (!result?.poll?.id || body.type==='quiz') return;
   await env.DB.prepare('INSERT OR IGNORE INTO community_polls(poll_id,message_id,thread_id,question,options,closes_at,followup_id) VALUES (?,?,?,?,?,?,?)')
-    .bind(result.poll.id,result.message_id,body.message_thread_id||0,body.question,JSON.stringify(result.poll.options || body.options.map(text=>({text,voter_count:0}))),nowSeconds()+DISCUSSION_POLL_SECONDS,-4000000000000-Math.abs(id)).run();
+    .bind(result.poll.id,result.message_id,body.message_thread_id||0,body.question,JSON.stringify(result.poll.options || body.options.map(text=>({text,voter_count:0}))),body.close_date||nowSeconds()+DISCUSSION_POLL_SECONDS,-4000000000000-Math.abs(id)).run();
 }
 export async function receivePoll(env,poll) {
   // Only polls sent and recorded by this bot are accepted; only final totals authorize a follow-up.

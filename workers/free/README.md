@@ -42,7 +42,14 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   weekly trivia. These replace an existing slot, preserving daily caps. Curated
   questions rotate before repeating; they do not disappear when a pool is exhausted.
   Members can also request `/guess`, `/quote`, `/weeklytrivia` (shared post cap).
-- The worker closes discussion polls (including portal polls) on the first cron after two hours, capturing final totals directly. Timed trivia quizzes keep their game-specific timers. Their actual final vote totals produce
+- Discussion polls (including portal polls) close after two hours. Every timed poll
+  displays its closing time and date in HKT, calculated immediately before delivery
+  and used as Telegram’s automatic `close_date`. Timed trivia keeps its game-specific
+  duration. Rate-limit retries receive a fresh deadline without duplicate labels.
+  Questions exceeding Telegram’s 300-character limit after labeling retain their
+  complete text and show the deadline in the poll description instead.
+  Maintenance captures final totals if Telegram has not supplied a closed-poll
+  update; unavailable totals never produce a guessed result. Verified final totals produce
   one follow-up in the original topic, discussing the winner and inviting a
   counterargument. Ties and zero votes are explicit. Follow-ups wait for quiet and
   active hours for at most 24h, then expire. They are separate from starter slots.
