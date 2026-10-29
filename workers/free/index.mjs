@@ -1,4 +1,5 @@
 import {refreshSourceFeed,sourceContext,sourceStatus} from './source-feed.mjs';
+import {mediaFetch,youtubeStatus} from './youtube.mjs';
 import {sourceQuery,renderSources,renderSourceStatus} from './source-display.mjs';
 import { assertDeployment, automaticDelivery, reserveAutomation, budgetStatus, readiness } from './production.mjs';
 import { portalFetch, portalLoginCommand } from './admin-portal.mjs';
@@ -790,7 +791,7 @@ async function handle(env, u) {
   if (await preferencesCommand(env,u.update_id,m,cmd,reply)) return;
   if(cmd?.name==='sources'){
     if(!admins(env).includes(user.id))return;
-    await reply(env,u.update_id,m,renderSourceStatus(await sourceStatus(env)));return;
+    await reply(env,u.update_id,m,renderSourceStatus({...await sourceStatus(env),youtube:await youtubeStatus(env)}));return;
   }
   if(['news','releases'].includes(cmd?.name)){
     if(!await takeQuota(env,`sources:${u.update_id}`,m,'source_lookup',12,10))return;
@@ -1015,6 +1016,7 @@ async function maintenance(env) {
 var index_default = {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
+    if(path.startsWith('/media/'))return mediaFetch(request,env);
     if(path==='/admin'||path.startsWith('/admin/'))return portalFetch(request,env);
     if (path === "/healthz" && request.method === "GET") {
       try {

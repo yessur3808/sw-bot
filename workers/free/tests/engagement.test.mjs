@@ -15,6 +15,7 @@ function database() {
   db.exec(readFileSync(new URL('../migrations/0005_production.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0006_safe_recaps_games.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0007_admin_portal.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0009_youtube.sql', import.meta.url), 'utf8'));
   db.exec("INSERT INTO deployment_identity VALUES (1,'-100123','test')");
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];
@@ -46,7 +47,7 @@ test('release commands show sourced availability in the matching topic without c
 });
 test('source diagnostics stay private and absent local feed is not presented as no events',async()=>{
  await webhook(update(1,'/sources'));
- assert.equal(sent[0].body.chat_id,42);assert.match(sent[0].body.text,/News & release sources/);
+ assert.equal(sent[0].body.chat_id,42);assert.match(sent[0].body.text,/News & release sources/);assert.match(sent[0].body.text,/YouTube trailers: Star Wars: not_connected/);
  await webhook(update(2,'/sources',{from:{id:99}}));assert.equal(sent.length,1);
  sqlite.prepare("INSERT INTO topic_map VALUES ('hongkong',8)").run();
  await webhook(update(3,'/news hongkong'));

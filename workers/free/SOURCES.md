@@ -75,3 +75,13 @@ Instagram monitoring likewise needs a supported, authorised data connection;
 current Meta API eligibility and permissions still need verification. No login,
 paid subscription, scraping bypass or social monitoring has been enabled by this
 directory update. Connecting feeds is a separate implementation step.
+
+## YouTube trailer monitoring
+
+YouTube now has a separate free media companion: see `../../media-agent/README.md`.
+It reads the official Star Wars and EA Star Wars video tabs anonymously every
+15 minutes. Initial uploads form a silent baseline. New verified trailers are
+downloaded, prepared as MP4 and uploaded to the matching Movies/TV/Gaming topic
+under the existing quiet-hours, pause and automation-budget policies. Portal
+Settings shows channel health and held/delivered trailers; `/sources` includes
+channel health. This does not enable the X/Instagram directory above.

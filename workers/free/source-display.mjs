@@ -37,5 +37,5 @@ export function renderSources(cards,category,local=false){
  return parts.join('\n\n');
 }
 export function renderSourceStatus(status){
- return ['News & release sources',`${status.catalogCount||0} catalogue entries · ${status.newsCount||0} cached headlines`,...(status.socialCount?[`${status.socialCount} official social accounts listed in the portal: connection required. Social posts are not monitored.`]:[]),...status.sources.map(s=>`${s.title}: ${s.status}${s.needsReview?' · review needed':''}\nLast successful check: ${checked(s.lastSuccess)}\n${s.url}`)].join('\n\n').slice(0,3700);
+ return ['News & release sources',`${status.catalogCount||0} catalogue entries · ${status.newsCount||0} cached headlines`,...(status.youtube?[`YouTube trailers: ${status.youtube.channels.map(c=>c.title+': '+c.status).join('; ')}. Checks every 15 minutes; delivery status in the portal.`]:[]),...(status.socialCount?[`${status.socialCount} official X/Instagram accounts listed in the portal: connection required. X/Instagram posts are not monitored.`]:[]),...status.sources.map(s=>`${s.title}: ${s.status}${s.needsReview?' · review needed':''}\nLast successful check: ${checked(s.lastSuccess)}\n${s.url}`)].join('\n\n').slice(0,3700);
 }
