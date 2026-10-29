@@ -1,3 +1,4 @@
+import {sourceStatus} from './source-feed.mjs';
 import { assertDeployment, readiness, budgetStatus } from './production.mjs';
 import { nowSeconds, setting, setSetting, PERSONALITY, cleanAnswer } from './engagement.mjs';
 import { isAdmin, handleCoreCommand, parseHK, messageLink, clubQuota } from './cantina-core.mjs';
@@ -89,7 +90,7 @@ export async function portalFetch(request,env){
     env.DB.prepare("SELECT COUNT(*) total FROM club_memory WHERE status IN ('pending','approved')"),
     env.DB.prepare("SELECT state,COUNT(*) total FROM admin_posts GROUP BY state")]);
    const [posts,topics,memory,events,reviews,actions,jobs,memoryCount,postCounts]=results.map(r=>r.results);
-   return json({posts:posts.map(p=>({...p,import_metadata:p.import_metadata?JSON.parse(p.import_metadata):null,options:JSON.parse(p.options),link:messageLink(env,p.message_id,p.thread_id)})),topics,memory:memory.map(m=>({...m,link:messageLink(env,m.source_message,m.source_thread)})),events,reviews:reviews.map(r=>({...r,link:messageLink(env,r.message_id,r.thread_id)})),actions,jobs,
+   return json({source_status:await sourceStatus(env),posts:posts.map(p=>({...p,import_metadata:p.import_metadata?JSON.parse(p.import_metadata):null,options:JSON.parse(p.options),link:messageLink(env,p.message_id,p.thread_id)})),topics,memory:memory.map(m=>({...m,link:messageLink(env,m.source_message,m.source_thread)})),events,reviews:reviews.map(r=>({...r,link:messageLink(env,r.message_id,r.thread_id)})),actions,jobs,
     post_counts:Object.fromEntries(postCounts.map(p=>[p.state,p.total])),post_page:{offset:postOffset,limit:100,total:postCounts.filter(p=>postState==='all'||p.state===postState).reduce((n,p)=>n+p.total,0),state:postState},memory_page:{offset,limit:100,total:memoryCount[0].total},environment:env.DEPLOYMENT_ENV||'test',group_id:env.GROUP_ID,paused:await setting(env,'paused')==='1',quiet_until:Number(await setting(env,'quiet_until')||0),starter_mode:await setting(env,'portal_starter_approval')==='1'?'review':'automatic',budget:await budgetStatus(env),readiness:JSON.parse(await setting(env,'launch_readiness')||'null')});
   }
   if(path==='/admin/api/posts'&&mutating){await limit(env,'posts:'+s.user_id,30,3600);return json({post:await createPost(env,s.user_id,data)},201);}

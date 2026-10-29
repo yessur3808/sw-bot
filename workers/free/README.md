@@ -56,11 +56,13 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   If Telegram cannot provide final totals, the bot does not guess.
 - Questions, polls and creative prompts use Workers AI, with curated fallbacks.
   Recent seeds and texts prevent repeats. The bot sends native Telegram polls.
-- Movie/game release cards use dated official sources, with links. The Starfighter
-  page is rechecked daily. Development announcements with no announced date are
-  labeled accordingly. Source snapshots expire after 30 days and past releases
-  are excluded. Add newly verified announcements to `RELEASES` as needed; this is
-  a bounded source list, not a general news crawler.
+- News, event discovery and release availability use the official source catalogue
+  in `source-catalog.mjs`. News hubs refresh about every six hours; release evidence
+  is rechecked daily, with at most two bounded fetches per cron. `/news [hongkong]`
+  and `/releases [movies|shows|games|events] [hongkong]` expose sourced results.
+  Normal questions receive relevant source context; sourced proactive posts use
+  the existing topic routing, waking hours, caps and approval policy.
+  [Source coverage and limitations](SOURCES.md) explains freshness and regional checks.
 - Configured admins can message the bot privately in plain text or use commands.
   Content answers, polls and quizzes publish to the group. Operational receipts
   go privately to the requesting configured admin; successful portal login/logout

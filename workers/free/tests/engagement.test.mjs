@@ -37,6 +37,28 @@ test('random plans stay in HK active hours, have five baseline posts and at leas
 test('plain group mention gets contextual AI reply and duplicate delivery is suppressed',async()=>{
  await webhook(update());await webhook(update());assert.equal(sent.length,1);assert.equal(aiCalls.length,1);assert.equal(sent[0].body.reply_parameters.message_id,1);assert.match(aiCalls[0].messages[0].content,/cantina droid/);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM context').get().n,2);
 });
+test('release commands show sourced availability in the matching topic without calling AI',async()=>{
+ Date.now=()=>Date.parse('2026-10-29T06:00:00Z');
+ sqlite.prepare("INSERT INTO topic_map VALUES ('gaming',19)").run();
+ await webhook(update(1,'/releases games'));
+ assert.equal(aiCalls.length,0);assert.equal(sent.length,1);assert.equal(sent[0].body.message_thread_id,19);
+ assert.match(sent[0].body.text,/Star Wars Zero Company/);assert.match(sent[0].body.text,/Hong Kong availability not verified/);assert.match(sent[0].body.text,/https:\/\/www.starwars.com/);
+});
+test('source diagnostics stay private and absent local feed is not presented as no events',async()=>{
+ await webhook(update(1,'/sources'));
+ assert.equal(sent[0].body.chat_id,42);assert.match(sent[0].body.text,/News & release sources/);
+ await webhook(update(2,'/sources',{from:{id:99}}));assert.equal(sent.length,1);
+ sqlite.prepare("INSERT INTO topic_map VALUES ('hongkong',8)").run();
+ await webhook(update(3,'/news hongkong'));
+ assert.equal(sent[1].body.message_thread_id,8);assert.match(sent[1].body.text,/does not mean there are no local events/);
+});
+test('release questions receive regional source evidence as data with no speculative availability',async()=>{
+ Date.now=()=>Date.parse('2026-10-29T06:00:00Z');
+ await webhook(update(1,'@SIU_M8_bot Where can I watch Maul Shadow Lord in Hong Kong?'));
+ assert.equal(aiCalls.length,1);
+ const prompt=aiCalls[0].messages[0].content;
+ assert.match(prompt,/Shadow Lord/);assert.match(prompt,/disneyplus.com/);assert.match(prompt,/do not infer Hong Kong availability/);
+});
 test('replies to this bot are addressed but replies to other bots are not',()=>{
  assert.ok(addressed(update(1,'yes',{reply_to_message:{from:{id:123,is_bot:true}}}).message,env));assert.ok(!addressed(update(1,'yes',{reply_to_message:{from:{id:999,is_bot:true}}}).message,env));
 });
@@ -67,8 +89,9 @@ test('proactive native poll is delivered once and logged',async()=>{
 test('scheduled posts respect gap, but an explicit admin /post can request one',async()=>{
  await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});await queue(-2,{internal_post:{kind:'idea',scheduled_at:Date.now()/1000}});assert.equal(sent.length,1);await webhook(update(10,'/post poll'));assert.equal(sent.length,2);
 });
-test('movie cards are sourced, future dated and expire instead of inventing news',async()=>{
- await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});assert.match(sent[0].body.text,/May 28, 2027/);assert.match(sent[0].body.text,/https:\/\/www.starwars.com/);assert.equal(releaseCard('movie',Date.parse('2027-06-01')/1000),undefined);assert.equal(releaseCard('game',Date.parse('2026-12-01')/1000),undefined);
+test('movie cards use the verified release catalogue with source links',async()=>{
+ Date.now=()=>Date.parse('2026-10-29T06:00:00Z');
+ await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});assert.match(sent[0].body.text,/2026-05-22/);assert.match(sent[0].body.text,/https:\/\/www.starwars.com/);assert.equal(releaseCard('movie',Date.parse('2027-06-01')/1000),undefined);assert.equal(releaseCard('game',Date.parse('2026-12-01')/1000),undefined);
 });
 test('changed release cache supersedes original seeded date',async()=>{
  sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('release:movie',JSON.stringify({date:'2026-10-26',checked:'2026-10-27'}));assert.equal(await currentRelease(env,'movie'),null);
@@ -154,6 +177,7 @@ test('activity metadata is deduplicated and lively conversations suppress ambien
  assert.deepEqual(sqlite.prepare('PRAGMA table_info(activity)').all().map(x=>x.name),['update_id','thread_id','created_at']);
 });
 test('topic bindings require admins in group, then route gaming and movie starters independently',async()=>{
+ Date.now=()=>Date.parse('2026-10-29T06:00:00Z');
  await webhook(update(1,'/bindtopic gaming',{message_thread_id:12,from:{id:99}}));assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM topic_map').get().n,0);
  await webhook(update(2,'/bindtopic gaming',{message_thread_id:12}));await webhook(update(3,'/bindtopic movies',{message_thread_id:13}));
  sent=[];await queue(-10,{internal_post:{kind:'game',scheduled_at:Date.now()/1000,requested:true}});
