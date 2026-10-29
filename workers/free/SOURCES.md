@@ -50,3 +50,28 @@ items. These are recorded as errors/no matches, not proof that no local events
 exist. Celebration's marketing hub is not used as a news feed; its reviewed event
 and ticket information remain in the catalogue. No authenticated/subscription-only
 content or access-control bypass is used.
+
+## Official social account directory
+
+`source-social.mjs` lists ten X/Instagram accounts whose identities were checked
+against official organisation pages on 29 October 2026. Each entry retains its
+evidence URL. The portal displays them separately as **Connection required**.
+They are not active feeds: no social posts are fetched, cached, used by the AI or
+posted to Telegram. `/sources` also makes this limitation explicit. Existing
+website feeds continue independently.
+
+The directory covers Star Wars, Lucasfilm, EA Star Wars, Star Wars Celebration,
+Broadway Circuit, Hong Kong Tourism Board and Hong Kong Disneyland. HKTB evidence
+is an attributed Instagram embed; Disneyland evidence is an official press
+release naming the account. The other identities are linked by official site
+footers. Lucasfilm's recruitment X account is deliberately excluded.
+
+Anonymous profile reads did not establish reliable timeline access. No social API
+credentials were provisioned in the production Worker at verification. X's
+[official API](https://docs.x.com/x-api/users/get-posts) uses authenticated requests
+and [paid reads](https://docs.x.com/x-api/getting-started/pricing). Continuous X
+monitoring requires an authorised connection and an agreed spending limit.
+Instagram monitoring likewise needs a supported, authorised data connection;
+current Meta API eligibility and permissions still need verification. No login,
+paid subscription, scraping bypass or social monitoring has been enabled by this
+directory update. Connecting feeds is a separate implementation step.

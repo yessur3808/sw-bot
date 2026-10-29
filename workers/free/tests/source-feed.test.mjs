@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {portalFixture} from './portal-fixture.mjs';
 import {NEWS_SOURCES,RELEASE_CATALOG} from '../source-catalog.mjs';
+import {SOCIAL_SOURCES} from '../source-social.mjs';
 import {parseSourceItems,refreshSourceFeed,sourceContext,sourcePost,sourceStatus} from '../source-feed.mjs';
 
 const put=(db,key,value)=>db.prepare('INSERT OR REPLACE INTO settings(key,value) VALUES (?,?)').run(key,JSON.stringify(value));
@@ -14,6 +15,27 @@ function onlySource(db,id){
     if(key!==id)put(db,'source-feed:state:'+key,{nextDue:t()+86400});
   }
 }
+
+test('unconnected social directory stays outside collection and content despite saved social cache',async()=>{
+  const {sqlite,env}=portalFixture(),oldFetch=globalThis.fetch;
+  onlySource(sqlite,'none');
+  for(const source of SOCIAL_SOURCES){
+    put(sqlite,'source-feed:state:'+source.id,{status:'ok',lastSuccess:t()});
+    put(sqlite,'source-feed:cache:'+source.id,{items:[{title:'Unconnected social claim',url:source.url,checkedAt:t(),discoveredAt:t()}]});
+  }
+  globalThis.fetch=async()=>{throw new Error('No social fetch permitted');};
+  try{
+    assert.deepEqual(await refreshSourceFeed(env),[]);
+    const status=await sourceStatus(env);
+    assert.equal(status.socialCount,10);
+    assert.equal(new Set(SOCIAL_SOURCES.map(s=>s.id)).size,10);
+    assert.ok(status.socialSources.every(s=>s.status==='connection_required'&&s.lastSuccess===null&&s.nextDue===null));
+    assert.ok(status.sources.every(s=>!s.id.startsWith('social-')));
+    assert.equal(status.newsCount,0);
+    assert.deepEqual(await sourceContext(env,'',{category:'news'}),[]);
+    assert.equal(await sourcePost(env,'global_events',new Set(RELEASE_CATALOG.map(c=>'catalog:'+c.id))),null);
+  }finally{globalThis.fetch=oldFetch;sqlite.close();}
+});
 
 test('official parsing deduplicates URLs, removes unsafe links and excludes unrelated Hong Kong events',()=>{
   const source={id:'hk',title:'Official HK events',url:'https://hk.example/events',format:'html',region:'HK',topic:'hongkong'};

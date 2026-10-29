@@ -1,4 +1,5 @@
 import { NEWS_SOURCES, RELEASE_CATALOG } from './source-catalog.mjs';
+import { SOCIAL_SOURCES } from './source-social.mjs';
 
 // A bounded, allowlisted discovery feed. Fetched text is evidence, never code or
 // instructions. A successful HTTP request does not reverify a release claim.
@@ -173,5 +174,7 @@ export async function sourceStatus(env){
     newsCount+=(cache.items||[]).length;
     out.push({id:source.id,title:source.title,url:source.url,status:state.status||'pending',lastSuccess:state.lastSuccess||null,nextDue:state.nextDue||0,needsReview:!!cache.needsReview,error:state.error||null});
   }
-  return {sources:out,catalogCount:RELEASE_CATALOG.length,newsCount};
+  // Directory entries never enter the fetch queue, news cache or AI context.
+  const social=SOCIAL_SOURCES.map(s=>({...s,status:'connection_required',lastSuccess:null,nextDue:null,needsReview:false}));
+  return {sources:out,socialSources:social,socialCount:social.length,catalogCount:RELEASE_CATALOG.length,newsCount};
 }

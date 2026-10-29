@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {renderSources,sourceQuery} from '../source-display.mjs';
+import {renderSources,sourceQuery,renderSourceStatus} from '../source-display.mjs';
+test('source diagnostics disclose unconnected social accounts before long website diagnostics',()=>{
+ const text=renderSourceStatus({socialCount:10,sources:Array.from({length:40},()=>({title:'Website source',status:'pending',url:'https://example.com'}))});
+ assert.match(text,/10 official social accounts/);
+ assert.match(text,/Social posts are not monitored/);
+ assert.ok(text.length<=3700);
+});
 test('source commands select the matching topic and Hong Kong filter',()=>{
  assert.equal(sourceQuery('news','hong kong').topic,'hongkong');
  assert.equal(sourceQuery('releases','games').options.kind,'game');
