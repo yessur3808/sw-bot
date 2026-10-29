@@ -51,10 +51,11 @@ export async function preferencePrompt(env,user) {
   const avoid=await env.DB.prepare("SELECT 1 FROM fan_preferences f WHERE spoilers='avoid' AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=f.user_id AND p.opted_out=1) LIMIT 1").first();
   return ` Public group spoiler policy: ${p?.spoilers==='allow'&&!avoid?'the requester opted in; warn before plot spoilers and only include them if explicitly requested':'no plot twists, deaths or endings; keep this answer spoiler-free even if asked for spoilers'}.`+(p?` This member explicitly saved favorite era: ${p.era}. Use it only when relevant, never announce their stored preferences.`:'');
 }
+export const DISCUSSION_POLL_SECONDS = 2 * 60 * 60;
 export async function recordPoll(env,id,body,result) {
   if (!result?.poll?.id || body.type==='quiz') return;
   await env.DB.prepare('INSERT OR IGNORE INTO community_polls(poll_id,message_id,thread_id,question,options,closes_at,followup_id) VALUES (?,?,?,?,?,?,?)')
-    .bind(result.poll.id,result.message_id,body.message_thread_id||0,body.question,JSON.stringify(result.poll.options || body.options.map(text=>({text,voter_count:0}))),nowSeconds()+600,-4000000000000-Math.abs(id)).run();
+    .bind(result.poll.id,result.message_id,body.message_thread_id||0,body.question,JSON.stringify(result.poll.options || body.options.map(text=>({text,voter_count:0}))),nowSeconds()+DISCUSSION_POLL_SECONDS,-4000000000000-Math.abs(id)).run();
 }
 export async function receivePoll(env,poll) {
   // Only polls sent and recorded by this bot are accepted; only final totals authorize a follow-up.
