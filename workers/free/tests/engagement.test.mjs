@@ -93,7 +93,7 @@ test('scheduled posts respect gap, but an explicit admin /post can request one',
 });
 test('movie cards use the verified release catalogue with source links',async()=>{
  Date.now=()=>Date.parse('2026-10-29T06:00:00Z');
- await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});assert.match(sent[0].body.text,/2026-05-22/);assert.match(sent[0].body.text,/https:\/\/www.starwars.com/);assert.equal(releaseCard('movie',Date.parse('2027-06-01')/1000),undefined);assert.equal(releaseCard('game',Date.parse('2026-12-01')/1000),undefined);
+ await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});assert.match(sent[0].body.text,/22 May 2026/);assert.ok(sent[0].body.entities.some(e=>e.type==='text_link'&&e.url.startsWith('https://www.starwars.com/')));assert.equal(releaseCard('movie',Date.parse('2027-06-01')/1000),undefined);assert.equal(releaseCard('game',Date.parse('2026-12-01')/1000),undefined);
 });
 test('changed release cache supersedes original seeded date',async()=>{
  sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('release:movie',JSON.stringify({date:'2026-10-26',checked:'2026-10-27'}));assert.equal(await currentRelease(env,'movie'),null);
@@ -919,4 +919,18 @@ test('a legacy cached no-votes follow-up is discarded on retry',async()=>{
  const id=-4000000000010;
  sqlite.prepare('INSERT INTO updates(id,payload,created_at,outbound,method) VALUES (?,?,?,?,?)').run(id,JSON.stringify({internal_followup:'poll-1'}),Date.now()/1000,JSON.stringify({chat_id:-100123,text:'No votes landed.'}),'sendMessage');
  await processUpdate(env,id);assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=?').get(id).state,'done');
+});
+
+test('source cards preserve native formatting and topic routing through a Telegram rate-limit retry',async()=>{
+ const now=Date.now()/1000,url='https://www.starwars.com/news/star-wars-format-fixture';
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('source-feed:cache:starwars-news',JSON.stringify({items:[{url,title:'Star Wars fixture 🛰️',checkedAt:now,discoveredAt:now}]}));
+ sqlite.prepare("INSERT INTO topic_map VALUES ('global_events',9)").run();
+ let attempts=0;globalThis.fetch=async(url,options)=>{const body=JSON.parse(options.body);sent.push({body});return Response.json(++attempts===1?{ok:false,error_code:429,parameters:{retry_after:1}}:{ok:true,result:{message_id:777}});};
+ await queue(-42,{internal_post:{kind:'global_events',scheduled_at:now,requested:true}});
+ Date.now=()=>Date.parse('2026-10-27T06:00:02Z');await processUpdate(env,-42);
+ assert.equal(sent.length,2);assert.deepEqual(sent[0],sent[1]);
+ assert.equal(sent[1].body.message_thread_id,9);assert.equal(sent[1].body.link_preview_options.is_disabled,true);
+ assert.ok(sent[1].body.entities.some(e=>e.type==='bold'));
+ assert.ok(sent[1].body.entities.some(e=>e.type==='text_link'&&e.url===url));
+ assert.equal(sent[1].body.parse_mode,undefined);
 });

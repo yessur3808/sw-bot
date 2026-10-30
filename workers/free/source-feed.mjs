@@ -1,3 +1,4 @@
+import {formatSourcePost} from './source-display.mjs';
 import { NEWS_SOURCES, RELEASE_CATALOG } from './source-catalog.mjs';
 import { SOCIAL_SOURCES } from './source-social.mjs';
 
@@ -152,17 +153,16 @@ export async function sourcePost(env,kind,usedSeeds=new Set()){
     for(const item of cache.items||[]){
       const seed='source:'+item.url;
       if(usedSeeds.has(seed)||at-item.checkedAt>=NEWS_TTL||at-(item.publishedAt||item.discoveredAt)>=NEWS_TTL||item.publishedAt>at)continue;
-      return {generation:'source',seed,text:`Official source spotlight: ${item.title}\n${source.title} · checked ${new Date(item.checkedAt*1000).toISOString().slice(0,10)}\n${item.url}\n\n${source.region==='HK'?'Check the organiser’s linked page for current dates, tickets and availability.':'What catches your interest in this story?'}`};
+      const formatted=formatSourcePost(item,{news:true,sourceName:source.title});
+      if(formatted)return {generation:'source',seed,...formatted};
     }
   }
   const categoryKind={movie:'movie',game:'game',tv:'series',hongkong:'event',global_events:'event'}[kind];
   for(const card of await sourceContext(env,'',{category:'releases',kind:categoryKind,limit:20})){
     const seed='catalog:'+card.id;
     if(card.freshness!=='fresh'||usedSeeds.has(seed)||(kind==='hongkong'?card.region!=='HK':kind==='global_events'&&card.region==='HK'))continue;
-    const status=card.status==='released'?'Released':card.status==='upcoming'?'Announced release':'Announced';
-    const date=card.releaseDate?` · ${card.releaseDate} (${card.region})`:' · date not confirmed';
-    const availability=card.platforms?.length?`\nPlatforms: ${card.platforms.join(', ')}. ${card.access==='unknown'?'Access details not verified.':'Access: '+card.access+'.'}`:'';
-    return {generation:'source',seed,text:`${card.title}\n${status}${date}\n${card.summary}${availability}\n${card.hkAvailability==='confirmed'?'Hong Kong availability confirmed in the linked source.':'Hong Kong availability is not independently confirmed.'}\nSource checked ${String(card.verifiedAt).slice(0,10)}: ${card.sourceUrl}${card.availabilityUrl&&card.availabilityUrl!==card.sourceUrl?'\nAvailability: '+card.availabilityUrl:''}`};
+    const formatted=formatSourcePost(card);
+    if(formatted)return {generation:'source',seed,...formatted};
   }
   return null;
 }

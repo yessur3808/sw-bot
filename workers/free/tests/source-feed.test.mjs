@@ -129,7 +129,7 @@ test('old and reused news does not become new again after a successful refresh',
   try{
     await refreshSourceFeed(env);assert.equal(await sourcePost(env,'global_events',used),null);
     const cache=get(sqlite,'source-feed:cache:'+source.id);cache.items[0].discoveredAt=t();put(sqlite,'source-feed:cache:'+source.id,cache);
-    const post=await sourcePost(env,'global_events',used);assert.match(post.text,/Official source spotlight/);assert.ok(post.text.includes(url));
+    const post=await sourcePost(env,'global_events',used);assert.match(post.text,/official fixture announcement/);assert.ok(post.entities.some(e=>e.type==='text_link'&&e.url===url));
     used.add(post.seed);assert.equal(await sourcePost(env,'global_events',used),null);
   }finally{globalThis.fetch=oldFetch;sqlite.close();}
 });

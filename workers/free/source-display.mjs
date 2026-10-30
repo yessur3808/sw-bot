@@ -1,4 +1,57 @@
 // Telegram text views of source data; no network access and no inferred availability.
+function displayDate(value){
+ const raw=typeof value==='number'?new Date(value*1000).toISOString().slice(0,10):String(value||'');
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(raw))return raw||'To be confirmed';
+ const date=new Date(raw+'T12:00:00Z');
+ if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==raw)return raw;
+ return new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(date);
+}
+// Telegram entities keep source text literal and use UTF-16 offsets, including
+// emoji/CJK titles. Never parse third-party titles or summaries as HTML/Markdown.
+export function formatSourcePost(card,{news=false,sourceName='Official source'}={}){
+ let text='';const entities=[];
+ const add=(value,type,url)=>{const content=String(value||''),offset=text.length;text+=content;if(type&&content)entities.push({type,offset,length:content.length,...url?{url}:{}});};
+ const field=(label,value)=>{add(label+': ','bold');add(value+'\n');};
+ const link=(label,url)=>{try{const parsed=new URL(url);if(parsed.protocol!=='https:'||parsed.username||parsed.password)return false;add(label,'text_link',parsed.href);return true;}catch{return false;}};
+ add(card.title||card.headline||'Star Wars update','bold');add('\n\n');
+ if(news){
+  add(sourceName);add('\n');
+  if(card.publishedAt)field('Published',displayDate(card.publishedAt));
+  add('\nRead the official announcement for the full details.\n\n');
+  link('Read announcement',card.url||card.sourceUrl);
+ }else{
+  const event=card.kind==='event',region={HK:'Hong Kong',US:'United States',global:'Worldwide'}[card.region]||card.region||'Region unconfirmed';
+  const range=displayDate(card.releaseDate)+(card.endDate&&card.endDate!==card.releaseDate?' – '+displayDate(card.endDate):'');
+  if(event){
+   field(card.region==='HK'?'Date (Hong Kong)':'Date (local)',range);
+   if(card.platforms?.length)field('Venue',card.platforms.join(', '));
+   if(card.region!=='HK')field('Region',region);
+  }else{
+   const past=card.status==='upcoming'&&card.datePrecision==='day'&&card.releaseDate<new Date().toISOString().slice(0,10);
+   field('Status',card.status==='released'?'Released':past?'Announced date has passed; release unconfirmed':card.status==='upcoming'?'Upcoming':'Announced');
+   field('Release date',range);field('Region',region);
+   if(card.platforms?.length)field(card.kind==='game'?'Platforms':'Where to watch',card.platforms.join(', '));
+  }
+  if(card.summary){add('\n');add(card.summary);add('\n');}
+  add('\n');
+  if(event){
+   field('Time','Check the event website');
+   field('Admission',card.access==='unknown'||!card.access?'Not verified — check before travelling':card.access==='ticket'?'Ticket required — check current availability':card.access);
+  }else{
+   if(card.access&&card.access!=='unknown')field('Access',card.access);
+   field('Hong Kong',card.hkAvailability==='confirmed'?'Availability confirmed by the linked source':'Availability not verified — check the regional provider');
+  }
+  add('\n');link('Official source',card.sourceUrl||card.url);
+  if(card.availabilityUrl&&card.availabilityUrl!==(card.sourceUrl||card.url)){
+   try{if(new URL(card.availabilityUrl).protocol==='https:'){add('  ·  ');link(event?'Event website':'Availability details',card.availabilityUrl);}}catch{/* Invalid source links are never rendered. */}
+  }
+ }
+ const verified=card.checkedAt||card.verifiedAt;
+ if(verified){add('\n');add('Checked '+displayDate(typeof verified==='string'?verified.slice(0,10):verified),'italic');}
+ // Bound third-party content without slicing through a text entity.
+ if(text.length>3900)return null;
+ return {text,entities};
+}
 export function sourceQuery(command,arg=''){
  const q=arg.trim(),local=/hong\s*kong|\bhk\b|香港|local/i.test(q);
  const kind=/games?|gaming|遊戲/i.test(q)?'game':/movies?|films?|電影/i.test(q)?'movie':/shows?|series|\btv\b|劇集/i.test(q)?'series':/events?|活動/i.test(q)?'event':undefined;
