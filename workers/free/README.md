@@ -38,7 +38,7 @@ quiz, rewards, privacy controls and durable Telegram delivery queue.
   retry every five minutes for up to one hour, then expire instead of interrupting
   a conversation. Ambient replies stop after four messages in ten minutes.
   Activity records contain only update ID, topic ID and timestamp, retained 24h.
-- The first daily slot is a two-minute character-guess or quote quiz; Monday is
+- The first daily slot is a two-hour character-guess or quote quiz; Monday is
   weekly trivia. These replace an existing slot, preserving daily caps. Curated
   questions rotate before repeating; they do not disappear when a pool is exhausted.
   Members can also request `/guess`, `/quote`, `/weeklytrivia` (shared post cap).
@@ -224,8 +224,8 @@ portal sessions; the portal's Sign out button revokes its current session.
   optionally generate an AI text draft, then save. Approve the exact revision
   before publishing now or scheduling in **Hong Kong time (UTC+8)**. Editing an
   approved/scheduled post revokes approval and invalidates its queued version.
-  Regular polls close after ten minutes and use the existing result follow-ups;
-  quizzes close after two minutes. Plain text is sent literally, not as HTML.
+  Regular polls close after two hours and use the existing result follow-ups;
+  quizzes close after two hours. Plain text is sent literally, not as HTML.
 - **Group knowledge:** propose, approve, reject or remove rules, FAQs,
   recommendations and decisions.
 - **Events:** draft and confirm community events, supply checked source links,
@@ -403,7 +403,9 @@ remain silent.
 
 Game rounds now advance only after confirmed delivery. New games have a one-hour
 window to deliver their first post; the session clock starts with that delivery.
-Later trivia rounds wait at least 150 seconds, and character clues 300 seconds,
+Later trivia rounds wait at least two hours and 30 seconds, and character clues 300 seconds,
 from the previous successful send. Stale steps cannot rewind progress, and
 future queued steps wait for their predecessors. Expired sessions do not produce
-catch-up bursts. Production remains disabled.
+catch-up bursts.
+
+All new multiple-choice polls, including direct quizzes, automatic trivia, portal quizzes and event choices, receive a full two-hour answer window from delivery. The exact HKT closing time matches Telegram closure. Weekly trivia scoring remains open for the same window; later rounds wait until the previous question has closed. Quiet-hour deferrals do not shorten the next round. Already-published polls retain their original Telegram deadlines.

@@ -1,3 +1,4 @@
+import {POLL_ANSWER_SECONDS} from './community.mjs';
 import { nowSeconds, activeHours } from './engagement.mjs';
 import { queueClub, CLUB_OFFSET, isAdmin } from './cantina-core.mjs';
 
@@ -101,7 +102,7 @@ export async function portalPostBody(env,job){
  try{if(await publicationTopic(env,p,nowSeconds())!==p.thread_id){await blockPublication(env,job,p,'topic');return null;}}
  catch(e){if(!e.publicationBlock)throw e;await blockPublication(env,job,p,e.publicationBlock);return null;}
  const validated=validatePost({...p,options:JSON.parse(p.options)},env),base={chat_id:Number(env.GROUP_ID),...(validated.thread_id?{message_thread_id:validated.thread_id}:{})};
- return p.kind==='text'?{method:'sendMessage',body:{...base,text:p.text}}:{method:'sendPoll',body:{...base,question:p.text,options:validated.options,is_anonymous:p.kind!=='quiz',...(p.kind==='quiz'?{type:'quiz',correct_option_id:p.correct,open_period:120}: {})}};
+ return p.kind==='text'?{method:'sendMessage',body:{...base,text:p.text}}:{method:'sendPoll',body:{...base,question:p.text,options:validated.options,is_anonymous:p.kind!=='quiz',...(p.kind==='quiz'?{type:'quiz',correct_option_id:p.correct,open_period:POLL_ANSWER_SECONDS}: {})}};
 }
 export async function claimPortalPost(env,job){
  const {post_id,revision}=JSON.parse(job.data);

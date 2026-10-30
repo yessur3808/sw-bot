@@ -1,5 +1,5 @@
 import {nowSeconds,localDay,activeHours,setting,setSetting,cleanAnswer} from './engagement.mjs';
-import {quiet,defer,topicThread} from './community.mjs';
+import {quiet,defer,topicThread,POLL_ANSWER_SECONDS} from './community.mjs';
 import {CLUB_OFFSET,queueClub,clubPaused,out,isAdmin,prepareBriefing,briefingSourcesAllowed,messageLink,hkTime} from './cantina-core.mjs';
 import {startGame,gameBody,gameDelivered,scheduleGames,gameDeliveryStatus} from './cantina-games.mjs';
 import {portalPostBody,claimPortalPost,portalPostDelivered,portalPostFailed} from './portal-content.mjs';
@@ -50,7 +50,7 @@ export async function handleClubJob(env,id,send){
  else if(job.kind.startsWith('event_')){
   const e=await env.DB.prepare('SELECT * FROM club_events WHERE id=?').bind(data.event_id).first();if(!e)return;
   if(job.kind==='event_poll'){
-   method='sendPoll';body={...base,question:`Availability only — ${e.title} (#${e.id})`.slice(0,240),options:JSON.parse(e.date_options).map(hkTime),is_anonymous:false,open_period:600};
+   method='sendPoll';body={...base,question:`Availability only — ${e.title} (#${e.id})`.slice(0,240),options:JSON.parse(e.date_options).map(hkTime),is_anonymous:false,open_period:POLL_ANSWER_SECONDS};
   }else if(job.kind==='event_announcement')body.text=`Event ${e.id}: ${e.title}\n${hkTime(e.starts_at)}\n${e.location}\nAdmin-confirmed community activity.${e.source_url?'\nSource supplied and checked by the confirming admin: '+e.source_url:''}\nRSVP: /rsvp ${e.id} yes remind (or yes silent / maybe / no). Reminders appear in this group.`;
   else {
    const people=(await env.DB.prepare("SELECT r.user_id,COALESCE(m.name,'Member') name FROM club_rsvps r LEFT JOIN members m ON m.user_id=r.user_id WHERE event_id=? AND response='yes' AND remind=1 AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=r.user_id AND p.opted_out=1) LIMIT 30").bind(e.id).all()).results;

@@ -8,7 +8,7 @@ import { handleCoreCommand, observeGroup, recordReaction, recordEventVote, welco
 import { gameCommand, gameVote } from './cantina-games.mjs';
 import { handleClubJob, clubJob, clubDelivered, scheduleClub, forgetClub } from './cantina-jobs.mjs';
 import { postingPolicy, starterCount, recordEngagement, starterSpacingBlocked } from './adaptive.mjs';
-import { topicThread, topicSummary, topicName, TOPICS, quiet, defer, preferencesCommand, preferencePrompt, pollWithDeadline, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
+import { topicThread, topicSummary, topicName, TOPICS, quiet, defer, preferencesCommand, preferencePrompt, POLL_ANSWER_SECONDS, pollWithDeadline, recordPoll, receivePoll, scheduleFollowups, followup } from './community.mjs';
 import { VERSION, PERSONALITY, activeHours, ambientCandidate, reserveAmbient, cleanAnswer, bounded, setting, setSetting, scheduleProactive, proactive, diagnose, KINDS } from './engagement.mjs';
 // data/trivia.json
 var trivia_default = [
@@ -532,7 +532,7 @@ var HELP = `SIU-M8 cantina host \u2014 AI host for your Star Wars group.
 /whereami \u2014 show group and topic routing
 /topics — show named topics; admins: /bindtopic <name> inside a topic
 Content topics: gaming, movies, lore, hongkong/local_events, global_events, tv, memes, wallpapers
-/guess, /quote, /weeklytrivia — play a two-minute quiz
+/guess, /quote, /weeklytrivia — play a two-hour quiz
 /preferences on|off — opt into remembered preferences
 /era any|prequels|original|sequels|high-republic|old-republic|legends
 /spoilers avoid|allow — save spoiler preference
@@ -670,7 +670,7 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
     throw new Error("telegram-rejected");
   }
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
-    await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), (body.close_date || clock() + (body.open_period || 60)) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), (body.close_date || clock() + (body.open_period || POLL_ANSWER_SECONDS)) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
   }
   if (method === "sendPoll" && (!club||club.kind==='portal_post')) await recordPoll(env,updateId,{...body,question:originalQuestion},result.result);
   if(method==='sendMessage'&&body.reply_parameters?.message_id&&result.result?.message_id)await env.DB.prepare('INSERT OR IGNORE INTO club_messages(message_id,user_id,thread_id,text,parent_id,kind,created_at) VALUES (?,0,?,?,?,?,?)').bind(result.result.message_id,body.message_thread_id||0,String(body.text||'').slice(0,600),body.reply_parameters.message_id,'bot',clock()).run();
@@ -863,7 +863,7 @@ async function handle(env, u) {
       return;
     }
     const q = trivia_default[index % trivia_default.length];
-    await send(env, u.update_id, "sendPoll", { ...destination, question: q.question, options: q.options, type: "quiz", correct_option_id: q.correct, is_anonymous: false, open_period: 60, explanation: `Answer: ${q.options[q.correct]}. First answer counts for rewards.` });
+    await send(env, u.update_id, "sendPoll", { ...destination, question: q.question, options: q.options, type: "quiz", correct_option_id: q.correct, is_anonymous: false, open_period: POLL_ANSWER_SECONDS, explanation: `Answer: ${q.options[q.correct]}. First answer counts for rewards.` });
     return;
   }
   if (['guess','quote','weeklytrivia'].includes(cmd?.name)) {

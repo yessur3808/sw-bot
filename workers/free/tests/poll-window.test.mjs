@@ -12,9 +12,10 @@ test('poll deadline labels use Hong Kong date rollover and preserve complete lon
  const long=pollWithDeadline({...body,question:'x'.repeat(300)},true,now);
  assert.equal(long.question.length,300);assert.equal(long.description,'Ends at 01:30:00 HKT · 1 Jan');
  const quiz=pollWithDeadline({...body,type:'quiz',open_period:120},false,now);
- assert.equal(quiz.close_date,now+120);assert.equal(quiz.open_period,undefined);
- assert.match(quiz.question,/Ends at 23:32:00 HKT · 31 Dec$/);
- assert.equal(pollWithDeadline(body,false,now),body);
+ assert.equal(quiz.close_date,now+7200);assert.equal(quiz.open_period,undefined);
+ assert.match(quiz.question,/Ends at 01:30:00 HKT · 1 Jan$/);
+ assert.equal(pollWithDeadline(body,false,now).close_date,now+7200);
+ assert.equal(pollWithDeadline({...body,close_date:now+60},false,now).close_date,now+7200);
 });
 
 test('discussion polls allow two hours before closing and queue one verified follow-up',async()=>{

@@ -209,8 +209,8 @@ test('recurring daily game slot alternates characters/quotes with Monday weekly 
 test('character game uses native quiz, topic mapping, correct answer and full answer window',async()=>{
  sqlite.prepare("INSERT INTO topic_map VALUES ('lore',15)").run();globalThis.fetch=async(url,options)=>{sent.push({method:String(url).split('/').at(-1),body:JSON.parse(options.body)});return Response.json({ok:true,result:{message_id:901,poll:{id:'quiz-game'}}});};
  await queue(-10,{internal_post:{kind:'character',scheduled_at:Date.now()/1000}});const body=sent[0].body;
- assert.equal(body.type,'quiz');assert.equal(body.message_thread_id,15);assert.equal(body.close_date,Date.now()/1000+120);assert.equal(body.open_period,undefined);assert.ok(Number.isInteger(body.correct_option_id));
- assert.equal(sqlite.prepare('SELECT expires_at FROM polls').get().expires_at,Date.now()/1000+125);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM community_polls').get().n,0);
+ assert.equal(body.type,'quiz');assert.equal(body.message_thread_id,15);assert.equal(body.close_date,Date.now()/1000+7200);assert.equal(body.open_period,undefined);assert.ok(Number.isInteger(body.correct_option_id));
+ assert.equal(sqlite.prepare('SELECT expires_at FROM polls').get().expires_at,Date.now()/1000+7205);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM community_polls').get().n,0);
 });
 function trackedPoll(options=[{text:'R2-D2',voter_count:3},{text:'Chopper',voter_count:1}],closed=1){sqlite.prepare('INSERT INTO community_polls VALUES (?,?,?,?,?,?,?,?)').run('poll-1',800,15,'Which droid?',JSON.stringify(options),Date.now()/1000-60,closed,-4000000000010);}
 test('poll result distinguishes a winner, tied totals and no votes',()=>{
@@ -243,7 +243,7 @@ test('recurring games continue after every curated question has appeared',async(
 });
 test('quote and weekly trivia quizzes have valid choices and correct answers',async()=>{
  for(const kind of ['quote','weekly'])await queue(kind==='quote'?-10:-11,{internal_post:{kind,scheduled_at:Date.now()/1000,requested:true}});
- assert.equal(sent.length,2);for(const x of sent){assert.equal(x.body.type,'quiz');assert.ok(x.body.options[x.body.correct_option_id]);assert.equal(x.body.close_date,Date.now()/1000+120);assert.equal(x.body.open_period,undefined);}
+ assert.equal(sent.length,2);for(const x of sent){assert.equal(x.body.type,'quiz');assert.ok(x.body.options[x.body.correct_option_id]);assert.equal(x.body.close_date,Date.now()/1000+7200);assert.equal(x.body.open_period,undefined);}
 });
 test('a 429 follow-up retries its original text and rechecks topic activity',async()=>{
  trackedPoll();let attempts=0;
@@ -491,7 +491,7 @@ test('team trivia records the first answer, scores participation and preserves a
  nativeTelegram();await webhook(update(90,'/team rebels',{from:{id:77}}));await startGame(env,100,'trivia',15);await drainClub();const round=sqlite.prepare('SELECT * FROM club_game_polls').get();assert.ok(round);
  await webhook({update_id:101,poll_answer:{poll_id:round.poll_id,user:{id:77,is_bot:false},option_ids:[round.correct]}});await webhook({update_id:102,poll_answer:{poll_id:round.poll_id,user:{id:77,is_bot:false},option_ids:[(round.correct+1)%4]}});assert.equal(sqlite.prepare('SELECT points FROM club_points').get().points,3);
  await webhook(update(103,'/team empire',{from:{id:77}}));assert.equal(sqlite.prepare('SELECT team FROM club_points').get().team,'rebels');
- Date.now=()=>Date.parse('2026-10-27T06:02:31Z');await drainClub();assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_game_polls').get().n,2);
+ Date.now=()=>Date.parse('2026-10-27T08:00:31Z');await drainClub();assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_game_polls').get().n,2);
 });
 test('caption contests award creative participation and one peer vote, with no self-voting',async()=>{
  await startGame(env,100,'caption',15);await drainClub();await webhook(update(101,'/caption 100 These are not the invoices you are looking for.',{from:{id:77}}));await webhook(update(102,'/vote 100 77',{from:{id:77}}));assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_caption_votes').get().n,0);
@@ -726,12 +726,40 @@ test('trivia waits for successful first delivery after 429 before scheduling the
  assert.equal(sqlite.prepare('SELECT step FROM club_games').get().step,-1);
  Date.now=()=>Date.parse('2026-10-27T06:09:00Z');await scheduleClub(env);assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM club_jobs WHERE kind='game_step'").get().n,1);
  nativeTelegram();Date.now=()=>Date.parse('2026-10-27T06:10:00Z');await drainClub();assert.equal(sent.length,1);assert.match(sent[0].body.question,/Round 1 of 3/);
- Date.now=()=>Date.parse('2026-10-27T06:12:29Z');await drainClub();assert.equal(sent.length,1);
- Date.now=()=>Date.parse('2026-10-27T06:12:30Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.question,/Round 2 of 3/);
+ Date.now=()=>Date.parse('2026-10-27T08:10:29Z');await drainClub();assert.equal(sent.length,1);
+ Date.now=()=>Date.parse('2026-10-27T08:10:30Z');await drainClub();assert.equal(sent.length,2);assert.match(sent[1].body.question,/Round 2 of 3/);
 });
 test('unsent games expire without revealing an answer or emitting a catch-up burst',async()=>{
  await startGame(env,800,'character',6);Date.now=()=>Date.parse('2026-10-27T07:01:00Z');await drainClub();
  assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'expired');
+});
+test('direct quizzes and legacy queued short timers receive a full two-hour deadline',async()=>{
+ nativeTelegram();await webhook(update(710,'/trivia'));
+ assert.equal(sent.at(-1).body.close_date,Date.now()/1000+7200);
+ const id=711;sqlite.prepare('INSERT INTO updates(id,payload,created_at,outbound,method) VALUES (?,?,?,?,?)').run(id,JSON.stringify(update(id,'/trivia')),Date.now()/1000,JSON.stringify({chat_id:-100123,question:'Legacy queued question',options:['A','B'],type:'quiz',correct_option_id:0,is_anonymous:false,open_period:60}),'sendPoll');
+ await processUpdate(env,id);assert.equal(sent.at(-1).body.close_date,Date.now()/1000+7200);
+ assert.match(sent.at(-1).body.question,/Ends at 16:00:00 HKT/);
+});
+test('trivia accepts late answers and closes only after all three full two-hour rounds',async()=>{
+ nativeTelegram();await startGame(env,800,'trivia',6);await drainClub();
+ const first=sqlite.prepare('SELECT * FROM club_game_polls').get();
+ assert.equal(first.expires_at,Date.now()/1000+7205);
+ Date.now=()=>Date.parse('2026-10-27T07:30:00Z');await drainClub();assert.equal(sent.filter(s=>s.method==='sendPoll').length,1);
+ await webhook({update_id:901,poll_answer:{poll_id:first.poll_id,user:{id:77,is_bot:false},option_ids:[first.correct]}});
+ assert.equal(sqlite.prepare('SELECT points FROM club_points').get().points,3);
+ Date.now=()=>Date.parse('2026-10-27T08:00:30Z');await drainClub();
+ Date.now=()=>Date.parse('2026-10-27T10:01:00Z');await drainClub();
+ assert.equal(sent.filter(s=>s.method==='sendPoll').length,3);
+ Date.now=()=>Date.parse('2026-10-27T11:59:00Z');await drainClub();assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'open');
+ Date.now=()=>Date.parse('2026-10-27T12:02:00Z');await drainClub();assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'closed');
+});
+test('two-hour trivia rounds survive overnight quiet time without expiring or posting early',async()=>{
+ Date.now=()=>Date.parse('2026-10-27T15:00:00Z');nativeTelegram();await startGame(env,800,'trivia',6);await drainClub();
+ Date.now=()=>Date.parse('2026-10-27T17:00:30Z');await drainClub();assert.equal(sent.length,1);
+ Date.now=()=>Date.parse('2026-10-27T22:00:00Z');await drainClub();assert.equal(sent.length,1);
+ assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'open');
+ Date.now=()=>Date.parse('2026-10-28T00:00:00Z');await drainClub();assert.equal(sent.length,2);
+ assert.match(sent.at(-1).body.question,/Round 2 of 3/);assert.equal(sent.at(-1).body.close_date,Date.now()/1000+7200);
 });
 test('a game solved during queue preparation is rechecked before the clue reaches Telegram',async()=>{
  await startGame(env,800,'character',6);

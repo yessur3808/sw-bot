@@ -51,11 +51,12 @@ export async function preferencePrompt(env,user) {
   const avoid=await env.DB.prepare("SELECT 1 FROM fan_preferences f WHERE spoilers='avoid' AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=f.user_id AND p.opted_out=1) LIMIT 1").first();
   return ` Public group spoiler policy: ${p?.spoilers==='allow'&&!avoid?'the requester opted in; warn before plot spoilers and only include them if explicitly requested':'no plot twists, deaths or endings; keep this answer spoiler-free even if asked for spoilers'}.`+(p?` This member explicitly saved favorite era: ${p.era}. Use it only when relevant, never announce their stored preferences.`:'');
 }
-export const DISCUSSION_POLL_SECONDS = 2 * 60 * 60;
+export const POLL_ANSWER_SECONDS = 2 * 60 * 60;
+export const DISCUSSION_POLL_SECONDS = POLL_ANSWER_SECONDS;
 export function pollWithDeadline(body,discussion,now=nowSeconds()) {
-  const duration=body.open_period || (discussion?DISCUSSION_POLL_SECONDS:0);
-  if(!duration&&!body.close_date)return body; // Event date-choice polls have no automatic deadline.
-  const closes=body.close_date || now+duration;
+  // One policy for every multiple-choice poll, including quizzes and queued
+  // legacy bodies. A definite retry gets a fresh full window at delivery time.
+  const closes=now+POLL_ANSWER_SECONDS;
   const date=new Date((closes+8*3600)*1000);
   const month=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][date.getUTCMonth()];
   const label=`Ends at ${date.toISOString().slice(11,19)} HKT · ${date.getUTCDate()} ${month}`;

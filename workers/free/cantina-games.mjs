@@ -1,5 +1,5 @@
 import {nowSeconds,localDay,cleanAnswer} from './engagement.mjs';
-import {topicThread} from './community.mjs';
+import {topicThread,POLL_ANSWER_SECONDS} from './community.mjs';
 import {queueClub,clubQuota,out,messageLink,hkTime} from './cantina-core.mjs';
 const TRIVIA=[
  {question:'Which planet is the Wookiee homeworld?',options:['Kashyyyk','Corellia','Naboo','Hoth'],correct:0},
@@ -94,7 +94,7 @@ export async function gameVote(env,a){
  const inserted=await env.DB.prepare('INSERT OR IGNORE INTO club_game_answers VALUES (?,?,?,?)').bind(round.game_id,round.round,a.user.id,correct).run();
  if(inserted.meta.changes)await gamePoints(env,`trivia:${round.game_id}:${round.round}:${a.user.id}`,a.user.id,correct?3:1,'team-trivia');return true;
 }
-export const gameInterval=kind=>kind==='trivia'?150:300;
+export const gameInterval=kind=>kind==='trivia'?POLL_ANSWER_SECONDS+30:300;
 async function closingScores(env,game){
  if(game.kind==='trivia')return (await env.DB.prepare(`SELECT a.user_id,COALESCE(m.name,'Player') name,SUM(CASE WHEN correct=1 THEN 3 ELSE 1 END) points FROM club_game_answers a LEFT JOIN members m ON m.user_id=a.user_id
   WHERE game_id=? AND NOT EXISTS(SELECT 1 FROM preferences p WHERE p.user_id=a.user_id AND p.opted_out=1)
@@ -143,7 +143,7 @@ export async function gameBody(env,job){
  }
  if(game.kind==='trivia'){
   const q=payload.questions[step];if(!q)return null;
-  return {method:'sendPoll',body:{...base,question:`Cantina trivia · Round ${step+1} of 3\n${q.question}`,options:q.options,type:'quiz',correct_option_id:q.correct,is_anonymous:false,open_period:120,explanation:`Answer: ${q.options[q.correct]}. First answer counts; /team chooses your team.`}};
+  return {method:'sendPoll',body:{...base,question:`Cantina trivia · Round ${step+1} of 3\n${q.question}`,options:q.options,type:'quiz',correct_option_id:q.correct,is_anonymous:false,open_period:POLL_ANSWER_SECONDS,explanation:`Answer: ${q.options[q.correct]}. First answer counts; /team chooses your team.`}};
  }
  if(game.kind==='character')return {method:'sendMessage',body:{...base,text:`🧩 Who am I?\nClue ${step+1} of 3\n\n${payload.clues[step]}\n\nSend /answer followed by your guess.\nFirst correct guess earns 5 points.`}};
  return {method:'sendMessage',body:{...base,text:`✍️ Caption challenge\n\n${payload.prompt}\n\nAdd yours with /caption followed by your line.\nSee entries and vote: /game show\n\nCloses ${hkTime(nowSeconds()+86400)}.`}};
@@ -155,12 +155,14 @@ export async function gameDelivered(env,job,result){
   await env.DB.prepare("UPDATE club_games SET state='closed' WHERE id=? AND state='open'").bind(game.id).run();return;
  }
  // Only a confirmed, sequential delivery advances the game or its clocks.
- const remaining=game.kind==='caption'?86400:game.kind==='character'?(3-step)*300:(2-step)*150+180;
+ // Leave unfinished trivia rounds time to resume after overnight quiet hours.
+ const closes=result.poll?.close_date||nowSeconds()+POLL_ANSWER_SECONDS;
+ const remaining=game.kind==='caption'?86400:game.kind==='character'?(3-step)*300:step<2?86400:closes-nowSeconds()+60;
  const advanced=await env.DB.prepare(`UPDATE club_games SET step=?,message_id=COALESCE(message_id,?),last_step_at=?,
  opened_at=CASE WHEN step=-1 THEN ? ELSE opened_at END,ends_at=? WHERE id=? AND state='open' AND step=?`)
  .bind(step,result.message_id||null,nowSeconds(),nowSeconds(),nowSeconds()+remaining,game.id,step-1).run();
  if(!advanced.meta.changes)return;
- if(game.kind==='trivia'&&result.poll?.id){const q=JSON.parse(game.payload).questions[step];await env.DB.prepare('INSERT OR IGNORE INTO club_game_polls VALUES (?,?,?,?,?)').bind(result.poll.id,game.id,step,q.correct,nowSeconds()+125).run();}
+ if(game.kind==='trivia'&&result.poll?.id){const q=JSON.parse(game.payload).questions[step];await env.DB.prepare('INSERT OR IGNORE INTO club_game_polls VALUES (?,?,?,?,?)').bind(result.poll.id,game.id,step,q.correct,closes+5).run();}
 }
 export async function scheduleGames(env){
  const games=(await env.DB.prepare("SELECT * FROM club_games WHERE state='open'").all()).results;
@@ -168,11 +170,11 @@ export async function scheduleGames(env){
   // A confirmed delivery is durable even if scoring/closing failed afterward.
   const deliveredClose=await env.DB.prepare("SELECT * FROM club_jobs WHERE job_key=? AND state='sent'").bind(`game:${g.id}:close`).first();
   if(deliveredClose){await gameDelivered(env,deliveredClose,{});continue;}
-  if(g.ends_at<nowSeconds()-3600){await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(g.id).run();continue;}
+  if(g.ends_at<nowSeconds()-(g.kind==='trivia'?12*3600:3600)){await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(g.id).run();continue;}
   if(g.ends_at<=nowSeconds()&&!g.message_id){await env.DB.prepare("UPDATE club_games SET state='expired' WHERE id=? AND state='open'").bind(g.id).run();continue;}
-  if(g.ends_at<=nowSeconds()){await queueClub(env,`game:${g.id}:close`,'game_close',{game_id:g.id},g.thread_id,null,nowSeconds(),3600);continue;}
+  if(g.ends_at<=nowSeconds()){await queueClub(env,`game:${g.id}:close`,'game_close',{game_id:g.id},g.thread_id,null,nowSeconds(),g.kind==='trivia'?12*3600:3600);continue;}
   if(g.kind==='caption'||g.step<0||g.step>=2||g.last_step_at===null||nowSeconds()<g.last_step_at+gameInterval(g.kind))continue;
   const step=g.step+1;
-  await queueClub(env,`game:${g.id}:${step}`,'game_step',{game_id:g.id,step},g.thread_id,null,nowSeconds(),1800);
+  await queueClub(env,`game:${g.id}:${step}`,'game_step',{game_id:g.id,step},g.thread_id,null,nowSeconds(),g.kind==='trivia'?12*3600:1800);
  }
 }

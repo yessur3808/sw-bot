@@ -59,7 +59,7 @@ test('trivia preserves zero-based answers and becomes a native Telegram quiz onl
   const q=pollImport([entry],identity);sqlite.prepare(q.sql).run(...q.params);let p=sqlite.prepare('SELECT * FROM admin_posts').get();assert.equal(p.kind,'quiz');assert.equal(p.correct,0);assert.equal(p.state,'draft');assert.deepEqual(JSON.parse(p.import_metadata),entry);
   await schedulePortalPosts(env);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM club_jobs').get().n,0);
   await changePost(env,42,p.id,1,'approve');await changePost(env,42,p.id,1,'publish');await schedulePortalPosts(env);
-  const rendered=await portalPostBody(env,sqlite.prepare('SELECT * FROM club_jobs').get());assert.equal(rendered.method,'sendPoll');assert.equal(rendered.body.type,'quiz');assert.equal(rendered.body.correct_option_id,0);assert.equal(rendered.body.is_anonymous,false);assert.equal(rendered.body.open_period,120);
+  const rendered=await portalPostBody(env,sqlite.prepare('SELECT * FROM club_jobs').get());assert.equal(rendered.method,'sendPoll');assert.equal(rendered.body.type,'quiz');assert.equal(rendered.body.correct_option_id,0);assert.equal(rendered.body.is_anonymous,false);assert.equal(rendered.body.open_period,7200);
   assert.equal(sqlite.prepare(q.sql).run(...q.params).changes,0);
   for(const correct of [-1,4,1.5,'0',true,undefined])assert.throws(()=>pollRows([{...entry,correct}]));
   assert.throws(()=>pollRows([{...entry,category:'movie_poll'}]),/correct answer/);
