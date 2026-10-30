@@ -1,3 +1,4 @@
+import {observeCleanupPoll} from './poll-cleanup.mjs';
 import { nowSeconds, activeHours, setting, setSetting, cleanAnswer } from './engagement.mjs';
 export const TOPICS = {game:'gaming',movie:'movies',question:'lore',poll:'lore',idea:'lore',character:'lore',quote:'lore',weekly:'lore',hongkong:'hongkong',global_events:'global_events',tv:'tv',memes:'memes',wallpapers:'wallpapers'};
 export const EXTRA_TOPICS = ['hongkong','global_events','tv','memes','wallpapers'];
@@ -72,6 +73,7 @@ export async function recordPoll(env,id,body,result) {
     .bind(result.poll.id,result.message_id,body.message_thread_id||0,body.question,JSON.stringify(result.poll.options || body.options.map(text=>({text,voter_count:0}))),body.close_date||nowSeconds()+DISCUSSION_POLL_SECONDS,-4000000000000-Math.abs(id)).run();
 }
 export async function receivePoll(env,poll) {
+  await observeCleanupPoll(env,poll);
   // Only polls sent and recorded by this bot are accepted; only final totals authorize a follow-up.
   if (!poll.is_closed || !Array.isArray(poll.options)) return;
   const known=await env.DB.prepare('SELECT options FROM community_polls WHERE poll_id=?').bind(poll.id).first();
@@ -86,6 +88,8 @@ export async function scheduleFollowups(env) {
     if (!p.closed) {
       try {await closePoll(env,p);} catch { /* Follow-up queue retries missing results; never guesses. */ }
     }
+    const final=await env.DB.prepare('SELECT closed,options FROM community_polls WHERE poll_id=?').bind(p.poll_id).first();
+    if(final?.closed && JSON.parse(final.options).every(o=>o.voter_count===0))continue;
     if(env.PROACTIVE_ENABLED==='false'||await setting(env,'paused')==='1')continue;
     await env.DB.prepare('INSERT OR IGNORE INTO updates(id,payload,created_at) VALUES (?,?,?)').bind(p.followup_id,JSON.stringify({internal_followup:p.poll_id}),nowSeconds()).run();
   }
@@ -116,6 +120,7 @@ export async function followup(env,id,pollId,send,personality) {
     Object.assign(p,refreshed);
   }
   const result=pollResult(p),hasVotes=JSON.parse(p.options).some(o=>o.voter_count>0);
+  if(!hasVotes)return; // Empty polls disappear silently; never post a no-votes receipt.
   let discussion='';
   if(hasVotes) {
     discussion='That choice has the votes; now it needs a defence. What is its strongest drawback, and which alternative handles it better?';

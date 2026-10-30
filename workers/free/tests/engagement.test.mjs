@@ -16,6 +16,7 @@ function database() {
   db.exec(readFileSync(new URL('../migrations/0006_safe_recaps_games.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0007_admin_portal.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0009_youtube.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0010_poll_cleanup.sql', import.meta.url), 'utf8'));
   db.exec("INSERT INTO deployment_identity VALUES (1,'-100123','test')");
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];
@@ -231,8 +232,8 @@ test('follow-up waits for quiet and never invents totals if closing poll fails',
  trackedPoll(undefined,0);await webhook(update(2,'hello',{message_thread_id:15}));await queue(-4000000000010,{internal_followup:'poll-1'});assert.equal(sent.length,0);
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');globalThis.fetch=async()=>Response.json({ok:false,error_code:400});await processUpdate(env,-4000000000010);assert.equal(sent.length,0);assert.equal(aiCalls.length,0);
 });
-test('zero-vote follow-up is honest and needs no model',async()=>{
- trackedPoll([{text:'R2-D2',voter_count:0},{text:'Chopper',voter_count:0}]);await queue(-4000000000010,{internal_followup:'poll-1'});assert.equal(aiCalls.length,0);assert.match(sent[0].body.text,/No votes/);
+test('zero-vote follow-up is silent and needs no model',async()=>{
+ trackedPoll([{text:'R2-D2',voter_count:0},{text:'Chopper',voter_count:0}]);await queue(-4000000000010,{internal_followup:'poll-1'});assert.equal(aiCalls.length,0);assert.equal(sent.length,0);
 });
 test('webhook cannot spoof configuration or poll follow-up jobs',async()=>{
  await webhook({update_id:1,internal_configure:true});await webhook({update_id:2,internal_followup:'poll-1'});assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM updates').get().n,0);
@@ -252,12 +253,12 @@ test('a 429 follow-up retries its original text and rechecks topic activity',asy
  await webhook(update(10,'hi',{message_thread_id:15}));Date.now=()=>Date.parse('2026-10-27T06:00:03Z');await processUpdate(env,-4000000000010);assert.equal(sent.length,1);
  Date.now=()=>Date.parse('2026-10-27T06:11:00Z');await processUpdate(env,-4000000000010);assert.equal(sent.length,2);assert.deepEqual(sent[0],sent[1]);assert.equal(aiCalls.length,1);
 });
-test('poll recording uses Telegram IDs and scheduler deduplicates its follow-up',async()=>{
+test('poll recording uses Telegram IDs and cleanup silently deletes an unanswered poll once',async()=>{
  sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27','[]');
- globalThis.fetch=async(url,options)=>{const body=JSON.parse(options.body);sent.push({body});return Response.json({ok:true,result:{message_id:901,poll:{id:'real-poll',options:body.options.map(text=>({text,voter_count:0}))}}});};
+ globalThis.fetch=async(url,options)=>{const body=JSON.parse(options.body);sent.push({method:String(url).split('/').at(-1),body});return Response.json({ok:true,result:body.options?{message_id:901,poll:{id:'real-poll',options:body.options.map(text=>({text,voter_count:0}))}}:true});};
  await webhook(update(1,'/poll'));assert.equal(sent[0].body.open_period,undefined);const p=sqlite.prepare('SELECT * FROM community_polls').get();assert.equal(p.poll_id,'real-poll');assert.equal(p.message_id,901);
  Date.now=()=>Date.parse('2026-10-27T08:00:00Z');await receivePoll(env,{id:'real-poll',is_closed:true,options:JSON.parse(p.options)});
- await maintenance(env);await maintenance(env);assert.equal(sent.length,2);assert.match(sent[1].body.text,/No votes/);
+ await maintenance(env);await maintenance(env);assert.equal(sent.length,2);assert.equal(sent[1].method,'deleteMessage');assert.equal(sqlite.prepare('SELECT state FROM poll_cleanup').get().state,'deleted');
 });
 test('rate-limited polls get one fresh HKT deadline matching Telegram and stored follow-up time',async()=>{
  let attempts=0;
@@ -892,4 +893,30 @@ test('confirmed caption closing recovers scoring once without resending and forg
  await scheduleGames(env);await scheduleGames(env);assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'closed');assert.equal(sqlite.prepare('SELECT SUM(points) n FROM club_points').get().n,5);
  await webhook(update(920,'/forget',{from:{id:77}}));const data=JSON.parse(sqlite.prepare("SELECT data FROM club_jobs WHERE kind='game_close'").get().data);assert.deepEqual(data.closing_winners,[]);
  assert.equal(sent.filter(s=>s.body.text?.includes('— finished')).length,1);
+});
+
+test('poll webhooks retain final totals and opted-out answers protect a quiz from cleanup',async()=>{
+ nativeTelegram();await webhook(update(950,'/trivia'));
+ const p=sqlite.prepare('SELECT * FROM poll_cleanup').get();assert.ok(p);assert.equal(p.closes_at,Date.now()/1000+7200);
+ sqlite.prepare('INSERT INTO preferences VALUES (77,1)').run();
+ await webhook({update_id:951,poll_answer:{poll_id:p.poll_id,user:{id:77,is_bot:false},option_ids:[0]}});
+ assert.equal(sqlite.prepare('SELECT had_votes FROM poll_cleanup').get().had_votes,1);
+ assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM answers').get().n,0);
+ await webhook({update_id:952,poll:{id:p.poll_id,is_closed:true,total_voter_count:1,options:JSON.parse(p.options).map((text,i)=>({text,voter_count:i===0?1:0}))}});
+ assert.equal(sqlite.prepare('SELECT final_votes FROM poll_cleanup').get().final_votes,1);
+});
+test('a completely unanswered team trivia closes silently and every round is tracked for cleanup',async()=>{
+ nativeTelegram();await startGame(env,980,'trivia',6);await drainClub();
+ Date.now=()=>Date.parse('2026-10-27T08:00:30Z');await drainClub();
+ Date.now=()=>Date.parse('2026-10-27T10:01:00Z');await drainClub();
+ Date.now=()=>Date.parse('2026-10-27T12:02:00Z');await drainClub();
+ assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM poll_cleanup').get().n,3);
+ assert.equal(sqlite.prepare('SELECT state FROM club_games').get().state,'closed');
+ assert.equal(sent.filter(x=>x.method==='sendMessage').length,0);
+});
+test('a legacy cached no-votes follow-up is discarded on retry',async()=>{
+ trackedPoll([{text:'R2-D2',voter_count:0},{text:'Chopper',voter_count:0}]);
+ const id=-4000000000010;
+ sqlite.prepare('INSERT INTO updates(id,payload,created_at,outbound,method) VALUES (?,?,?,?,?)').run(id,JSON.stringify({internal_followup:'poll-1'}),Date.now()/1000,JSON.stringify({chat_id:-100123,text:'No votes landed.'}),'sendMessage');
+ await processUpdate(env,id);assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT state FROM updates WHERE id=?').get(id).state,'done');
 });

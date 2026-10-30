@@ -1,3 +1,4 @@
+import {trackPollCleanup,observeCleanupAnswer,cleanupEmptyPolls} from './poll-cleanup.mjs';
 import {refreshSourceFeed,sourceContext,sourceStatus} from './source-feed.mjs';
 import {mediaFetch,youtubeStatus} from './youtube.mjs';
 import {sourceQuery,renderSources,renderSourceStatus} from './source-display.mjs';
@@ -633,8 +634,6 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
     (club?.kind === 'portal_post' || automaticDelivery(payload,club,env.BOT_USERNAME,botID(env)));
   if (timedPost && !activeHours()) { await defer(env,updateId); throw Error('delivery-deferred'); }
   if(['sendMessage','sendPoll'].includes(method)&&automaticDelivery(payload,club,env.BOT_USERNAME,botID(env))&&!await reserveAutomation(env,updateId))throw Error('automated-budget-exhausted');
-  // Community polls are closed by maintenance, which captures final totals.
-  // Telegram may not send an update when an automatic timer closes an empty poll.
   await env.DB.prepare("UPDATE updates SET state='sending',error=NULL,outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
   // Recheck after all queue/budget writes, immediately before the external send.
   if(deliveryGuard){
@@ -669,6 +668,7 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
     }
     throw new Error("telegram-rejected");
   }
+  if(method==='sendPoll')await trackPollCleanup(env,body,result.result);
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
     await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), (body.close_date || clock() + (body.open_period || POLL_ANSWER_SECONDS)) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
   }
@@ -718,6 +718,7 @@ async function handle(env, u) {
   if(u.internal_club){await handleClubJob(env,u.update_id,send);return;}
   if(u.message_reaction){await recordReaction(env,u.message_reaction);return;}
   if(u.message?.new_chat_members?.length){await welcome(env,u);return;}
+  if(u.poll_answer)await observeCleanupAnswer(env,u.poll_answer);
   if(u.poll_answer && (await recordEventVote(env,u.poll_answer)||await gameVote(env,u.poll_answer)))return;
   if (u.poll) { await receivePoll(env,u.poll); return; }
   if (u.internal_followup) { await followup(env,u.update_id,u.internal_followup,send,SYSTEM_PROMPT); return; }
@@ -955,7 +956,10 @@ async function processUpdate(env, id) {
         const body = JSON.parse(claimed.outbound);
         const autonomous = payload.internal_followup || !payload.internal_post.requested;
         if (payload.internal_post && !payload.internal_post.requested && await starterCount(env,id)>=(await postingPolicy(env)).target) {await mark(env,id,'done');return;}
-        if (payload.internal_followup && (env.PROACTIVE_ENABLED === 'false' || clock() - (await env.DB.prepare('SELECT closes_at FROM community_polls WHERE poll_id=?').bind(payload.internal_followup).first())?.closes_at > 86400)) {await mark(env,id,'done');return;}
+        if(payload.internal_followup){
+          const poll=await env.DB.prepare('SELECT closes_at,closed,options FROM community_polls WHERE poll_id=?').bind(payload.internal_followup).first();
+          if(env.PROACTIVE_ENABLED==='false'||!poll||clock()-poll.closes_at>86400||!poll.closed||!JSON.parse(poll.options).some(o=>o.voter_count>0)){await mark(env,id,'done');return;}
+        }
         if (payload.internal_post && !payload.internal_post.requested && await starterSpacingBlocked(env,id)) {await defer(env,id);return;}
         if (autonomous && Number(await setting(env,'quiet_until')||0)>clock()) {await defer(env,id);return;}
         if (autonomous && (!activeHours() || !await quiet(env,body.message_thread_id||0))) {await defer(env,id);return;}
@@ -998,6 +1002,7 @@ async function maintenance(env) {
   await schedulePortalPosts(env);
   await scheduleProactive(env);
   await scheduleFollowups(env);
+  await cleanupEmptyPolls(env);
   await scheduleClub(env);
   await env.DB.prepare("UPDATE updates SET state='uncertain',payload='{}',outbound=NULL,method=NULL,error='send-interrupted' WHERE state='sending' AND lease_until<?").bind(clock()).run();
   const pending = await env.DB.prepare("SELECT id FROM updates WHERE attempts<3 AND ready_at<=? AND (state='queued' OR (state='processing' AND lease_until<?)) ORDER BY id LIMIT 3").bind(clock(), clock()).all();
@@ -1062,7 +1067,7 @@ var index_default = {
     } else if (u.message_reaction?.chat?.id===Number(env.GROUP_ID) && u.message_reaction.user && Number.isSafeInteger(u.message_reaction.message_id)) {
       const r=u.message_reaction;u={update_id:u.update_id,message_reaction:{chat:{id:r.chat.id},message_id:r.message_id,user:r.user,new_reaction:Array.isArray(r.new_reaction)?r.new_reaction.slice(0,5):[]}};
     } else if (u.poll && typeof u.poll.id === 'string' && Array.isArray(u.poll.options)) {
-      u={update_id:u.update_id,poll:{id:u.poll.id,is_closed:u.poll.is_closed===true,options:u.poll.options.slice(0,12).map(p=>({text:String(p.text).slice(0,100),voter_count:p.voter_count}))}};
+      u={update_id:u.update_id,poll:{id:u.poll.id,total_voter_count:u.poll.total_voter_count,is_closed:u.poll.is_closed===true,options:u.poll.options.slice(0,12).map(p=>({text:String(p.text).slice(0,100),voter_count:p.voter_count}))}};
     } else if (u.poll_answer?.user && Array.isArray(u.poll_answer.option_ids)) {
       u = { update_id: u.update_id, poll_answer: { poll_id: u.poll_answer.poll_id, user: u.poll_answer.user, option_ids: u.poll_answer.option_ids.slice(0, 1) } };
     } else return new Response("OK");

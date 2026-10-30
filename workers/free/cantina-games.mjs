@@ -122,7 +122,8 @@ export async function gameBody(env,job){
   let result='';const scores=await closingScores(env,game),snapshot=JSON.stringify(scores);
   if(game.kind==='character')result=`The character was ${payload.display}. No correct guess was recorded this round.`;
   if(game.kind==='trivia'){
-   result=scores.length?'Round scores\n'+scores.map((x,i)=>`${i+1}. ${displayName(x.name)} · ${x.points} points`).join('\n'):'No answers this round. The next quiz is a fresh chance.';
+   if(!scores.length){await env.DB.prepare("UPDATE club_games SET state='closed' WHERE id=? AND state='open'").bind(game.id).run();return null;}
+   result='Round scores\n'+scores.map((x,i)=>`${i+1}. ${displayName(x.name)} · ${x.points} points`).join('\n');
   }
   if(game.kind==='caption'){
    const votes=scores;
