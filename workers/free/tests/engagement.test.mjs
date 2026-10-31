@@ -17,6 +17,7 @@ function database() {
   db.exec(readFileSync(new URL('../migrations/0007_admin_portal.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0009_youtube.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0010_poll_cleanup.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0011_meme_roster.sql', import.meta.url), 'utf8'));
   db.exec("INSERT INTO deployment_identity VALUES (1,'-100123','test')");
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];
@@ -375,6 +376,7 @@ test('admins can bind new and custom topics while private/non-admin requests can
  await webhook(update(4,'/bindtopic memes',{chat:{id:42,type:'private'}}));await webhook(update(5,'/bindtopic wallpapers',{from:{id:99},message_thread_id:23}));assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM topic_map WHERE name IN ('memes','wallpapers')").get().n,0);
 });
 test('each expanded content category routes to its actual bound topic',async()=>{
+ sqlite.exec("INSERT INTO meme_roster(id,image_url,source_url,author,sha256) VALUES ('one','https://example.com/meme.jpg','https://imgflip.com/i/one','fan','abc')");
  let i=0;for(const name of ['hongkong','global_events','tv','memes','wallpapers']){
   sqlite.prepare('INSERT INTO topic_map VALUES (?,?)').run(name,20+i);
   env.AI.run=async()=>({response:`A distinct ${name} discussion prompt for the group.`});

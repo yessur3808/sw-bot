@@ -1,3 +1,4 @@
+import {memeDeliveryAllowed,memeDelivered} from './memes.mjs';
 import {trackPollCleanup,observeCleanupAnswer,cleanupEmptyPolls} from './poll-cleanup.mjs';
 import {refreshSourceFeed,sourceContext,sourceStatus} from './source-feed.mjs';
 import {mediaFetch,youtubeStatus} from './youtube.mjs';
@@ -630,10 +631,14 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
   const deliveryUpdate=await env.DB.prepare('SELECT payload FROM updates WHERE id=?').bind(updateId).first();
   const payload = JSON.parse(deliveryUpdate?.payload || '{}');
   body = routing ? privateAdminDelivery(env, payload, method, body, routing) : groupDelivery(env, body);
-  const timedPost = !routing && ['sendMessage','sendPoll'].includes(method) &&
+  if(method==='sendMessage'&&!routing){
+    const oldMeme=payload.internal_post?.kind==='memes'||await env.DB.prepare("SELECT 1 FROM engagement_posts WHERE update_id=? AND kind='memes'").bind(updateId).first();
+    if(oldMeme)throw Error('delivery-invalidated');
+  }
+  const timedPost = !routing && ['sendMessage','sendPoll','sendPhoto'].includes(method) &&
     (club?.kind === 'portal_post' || automaticDelivery(payload,club,env.BOT_USERNAME,botID(env)));
   if (timedPost && !activeHours()) { await defer(env,updateId); throw Error('delivery-deferred'); }
-  if(['sendMessage','sendPoll'].includes(method)&&automaticDelivery(payload,club,env.BOT_USERNAME,botID(env))&&!await reserveAutomation(env,updateId))throw Error('automated-budget-exhausted');
+  if(['sendMessage','sendPoll','sendPhoto'].includes(method)&&automaticDelivery(payload,club,env.BOT_USERNAME,botID(env))&&!await reserveAutomation(env,updateId))throw Error('automated-budget-exhausted');
   await env.DB.prepare("UPDATE updates SET state='sending',error=NULL,outbound=?,method=? WHERE id=?").bind(JSON.stringify(body), method, updateId).run();
   // Recheck after all queue/budget writes, immediately before the external send.
   if(deliveryGuard){
@@ -646,6 +651,8 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
   if (timedPost && !activeHours()) { await defer(env,updateId); throw Error('delivery-deferred'); }
   // The saved outbound body remains undecorated: a definite non-delivery retry
   // gets a fresh deadline and exactly one label, after all awaited claims.
+  if(method==='sendPhoto'&&!await memeDeliveryAllowed(env,updateId,body))throw Error('delivery-invalidated');
+  if(timedPost&&!activeHours()){await defer(env,updateId);throw Error('delivery-deferred');}
   const originalQuestion=body.question;
   if(method==='sendPoll')body=pollWithDeadline(body,body.type!=='quiz'&&(!club||club.kind==='portal_post'));
   let response;
@@ -668,6 +675,7 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
     }
     throw new Error("telegram-rejected");
   }
+  if(method==='sendPhoto')await memeDelivered(env,updateId,result.result);
   if(method==='sendPoll')await trackPollCleanup(env,body,result.result);
   if (method === "sendPoll" && body.type === "quiz" && result.result?.poll?.id) {
     await env.DB.prepare("INSERT OR IGNORE INTO polls(poll_id,correct,expires_at,chat_id,thread_id) VALUES (?,?,?,?,?)").bind(result.result.poll.id, Number(body.correct_option_id), (body.close_date || clock() + (body.open_period || POLL_ANSWER_SECONDS)) + 5, Number(body.chat_id), Number(body.message_thread_id || 0)).run();
@@ -875,7 +883,7 @@ async function handle(env, u) {
     if (!admins(env).includes(user.id)) return;
     const requested=cmd.arg.toLowerCase() || "question";
     const kind=KINDS.includes(requested)?requested:Object.keys(TOPICS).find(k=>TOPICS[k]===topicName(requested));
-    if (!KINDS.includes(kind)) { await reply(env, u.update_id, m, `Choose /post followed by: ${KINDS.join(", ")}. Memes are text/caption posts; wallpapers are design prompts. Event posts use fresh official sources when available, otherwise clearly labelled planning ideas.`); return; }
+    if (!KINDS.includes(kind)) { await reply(env, u.update_id, m, `Choose /post followed by: ${KINDS.join(", ")}. Memes are curated image posts; wallpapers are design prompts. Event posts use fresh official sources when available, otherwise clearly labelled planning ideas.`); return; }
     if (!await takeQuota(env, `post:${u.update_id}`, m, "manual_post", 5, 60)) return;
     await proactive(env, u.update_id, {kind, scheduled_at: clock(), requested: true}, send, polls_default, trivia_default);
     return;

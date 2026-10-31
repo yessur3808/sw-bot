@@ -102,7 +102,7 @@ Send each command inside its corresponding existing Telegram topic:
 | Hong Kong / local events | `/bindtopic hongkong` | Hypothetical meetup ideas and local fan discussions |
 | Global events | `/bindtopic global_events` | Fan-event wishlists and international community discussions |
 | TV shows | `/bindtopic tv` | Spoiler-free show discussions and creative prompts |
-| Memes | `/bindtopic memes` | Original text jokes and caption challenges |
+| Memes | `/bindtopic memes` | Curated Star Wars meme images with source attribution |
 | Wallpapers | `/bindtopic wallpapers` | Wallpaper design concepts/prompts and sharing discussions |
 
 Aliases include `hong_kong`, `hk`, `local_events`, `tv_shows`, `television`,
@@ -114,11 +114,9 @@ is shared across all topics. Categories rotate by last post/attempt so a new top
 can enter today's schedule and a failed category cannot monopolise it. Recurring
 games retain the first scheduled slot. Unbound extra categories are excluded from
 automatic rotation; explicit `/post tv`, `/post memes`, `/post wallpapers`,
-`/post hongkong` or `/post global_events` uses the normal default if not mapped.
+`/post hongkong` or `/post global_events` uses the normal default if not mapped. Meme images require the Memes topic to be bound.
 
-These event categories currently use curated planning prompts, **not live event
-listings or news feeds**. Memes are text; wallpaper posts are concepts, **not
-image attachments**. Adding live listings or image generation is separate work.
+Event categories use verified source cards when available and labelled planning prompts otherwise. Memes send actual photo attachments from the reviewed 120-image roster; wallpaper posts remain design concepts.
 
 Admins can also `/bindtopic collectibles` (or another name up to 40 characters).
 Custom names are stored and displayed as mapped-only; they do not automatically
@@ -413,3 +411,7 @@ All new multiple-choice polls, including direct quizzes, automatic trivia, porta
 Unanswered poll cleanup: apply `migrations/0010_poll_cleanup.sql` before deploying. New bot polls (including quizzes, portal polls and team-trivia rounds) are tracked by their confirmed Telegram message IDs. After the two-hour deadline, minutely maintenance deletes messages with verified final zero votes and no observed answers, silently. Any observed participation preserves the message, including a subsequently withdrawn vote. No-vote discussion follow-ups and empty trivia score announcements stay silent. Cleanup uses Telegram aggregate results rather than personal answer records, so opt-outs and `/forget` cannot turn answered polls into deletion candidates. Missing final totals and network/rate-limit errors retry conservatively for up to 24 hours after posting; unresolved polls stay visible. Cleanup runs during quiet hours without posting anything, stops for disabled deployments, and never targets member messages. Tracking expires after seven days. Already-published polls predating this tracker are not retroactively deleted.
 
 Automatic news, event and release posts use native Telegram formatting: bold titles and field labels, readable dates, spaced descriptions and labelled source links with previews disabled. Event cards use Date/Venue/Admission fields instead of release/platform wording; non-HK event dates remain local. Source text is literal, with UTF-16 entity ranges rather than HTML/Markdown parsing. Date precision, regional availability uncertainty and sold-out warnings remain intact. Overlong cards are skipped instead of truncating facts or formatting entities. Existing published posts are not rewritten.
+
+Meme images: apply `migrations/0011_meme_roster.sql`, then import `data/memes/seed.sql` into the intended deployment database. The seed is idempotent and preserves rotation, removals and cached Telegram file IDs. Each asset URL pins commit 3e2b62cbac5bc2e193bf2d64ac5d719a3f31e141. Atomic D1 selection visits all active images before selecting one again; a failed selection consumes its turn rather than blocking the roster. Retries reuse the same image. Successful sends cache Telegram file IDs. Images retain their original watermark and link to their public source post. No live third-party feed is needed during delivery.
+
+Automatic images respect topic binding, activity, quiet hours, shared budgets and pause controls, including persisted retries. There is no text-only meme fallback. If `portal_starter_approval=1`, automatic memes are held because the current portal editor only supports text and polls; normal automatic posting (`0`) sends images. `/post memes` requests one image through the same queue.
