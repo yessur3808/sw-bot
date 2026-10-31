@@ -1,0 +1,1766 @@
+[
+  {
+    "category": "movie_quote",
+    "quote": "May the Force be with you.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "General Dodonna",
+    "topics": [
+      "force",
+      "rebellion",
+      "hope"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "That's no moon. It's a space station.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "death star",
+      "empire",
+      "realization"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Help me, Obi-Wan Kenobi. You're my only hope.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "leia",
+      "obi-wan",
+      "hope"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I felt a great disturbance in the Force.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "force",
+      "alderaan",
+      "tragedy"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The Force is strong with this one.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "force",
+      "luke skywalker",
+      "battle of yavin"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The more you tighten your grip, the more star systems will slip through your fingers.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "empire",
+      "rebellion",
+      "defiance"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Aren't you a little short for a stormtrooper?",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "leia",
+      "luke skywalker",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I suggest a new strategy, R2. Let the Wookiee win.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "C-3PO",
+    "topics": [
+      "droids",
+      "chewbacca",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "These aren't the droids you're looking for.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "jedi mind trick",
+      "droids",
+      "tatooine"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Mos Eisley spaceport. You will never find a more wretched hive of scum and villainy.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "tatooine",
+      "mos eisley",
+      "smugglers"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I have a bad feeling about this.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Luke Skywalker",
+    "topics": [
+      "recurring quote",
+      "danger",
+      "original trilogy"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The ability to destroy a planet is insignificant next to the power of the Force.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "force",
+      "death star",
+      "sith"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Use the Force, Luke.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "force",
+      "luke skywalker",
+      "battle of yavin"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Great, kid. Don't get cocky.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "luke skywalker",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Wonderful girl. Either I'm going to kill her or I'm beginning to like her.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "leia organa",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "When I left you, I was but the learner. Now I am the master.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "darth vader",
+      "obi-wan kenobi",
+      "duel"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "If you strike me down, I shall become more powerful than you can possibly imagine.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "force ghost",
+      "sacrifice"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I recognized your foul stench when I was brought on board.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "leia organa",
+      "tarkin",
+      "defiance"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Evacuate? In our moment of triumph?",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Grand Moff Tarkin",
+    "topics": [
+      "tarkin",
+      "death star",
+      "hubris"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The Force is with you, young Skywalker. But you are not a Jedi yet.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "darth vader",
+      "luke skywalker",
+      "jedi"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "No. I am your father.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "darth vader",
+      "luke skywalker",
+      "reveal"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I love you.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "leia organa",
+      "han solo",
+      "romance"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I know.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "leia organa",
+      "carbonite"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Laugh it up, fuzzball.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "chewbacca",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Size matters not.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "force",
+      "training"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Wars not make one great.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "jedi",
+      "wisdom"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "You must unlearn what you have learned.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "training",
+      "jedi"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "That is why you fail.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "training",
+      "belief"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I am not a committee.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "leia organa",
+      "leadership",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Would it help if I got out and pushed?",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "leia organa",
+      "han solo",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "This deal is getting worse all the time.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Lando Calrissian",
+    "topics": [
+      "lando calrissian",
+      "empire",
+      "cloud city"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Apology accepted, Captain Needa.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "darth vader",
+      "imperial",
+      "intimidation"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I thought they smelled bad on the outside.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "hoth",
+      "tauntaun"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "There is another.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "leia organa",
+      "skywalker"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "It's a trap!",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Admiral Ackbar",
+    "topics": [
+      "ackbar",
+      "battle of endor",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I am a Jedi, like my father before me.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Luke Skywalker",
+    "topics": [
+      "luke skywalker",
+      "jedi",
+      "redemption"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The Emperor is not as forgiving as I am.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "darth vader",
+      "emperor",
+      "empire"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "It's against my programming to impersonate a deity.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "C-3PO",
+    "topics": [
+      "c-3po",
+      "ewoks",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Soon I'll be dead, and you with me.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Luke Skywalker",
+    "topics": [
+      "luke skywalker",
+      "emperor",
+      "death star"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Now, young Skywalker, you will die.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Emperor Palpatine",
+    "topics": [
+      "palpatine",
+      "luke skywalker",
+      "dark side"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "So be it, Jedi.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Emperor Palpatine",
+    "topics": [
+      "palpatine",
+      "jedi",
+      "sith"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "You were right about me.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "anakin skywalker",
+      "luke skywalker",
+      "redemption"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Many Bothans died to bring us this information.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Mon Mothma",
+    "topics": [
+      "rebellion",
+      "bothans",
+      "death star"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Good. I can feel your anger.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Emperor Palpatine",
+    "topics": [
+      "palpatine",
+      "dark side",
+      "temptation"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "There is good in him. I've felt it.",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "speaker": "Luke Skywalker",
+    "topics": [
+      "luke skywalker",
+      "darth vader",
+      "redemption"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Always two there are, no more, no less.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "sith",
+      "rule of two",
+      "jedi council"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "There's always a bigger fish.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Qui-Gon Jinn",
+    "topics": [
+      "qui-gon jinn",
+      "naboo",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "At last we will reveal ourselves to the Jedi.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Darth Maul",
+    "topics": [
+      "darth maul",
+      "sith",
+      "jedi"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Now this is podracing.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "anakin skywalker",
+      "podracing",
+      "naboo"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The negotiations were short.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "humor",
+      "prequels"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The ability to speak does not make you intelligent.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Qui-Gon Jinn",
+    "topics": [
+      "qui-gon jinn",
+      "jar jar binks",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "We will watch your career with great interest.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Palpatine",
+    "topics": [
+      "palpatine",
+      "anakin skywalker",
+      "foreshadowing"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I will not condone a course of action that will lead us to war.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Padme Amidala",
+    "topics": [
+      "padme amidala",
+      "naboo",
+      "politics"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "You were right about one thing, Master. The negotiations were short.",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "qui-gon jinn",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Begun, the Clone War has.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "clone wars",
+      "yoda",
+      "republic"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I don't like sand.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "anakin skywalker",
+      "padme amidala",
+      "tatooine"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Why do I get the feeling you're going to be the death of me?",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "anakin skywalker",
+      "foreshadowing"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I hate it when he does that.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "anakin skywalker",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "This party's over.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Mace Windu",
+    "topics": [
+      "mace windu",
+      "geonosis",
+      "jedi"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I am a slow learner.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "anakin skywalker",
+      "count dooku",
+      "duel"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Attachment is forbidden. Possession is forbidden.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "jedi code",
+      "anakin skywalker",
+      "attachment"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Truly wonderful, the mind of a child is.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "jedi younglings",
+      "wisdom"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The shroud of the dark side has fallen.",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "dark side",
+      "clone wars"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "So uncivilized.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "general grievous",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Hello there.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "general grievous",
+      "meme"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "General Kenobi.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "General Grievous",
+    "topics": [
+      "general grievous",
+      "obi-wan kenobi",
+      "meme"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "This is where the fun begins.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "anakin skywalker",
+      "space battle",
+      "prequels"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Another happy landing.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "humor",
+      "coruscant"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I have the high ground.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "mustafar",
+      "duel"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "You underestimate my power.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "anakin skywalker",
+      "mustafar",
+      "fall"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "You were the chosen one!",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "anakin skywalker",
+      "chosen one"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Only a Sith deals in absolutes.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "sith",
+      "philosophy"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I am the Senate.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Palpatine",
+    "topics": [
+      "palpatine",
+      "senate",
+      "sith"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Not yet.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Mace Windu",
+    "topics": [
+      "mace windu",
+      "palpatine",
+      "jedi"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "It's treason, then.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Palpatine",
+    "topics": [
+      "palpatine",
+      "jedi council",
+      "sith"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Execute Order 66.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Palpatine",
+    "topics": [
+      "order 66",
+      "clone troopers",
+      "jedi purge"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I am the Jedi.",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie"
+    },
+    "speaker": "Rey",
+    "topics": [
+      "rey",
+      "jedi",
+      "palpatine"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The dark side of the Force is a pathway to many abilities some consider to be unnatural.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Palpatine",
+    "topics": [
+      "palpatine",
+      "dark side",
+      "sith"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "So this is how liberty dies, with thunderous applause.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Padme Amidala",
+    "topics": [
+      "padme amidala",
+      "republic",
+      "empire"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The Force is strong with you.",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "darth vader",
+      "luke skywalker",
+      "force"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Let the past die. Kill it, if you have to.",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "speaker": "Kylo Ren",
+    "topics": [
+      "kylo ren",
+      "sequel trilogy",
+      "dark side"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "That's how we're gonna win. Not fighting what we hate, saving what we love.",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "speaker": "Rose Tico",
+    "topics": [
+      "rose tico",
+      "resistance",
+      "love"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "No one's ever really gone.",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "speaker": "Luke Skywalker",
+    "topics": [
+      "luke skywalker",
+      "loss",
+      "hope"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The greatest teacher, failure is.",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "failure",
+      "jedi"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Amazing. Every word of what you just said was wrong.",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "speaker": "Luke Skywalker",
+    "topics": [
+      "luke skywalker",
+      "sequel trilogy",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Chewie, we're home.",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "chewbacca",
+      "millennium falcon"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "That's not how the Force works.",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "force",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Hope is like the sun.",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "speaker": "Leia Organa",
+    "topics": [
+      "leia organa",
+      "hope",
+      "resistance"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The belonging you seek is not behind you. It is ahead.",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie"
+    },
+    "speaker": "Maz Kanata",
+    "topics": [
+      "maz kanata",
+      "rey",
+      "destiny"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I will finish what you started.",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie"
+    },
+    "speaker": "Kylo Ren",
+    "topics": [
+      "kylo ren",
+      "darth vader",
+      "dark side"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "The garbage will do.",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie"
+    },
+    "speaker": "Rey",
+    "topics": [
+      "rey",
+      "millennium falcon",
+      "jakku"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I bypassed the compressor.",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie"
+    },
+    "speaker": "Rey",
+    "topics": [
+      "rey",
+      "millennium falcon",
+      "mechanics"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Somehow, Palpatine returned.",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie"
+    },
+    "speaker": "Poe Dameron",
+    "topics": [
+      "poe dameron",
+      "palpatine",
+      "first order"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "They fly now?",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie"
+    },
+    "speaker": "Finn",
+    "topics": [
+      "finn",
+      "first order",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "They fly now.",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie"
+    },
+    "speaker": "Poe Dameron",
+    "topics": [
+      "poe dameron",
+      "first order",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Confronting fear is the destiny of a Jedi.",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie"
+    },
+    "speaker": "Luke Skywalker",
+    "topics": [
+      "luke skywalker",
+      "jedi",
+      "fear"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I wanted you to take my hand. Ben's hand.",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie"
+    },
+    "speaker": "Kylo Ren",
+    "topics": [
+      "kylo ren",
+      "ben solo",
+      "rey"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Save the rebellion. Save the dream.",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Saw Gerrera",
+    "topics": [
+      "saw gerrera",
+      "rebellion",
+      "rogue one"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Make ten men feel like a hundred.",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Cassian Andor",
+    "topics": [
+      "cassian andor",
+      "rebellion",
+      "strategy"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Be careful not to choke on your aspirations.",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Darth Vader",
+    "topics": [
+      "darth vader",
+      "krennic",
+      "empire"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Congratulations. You are being rescued.",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "K-2SO",
+    "topics": [
+      "k-2so",
+      "droids",
+      "humor"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I fear nothing. For all is as the Force wills it.",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Chirrut Imwe",
+    "topics": [
+      "chirrut imwe",
+      "force",
+      "faith"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "What chance do we have? The question is what choice.",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Jyn Erso",
+    "topics": [
+      "jyn erso",
+      "rebellion",
+      "choice"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "We have hope. Rebellions are built on hope.",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Jyn Erso",
+    "topics": [
+      "jyn erso",
+      "hope",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I've got a really good feeling about this.",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Han Solo",
+    "topics": [
+      "han solo",
+      "solo",
+      "recurring quote"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Everything you've heard about me is true.",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie"
+    },
+    "speaker": "Lando Calrissian",
+    "topics": [
+      "lando calrissian",
+      "confidence",
+      "solo"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "I hate you.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Anakin Skywalker",
+    "topics": [
+      "anakin skywalker",
+      "obi-wan kenobi",
+      "mustafar"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "You were my brother, Anakin.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "anakin skywalker",
+      "tragedy"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Train yourself to let go of everything you fear to lose.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Yoda",
+    "topics": [
+      "yoda",
+      "attachment",
+      "jedi"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Twice the pride, double the fall.",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "speaker": "Count Dooku",
+    "topics": [
+      "count dooku",
+      "anakin skywalker",
+      "duel"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Good soldiers follow orders.",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series"
+    },
+    "speaker": "Clone Troopers",
+    "topics": [
+      "clone troopers",
+      "order 66",
+      "clone wars"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "I'm no Jedi.",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "speaker": "Ahsoka Tano",
+    "topics": [
+      "ahsoka tano",
+      "darth vader",
+      "identity"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "I am no Jedi.",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series"
+    },
+    "speaker": "Ahsoka Tano",
+    "topics": [
+      "ahsoka tano",
+      "identity",
+      "jedi"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "In my book, experience outranks everything.",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series"
+    },
+    "speaker": "Captain Rex",
+    "topics": [
+      "captain rex",
+      "clone troopers",
+      "experience"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "When you look hard enough, you can see everything.",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "speaker": "Kanan Jarrus",
+    "topics": [
+      "kanan jarrus",
+      "force",
+      "wisdom"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "The strongest stars have hearts of kyber.",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "speaker": "Chava the Wise",
+    "topics": [
+      "kyber",
+      "lasat",
+      "prophecy"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "I am Boba Fett.",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series"
+    },
+    "speaker": "Boba Fett",
+    "topics": [
+      "boba fett",
+      "mandalorian",
+      "identity"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "Wherever I go, he goes.",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series"
+    },
+    "speaker": "Din Djarin",
+    "topics": [
+      "din djarin",
+      "grogu",
+      "found family"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "I can bring you in warm, or I can bring you in cold.",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series"
+    },
+    "speaker": "Din Djarin",
+    "topics": [
+      "din djarin",
+      "bounty hunting",
+      "mandalorian"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "Weapons are part of my religion.",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series"
+    },
+    "speaker": "Din Djarin",
+    "topics": [
+      "din djarin",
+      "mandalorian",
+      "weapons"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "One way out.",
+    "source": {
+      "title": "Andor",
+      "type": "series"
+    },
+    "speaker": "Kino Loy",
+    "topics": [
+      "andor",
+      "narkina 5",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "I burn my life to make a sunrise that I know I'll never see.",
+    "source": {
+      "title": "Andor",
+      "type": "series"
+    },
+    "speaker": "Luthen Rael",
+    "topics": [
+      "andor",
+      "sacrifice",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "Tyranny requires constant effort.",
+    "source": {
+      "title": "Andor",
+      "type": "series"
+    },
+    "speaker": "Nemik",
+    "topics": [
+      "andor",
+      "empire",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "Tell him I love him more than anything he could ever do wrong.",
+    "source": {
+      "title": "Andor",
+      "type": "series"
+    },
+    "speaker": "Maarva Andor",
+    "topics": [
+      "andor",
+      "maarva",
+      "cassian"
+    ]
+  },
+  {
+    "category": "tv_series_quote",
+    "quote": "Fight the Empire!",
+    "source": {
+      "title": "Andor",
+      "type": "series"
+    },
+    "speaker": "Maarva Andor",
+    "topics": [
+      "andor",
+      "rebellion",
+      "empire"
+    ]
+  },
+  {
+    "category": "movie_quote",
+    "quote": "Remember, the Force will be with you. Always.",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "speaker": "Obi-Wan Kenobi",
+    "topics": [
+      "obi-wan kenobi",
+      "force",
+      "legacy"
+    ]
+  }
+]

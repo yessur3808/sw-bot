@@ -1,0 +1,33 @@
+{
+  "name": "sw-bot-production",
+  "main": "index.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "keep_vars": true,
+  "ai": { "binding": "AI" },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "sw-bot-production",
+    "database_id": "dea947f5-8a8f-4e52-971f-31a07620af84",
+    "migrations_dir": "migrations"
+  }],
+  "vars": {
+    "DEPLOYMENT_ENV": "production",
+    "DEPLOYMENT_ENABLED": "true",
+    "GROUP_ID": "-1002432071241",
+    "ADMIN_USER_IDS": "1678078373",
+    "BOT_USERNAME": "SIU_M8_bot",
+    "EXPECTED_WEBHOOK_URL": "https://sw-bot-production.yaser3808.workers.dev/telegram",
+    "REQUIRED_TOPICS": "gaming,movies,lore,hongkong,global_events,memes,wallpapers",
+    "ALLOWED_THREAD_IDS": "",
+    "PRIVATE_THREAD_ID": "0",
+    "PROACTIVE_THREAD_ID": "0",
+    "AUTOMATED_DAILY_CAP": "20",
+    "AI_DAILY_CAP": "60",
+    "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "PROACTIVE_ENABLED": "true",
+    "AMBIENT_ENABLED": "true"
+  },
+  "triggers": { "crons": ["* * * * *"] },
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 }
+}

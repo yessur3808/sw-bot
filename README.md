@@ -1,5 +1,11 @@
 # Star Wars Bot
 
+The active **Star Wars Test** bot runs on Cloudflare Workers. See
+[the Cloudflare worker](workers/free/README.md) for its source, tests, engagement
+schedule and deployment. Its live web admin portal is
+**https://sw-bot-test.yaser3808.workers.dev/admin** (Telegram admin sign-in).
+The Python/GCE instructions below describe the older bot.
+
 ## Quick Onboarding (Copy-Paste)
 
 Start from the sanitized template:

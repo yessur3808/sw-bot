@@ -1,0 +1,50 @@
+{
+  "verifiedAt": "2026-10-29",
+  "catalog": "workers/free/source-catalog.mjs",
+  "method": "Read official pages using browser search/open, then independently fetched evidence URLs with urllib and checked short markers after stripping script/style/HTML and decoding entities. No dates were inferred from elapsed time.",
+  "catalogRows": 13,
+  "sourceRows": 8,
+  "directHttpEvidencePassed": [
+    "the-mandalorian-and-grogu-2026",
+    "maul-shadow-lord-season-1",
+    "the-ninth-jedi-2026",
+    "lego-mandalorian-2026",
+    "ahsoka-season-2",
+    "maul-shadow-lord-season-2",
+    "starfighter-2027",
+    "star-wars-1977-anniversary-2027",
+    "zero-company-2026",
+    "galactic-racer-2026",
+    "fate-of-the-old-republic",
+    "celebration-los-angeles-2027"
+  ],
+  "hkAvailabilityConfirmed": [
+    "the-mandalorian-and-grogu-2026",
+    "maul-shadow-lord-season-1",
+    "the-ninth-jedi-2026",
+    "lego-mandalorian-2026"
+  ],
+  "limitations": [
+    {
+      "url": "https://www.discoverhongkong.com/eng/events/halloween/citywide-halloween-cosplay-celebration.html",
+      "finding": "Browser-readable official HKTB page explicitly lists Halloween Unleashed on 31 October 2026 at Chater Road with a Star Wars parade and meet-and-greet by the 501st Hong Kong Garrison. Direct HTTP returned 403. Exact parade start time and activity admission terms were not verified. Do not circumvent the block or treat a failed refresh as evidence that no event exists."
+    },
+    {
+      "url": "https://www.hongkongdisneyland.com/events/",
+      "finding": "Direct HTTP 200 returned an empty JavaScript shell with no Star Wars text. Browser view listed generic events, not a confirmed new Star Wars event. Discovery source only."
+    },
+    {
+      "url": "https://www.cinema.com.hk/en/movie/coming",
+      "finding": "Direct HTTP 200, but no Star Wars title was found in the fetched page. This generic discovery page does not establish a Hong Kong release or screening."
+    },
+    {
+      "url": "https://starwarsgalacticracer.com/",
+      "finding": "Publisher homepage timed out in browser access. Release status and platforms are supported instead by the official StarWars.com launch article. Specific Hong Kong stores and prices remain unverified."
+    },
+    {
+      "url": "https://www.starwarscelebration.com/en-us/tickets-merch/ticket-information.html",
+      "finding": "Ticket page explicitly reports sold out, overriding generic buy-tickets marketing still present on the homepage. Event dates are April 1–4, 2027 in Los Angeles local calendar time, not HKT."
+    }
+  ],
+  "refreshPolicy": "Required markers are conservative content checks, not a guarantee that an old announcement remains current. Preserve source and verification dates, expire or flag unavailable/conflicting evidence, and never auto-promote an elapsed announcement to released. New discoveries need their own title-specific source evidence."
+}

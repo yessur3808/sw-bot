@@ -1,0 +1,17 @@
+{
+  "name": "sw-bot-test",
+  "main": "index.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "keep_vars": true,
+  "ai": { "binding": "AI" },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "sw-bot-test",
+    "database_id": "fc9c66e4-71bb-4e78-9d34-ec665fd313b4",
+    "migrations_dir": "migrations"
+  }],
+  "vars": { "DEPLOYMENT_ENABLED": "false" },
+  "triggers": { "crons": [] },
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 }
+}

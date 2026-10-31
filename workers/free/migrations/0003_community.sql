@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS topic_map(name TEXT PRIMARY KEY,thread_id INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS activity(update_id INTEGER PRIMARY KEY,thread_id INTEGER NOT NULL,created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS activity_thread_time ON activity(thread_id,created_at);
+CREATE TABLE IF NOT EXISTS fan_preferences(user_id INTEGER PRIMARY KEY,era TEXT NOT NULL DEFAULT 'any',spoilers TEXT NOT NULL DEFAULT 'avoid');
+CREATE TABLE IF NOT EXISTS community_polls(poll_id TEXT PRIMARY KEY,message_id INTEGER NOT NULL,thread_id INTEGER NOT NULL,question TEXT NOT NULL,options TEXT NOT NULL,closes_at INTEGER NOT NULL,closed INTEGER NOT NULL DEFAULT 0,followup_id INTEGER UNIQUE NOT NULL);
