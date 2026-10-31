@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {portalFixture} from './portal-fixture.mjs';
-import {memePost,memeDelivered} from '../memes.mjs';
+import {memePost,memeDelivered,memeAttribution} from '../memes.mjs';
 import {processUpdate} from '../index.mjs';
 
 let env,sqlite,realNow,realFetch,now,sent;
@@ -19,15 +19,15 @@ afterEach(()=>{Date.now=realNow;globalThis.fetch=realFetch;sqlite.close();});
 async function queue(id=1,requested=true){sqlite.prepare('INSERT INTO updates(id,payload,created_at) VALUES (?,?,?)').run(id,JSON.stringify({internal_post:{kind:'memes',scheduled_at:now/1000,requested}}),now/1000);await processUpdate(env,id);}
 function ready(id=1){sqlite.prepare("UPDATE updates SET ready_at=0 WHERE id=?").run(id);}
 
-test('120 distinct unchanged JPEG assets have source attribution and Telegram-compatible dimensions',()=>{
+test('120 distinct unchanged Reddit image assets have source attribution and Telegram-compatible dimensions',()=>{
  assert.equal(roster.length,120);assert.equal(new Set(roster.map(r=>r.sha256)).size,120);
  for(const r of roster){
   const bytes=readFileSync(new URL('../data/memes/'+r.file,import.meta.url));
   assert.equal(createHash('sha256').update(bytes).digest('hex'),r.sha256);
   assert.equal(bytes.length,r.bytes);assert.ok(bytes.length<10*1024*1024);
-  assert.equal(bytes.subarray(0,3).toString('hex'),'ffd8ff');
+  assert.ok(bytes.subarray(0,3).toString('hex')==='ffd8ff'||bytes.subarray(0,8).toString('hex')==='89504e470d0a1a0a');
   assert.ok(r.width+r.height<=10000&&Math.max(r.width/r.height,r.height/r.width)<=20);
-  assert.match(r.source_url,/^https:\/\/imgflip.com\//);assert.ok(r.author);
+  assert.match(r.source_url,/^https:\/\/www\.reddit\.com\/r\/[^/]+\/comments\//);assert.ok(r.author);
  }
 });
 test('atomic selection cycles through all 120 before repeats and reuses selection on retry',async()=>{
@@ -41,7 +41,7 @@ test('atomic selection cycles through all 120 before repeats and reuses selectio
 test('sends a photo to Memes, retains attribution and caches confirmed Telegram file ID',async()=>{
  await queue();assert.equal(sent.length,1);assert.equal(sent[0].method,'sendPhoto');
  assert.equal(sent[0].body.message_thread_id,22);assert.equal(sent[0].body.chat_id,-100123);
- assert.match(sent[0].body.caption,/Shared by/);assert.equal(sent[0].body.caption_entities[0].type,'text_link');
+ assert.match(sent[0].body.caption,/From r\//);assert.equal(sent[0].body.caption_entities[0].type,'text_link');
  const row=sqlite.prepare('SELECT * FROM meme_roster WHERE last_sent_at IS NOT NULL').get();assert.equal(row.file_id,'cached-photo');
  sqlite.prepare('UPDATE meme_roster SET active=0 WHERE id<>?').run(row.id);
  const next=await memePost(env,2);assert.equal(next.photo,'cached-photo');
@@ -81,4 +81,23 @@ test('crossing midnight during the final image guard defers without sending',asy
 test('legacy queued text-only meme deliveries are invalidated',async()=>{
  sqlite.prepare('INSERT INTO updates(id,payload,created_at,outbound,method) VALUES (?,?,?,?,?)').run(10,JSON.stringify({internal_post:{kind:'memes',scheduled_at:now/1000,requested:true}}),now/1000,JSON.stringify({chat_id:-100123,message_thread_id:22,text:'Old caption challenge'}),'sendMessage');
  await processUpdate(env,10);assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT error FROM updates WHERE id=10').get().error,'delivery-invalidated');
+});
+
+test('Reddit captions credit the correct community, handle deleted authors and use valid entity offsets',async()=>{
+ assert.equal(memeAttribution({source_url:'https://www.reddit.com/r/OTMemes/comments/abc/',author:'fan'}),'From r/OTMemes · u/fan');
+ assert.equal(memeAttribution({source_url:'https://www.reddit.com/r/OTMemes/comments/abc/',author:'[deleted]'}),'From r/OTMemes');
+ const post=await memePost(env,1000),entity=post.caption_entities[0];
+ assert.equal(post.text.slice(entity.offset,entity.offset+entity.length),post.text);assert.match(entity.url,/reddit\.com/);
+ assert.doesNotMatch(post.text,/Imgflip/);
+});
+test('Reddit seed retires old images atomically and preserves removals, cached IDs and rotation on reimport',()=>{
+ sqlite.exec("INSERT INTO meme_roster(id,image_url,source_url,author,sha256) VALUES ('imgflip-old','https://example.com/old.jpg','https://imgflip.com/i/old','old','oldhash')");
+ const seed=readFileSync(new URL('../data/memes/seed.sql',import.meta.url),'utf8');
+ sqlite.exec('BEGIN');sqlite.exec(seed);sqlite.exec('COMMIT');
+ assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM meme_roster WHERE active=1').get().n,120);
+ assert.equal(sqlite.prepare("SELECT active FROM meme_roster WHERE id='imgflip-old'").get().active,0);
+ sqlite.prepare("UPDATE meme_roster SET active=0,file_id='cached',last_selected=99 WHERE id=?").run(roster[0].id);
+ sqlite.exec(seed);const row=sqlite.prepare('SELECT * FROM meme_roster WHERE id=?').get(roster[0].id);
+ assert.equal(row.active,0);assert.equal(row.file_id,'cached');assert.equal(row.last_selected,99);
+ assert.match(row.image_url,/raw\.githubusercontent\.com\/yessur3808\/sw-bot\/[a-f0-9]{40}\//);
 });

@@ -116,7 +116,7 @@ games retain the first scheduled slot. Unbound extra categories are excluded fro
 automatic rotation; explicit `/post tv`, `/post memes`, `/post wallpapers`,
 `/post hongkong` or `/post global_events` uses the normal default if not mapped. Meme images require the Memes topic to be bound.
 
-Event categories use verified source cards when available and labelled planning prompts otherwise. Memes send actual photo attachments from the reviewed 120-image roster; wallpaper posts remain design concepts.
+Event categories use verified source cards when available and labelled planning prompts otherwise. Memes send actual photo attachments from the reviewed 120-image Reddit roster; wallpaper posts remain design concepts.
 
 Admins can also `/bindtopic collectibles` (or another name up to 40 characters).
 Custom names are stored and displayed as mapped-only; they do not automatically
@@ -412,6 +412,6 @@ Unanswered poll cleanup: apply `migrations/0010_poll_cleanup.sql` before deployi
 
 Automatic news, event and release posts use native Telegram formatting: bold titles and field labels, readable dates, spaced descriptions and labelled source links with previews disabled. Event cards use Date/Venue/Admission fields instead of release/platform wording; non-HK event dates remain local. Source text is literal, with UTF-16 entity ranges rather than HTML/Markdown parsing. Date precision, regional availability uncertainty and sold-out warnings remain intact. Overlong cards are skipped instead of truncating facts or formatting entities. Existing published posts are not rewritten.
 
-Meme images: apply `migrations/0011_meme_roster.sql`, then import `data/memes/seed.sql` into the intended deployment database. The seed is idempotent and preserves rotation, removals and cached Telegram file IDs. Each asset URL pins commit 3e2b62cbac5bc2e193bf2d64ac5d719a3f31e141. Atomic D1 selection visits all active images before selecting one again; a failed selection consumes its turn rather than blocking the roster. Retries reuse the same image. Successful sends cache Telegram file IDs. Images retain their original watermark and link to their public source post. No live third-party feed is needed during delivery.
+Meme images: apply `migrations/0011_meme_roster.sql`, then import `data/memes/seed.sql` into the intended deployment database. The seed is idempotent, retires the previous Imgflip roster, and preserves rotation, removals and cached Telegram file IDs. Each asset URL pins commit 7babe2128258db1cd63ce75e0f755c5985389af3. Atomic D1 selection visits all active images before selecting one again; a failed selection consumes its turn rather than blocking the roster. Retries reuse the same image. Successful sends cache Telegram file IDs. Images retain their original watermark and link to their Reddit source post. No live third-party feed is needed during delivery.
 
 Automatic images respect topic binding, activity, quiet hours, shared budgets and pause controls, including persisted retries. There is no text-only meme fallback. If `portal_starter_approval=1`, automatic memes are held because the current portal editor only supports text and polls; normal automatic posting (`0`) sends images. `/post memes` requests one image through the same queue.

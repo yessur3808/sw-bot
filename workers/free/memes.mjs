@@ -1,4 +1,13 @@
 // Images are curated before import. No live scraping or AI-generated image URLs.
+export function memeAttribution(row) {
+  const source=new URL(row.source_url);
+  const community=['reddit.com','www.reddit.com'].includes(source.hostname)
+    ? /^\/r\/([A-Za-z0-9_]+)\/comments\//.exec(source.pathname)?.[1] : null;
+  if(community)return row.author==='[deleted]'
+    ? `From r/${community}` : `From r/${community} · u/${row.author}`;
+  return `Shared by ${row.author} on ${source.hostname==='imgflip.com'?'Imgflip':source.hostname}`;
+}
+
 export async function memePost(env, updateId) {
   // D1 batches are transactional: concurrent jobs claim different least-used
   // images, and a retry of the same update keeps its original selection.
@@ -13,8 +22,8 @@ export async function memePost(env, updateId) {
   const row=await env.DB.prepare(`SELECT m.* FROM meme_roster m JOIN meme_deliveries d ON d.meme_id=m.id
     WHERE d.update_id=? AND m.active=1 AND d.message_id IS NULL`).bind(updateId).first();
   if(!row)return null;
-  const attribution=`Shared by ${row.author} on Imgflip`;
-  const text=`Cantina humour\n\n${attribution}`;
+  const attribution=memeAttribution(row);
+  const text=attribution;
   return {text,photo:row.file_id||row.image_url,meme_id:row.id,seed:`meme:${row.id}`,generation:'meme_image',
     caption_entities:[{type:'text_link',offset:text.indexOf(attribution),length:attribution.length,url:row.source_url}]};
 }
