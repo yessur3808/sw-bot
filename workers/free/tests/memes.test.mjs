@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {portalFixture} from './portal-fixture.mjs';
-import {memePost,memeDelivered,memeAttribution} from '../memes.mjs';
+import {memePost,memeDelivered} from '../memes.mjs';
 import {processUpdate} from '../index.mjs';
 
 let env,sqlite,realNow,realFetch,now,sent;
@@ -38,10 +38,10 @@ test('atomic selection cycles through all 120 before repeats and reuses selectio
  await memeDelivered(env,121,{message_id:100,photo:[{file_id:'reuse'}]});
  assert.equal(await memePost(env,121),null);
 });
-test('sends a photo to Memes, retains attribution and caches confirmed Telegram file ID',async()=>{
+test('sends only a photo to Memes and caches confirmed Telegram file ID',async()=>{
  await queue();assert.equal(sent.length,1);assert.equal(sent[0].method,'sendPhoto');
  assert.equal(sent[0].body.message_thread_id,22);assert.equal(sent[0].body.chat_id,-100123);
- assert.match(sent[0].body.caption,/From r\//);assert.equal(sent[0].body.caption_entities[0].type,'text_link');
+ assert.equal(Object.hasOwn(sent[0].body,'caption'),false);assert.equal(Object.hasOwn(sent[0].body,'caption_entities'),false);
  const row=sqlite.prepare('SELECT * FROM meme_roster WHERE last_sent_at IS NOT NULL').get();assert.equal(row.file_id,'cached-photo');
  sqlite.prepare('UPDATE meme_roster SET active=0 WHERE id<>?').run(row.id);
  const next=await memePost(env,2);assert.equal(next.photo,'cached-photo');
@@ -83,12 +83,20 @@ test('legacy queued text-only meme deliveries are invalidated',async()=>{
  await processUpdate(env,10);assert.equal(sent.length,0);assert.equal(sqlite.prepare('SELECT error FROM updates WHERE id=10').get().error,'delivery-invalidated');
 });
 
-test('Reddit captions credit the correct community, handle deleted authors and use valid entity offsets',async()=>{
- assert.equal(memeAttribution({source_url:'https://www.reddit.com/r/OTMemes/comments/abc/',author:'fan'}),'From r/OTMemes · u/fan');
- assert.equal(memeAttribution({source_url:'https://www.reddit.com/r/OTMemes/comments/abc/',author:'[deleted]'}),'From r/OTMemes');
- const post=await memePost(env,1000),entity=post.caption_entities[0];
- assert.equal(post.text.slice(entity.offset,entity.offset+entity.length),post.text);assert.match(entity.url,/reddit\.com/);
- assert.doesNotMatch(post.text,/Imgflip/);
+test('legacy photo retries drop captions before sending and persist only the image across rate limits',async()=>{
+ const post=await memePost(env,1000);
+ const payload={internal_post:{kind:'memes',scheduled_at:now/1000,requested:true}};
+ const oldBody={chat_id:-100123,message_thread_id:22,photo:post.photo,caption:'Old source credit',caption_entities:[{type:'text_link',offset:0,length:17,url:roster[0].source_url}],parse_mode:'HTML',show_caption_above_media:true};
+ sqlite.prepare('INSERT INTO updates(id,payload,created_at,outbound,method) VALUES (?,?,?,?,?)').run(1000,JSON.stringify(payload),now/1000,JSON.stringify(oldBody),'sendPhoto');
+ const success=globalThis.fetch;
+ globalThis.fetch=async(url,options)=>{sent.push({method:String(url).split('/').at(-1),body:JSON.parse(options.body)});return Response.json({ok:false,error_code:429,parameters:{retry_after:1}});};
+ await processUpdate(env,1000);
+ const expected={chat_id:-100123,message_thread_id:22,photo:post.photo};
+ assert.deepEqual(sent[0].body,expected);
+ assert.deepEqual(JSON.parse(sqlite.prepare('SELECT outbound FROM updates WHERE id=1000').get().outbound),expected);
+ globalThis.fetch=success;ready(1000);await processUpdate(env,1000);
+ assert.deepEqual(sent[1].body,expected);
+ assert.equal(sqlite.prepare('SELECT message_id FROM meme_deliveries WHERE update_id=1000').get().message_id,101);
 });
 test('Reddit seed retires old images atomically and preserves removals, cached IDs and rotation on reimport',()=>{
  sqlite.exec("INSERT INTO meme_roster(id,image_url,source_url,author,sha256) VALUES ('imgflip-old','https://example.com/old.jpg','https://imgflip.com/i/old','old','oldhash')");

@@ -102,7 +102,7 @@ Send each command inside its corresponding existing Telegram topic:
 | Hong Kong / local events | `/bindtopic hongkong` | Hypothetical meetup ideas and local fan discussions |
 | Global events | `/bindtopic global_events` | Fan-event wishlists and international community discussions |
 | TV shows | `/bindtopic tv` | Spoiler-free show discussions and creative prompts |
-| Memes | `/bindtopic memes` | Curated Star Wars meme images with source attribution |
+| Memes | `/bindtopic memes` | Curated Star Wars meme images without captions |
 | Wallpapers | `/bindtopic wallpapers` | Wallpaper design concepts/prompts and sharing discussions |
 
 Aliases include `hong_kong`, `hk`, `local_events`, `tv_shows`, `television`,

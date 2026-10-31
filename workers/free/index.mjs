@@ -635,6 +635,14 @@ async function send(env, updateId, method, body, deliveryGuard, routing) {
     const oldMeme=payload.internal_post?.kind==='memes'||await env.DB.prepare("SELECT 1 FROM engagement_posts WHERE update_id=? AND kind='memes'").bind(updateId).first();
     if(oldMeme)throw Error('delivery-invalidated');
   }
+  // All sendPhoto deliveries use the curated meme guard below. Strip legacy
+  // captions at the boundary too, before persisting or retrying an outbound body.
+  if(method==='sendPhoto'){
+    delete body.caption;
+    delete body.caption_entities;
+    delete body.parse_mode;
+    delete body.show_caption_above_media;
+  }
   const timedPost = !routing && ['sendMessage','sendPoll','sendPhoto'].includes(method) &&
     (club?.kind === 'portal_post' || automaticDelivery(payload,club,env.BOT_USERNAME,botID(env)));
   if (timedPost && !activeHours()) { await defer(env,updateId); throw Error('delivery-deferred'); }
