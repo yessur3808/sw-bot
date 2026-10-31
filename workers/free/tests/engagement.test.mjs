@@ -18,6 +18,7 @@ function database() {
   db.exec(readFileSync(new URL('../migrations/0009_youtube.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0010_poll_cleanup.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../migrations/0011_meme_roster.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../migrations/0012_wallpaper_roster.sql', import.meta.url), 'utf8'));
   db.exec("INSERT INTO deployment_identity VALUES (1,'-100123','test')");
   const adapter = { prepare(sql) { let args=[]; const statement={bind(...a){args=a;return statement;},async first(){return db.prepare(sql).get(...args) || null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:{changes:r.changes}};}};return statement;}, async batch(items){return Promise.all(items.map(s=>s.run()));}};
   return [db,adapter];
@@ -377,6 +378,7 @@ test('admins can bind new and custom topics while private/non-admin requests can
 });
 test('each expanded content category routes to its actual bound topic',async()=>{
  sqlite.exec("INSERT INTO meme_roster(id,image_url,source_url,author,sha256) VALUES ('one','https://example.com/meme.jpg','https://imgflip.com/i/one','fan','abc')");
+ sqlite.exec("INSERT INTO wallpaper_roster(id,image_url,source_url,sha256) VALUES ('one','https://example.com/wallpaper.jpg','https://example.com/source','wallpaperhash')");
  let i=0;for(const name of ['hongkong','global_events','tv','memes','wallpapers']){
   sqlite.prepare('INSERT INTO topic_map VALUES (?,?)').run(name,20+i);
   env.AI.run=async()=>({response:`A distinct ${name} discussion prompt for the group.`});
@@ -391,8 +393,8 @@ test('only bound extra categories enter automatic rotation; custom maps remain r
 test('local and global event posts use labelled planning prompts without inventing announcements',async()=>{
  const local=await buildPost(env,'hongkong',[]),global=await buildPost(env,'global_events',[]);assert.equal(aiCalls.length,0);assert.equal(local.generation,'curated');assert.equal(global.generation,'curated');assert.match(local.text,/idea|wishlist|gathering/i);assert.match(global.text,/wishlist|If fans|would/i);
 });
-test('wallpaper generation explicitly requests a concept without claiming images or links',async()=>{
- await buildPost(env,'wallpapers',[]);assert.match(aiCalls[0].messages.at(-1).content,/never claim you generated, attached, downloaded or found an image/);
+test('wallpapers never generate AI text when no image job or roster is available',async()=>{
+ assert.equal(await buildPost(env,'wallpapers',[]),null);assert.equal(await buildPost(env,'wallpapers',[],123),null);assert.equal(aiCalls.length,0);
 });
 test('expanded topic service messages learn canonical aliases',async()=>{
  await webhook(update(1,undefined,{text:undefined,message_thread_id:20,forum_topic_created:{name:'Hong Kong'}}));await webhook(update(2,undefined,{text:undefined,message_thread_id:21,forum_topic_created:{name:'TV Shows'}}));

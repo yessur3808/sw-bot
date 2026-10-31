@@ -103,7 +103,7 @@ Send each command inside its corresponding existing Telegram topic:
 | Global events | `/bindtopic global_events` | Fan-event wishlists and international community discussions |
 | TV shows | `/bindtopic tv` | Spoiler-free show discussions and creative prompts |
 | Memes | `/bindtopic memes` | Curated Star Wars meme images without captions |
-| Wallpapers | `/bindtopic wallpapers` | Wallpaper design concepts/prompts and sharing discussions |
+| Wallpapers | `/bindtopic wallpapers` | Curated Star Wars wallpaper images without captions |
 
 Aliases include `hong_kong`, `hk`, `local_events`, `tv_shows`, `television`,
 `meme` and `wallpaper`. Names with spaces work too. The existing Gaming, Movies
@@ -116,7 +116,7 @@ games retain the first scheduled slot. Unbound extra categories are excluded fro
 automatic rotation; explicit `/post tv`, `/post memes`, `/post wallpapers`,
 `/post hongkong` or `/post global_events` uses the normal default if not mapped. Meme images require the Memes topic to be bound.
 
-Event categories use verified source cards when available and labelled planning prompts otherwise. Memes send actual photo attachments from the reviewed 120-image Reddit roster; wallpaper posts remain design concepts.
+Event categories use verified source cards when available and labelled planning prompts otherwise. Memes send actual photo attachments from the reviewed 120-image Reddit roster; wallpapers send photos from the reviewed 30-image roster.
 
 Admins can also `/bindtopic collectibles` (or another name up to 40 characters).
 Custom names are stored and displayed as mapped-only; they do not automatically
