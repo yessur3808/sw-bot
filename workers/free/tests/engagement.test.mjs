@@ -965,3 +965,32 @@ test('missing final poll totals wait beyond three attempts, then a late final re
  await processUpdate(env,-4000000000010);await processUpdate(env,-4000000000010);
  assert.equal(sent.length,1);assert.match(sent[0].body.text,/R2-D2 \(2 votes\)/);
 });
+
+
+test('quiet cantina jokes require four hours without activity and reserve at most one per 24h',async()=>{
+ const random=Math.random;Math.random=()=>0;
+ try{
+  const now=Date.now()/1000;
+  sqlite.prepare('INSERT INTO activity VALUES (?,?,?)').run(1,20,now-3600);
+  const busy=await buildPost(env,'question',[],501);assert.ok(!busy.seed.startsWith('quiet:'));
+  sqlite.exec('DELETE FROM activity');
+  const first=await buildPost(env,'question',[],502);assert.match(first.seed,/^quiet:/);assert.match(first.text,/jukebox/);
+  const second=await buildPost(env,'idea',[],503);assert.ok(!second.seed.startsWith('quiet:'));
+  assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM quota WHERE kind='quiet_joke'").get().n,1);
+  Date.now=()=> (now+86401)*1000;
+  const later=await buildPost(env,'question',[],504);assert.match(later.seed,/^quiet:/);
+ }finally{Math.random=random;}
+});
+test('opinion starters request English and activity jokes never decorate polls or images',async()=>{
+ const random=Math.random;Math.random=()=>0;
+ try{
+  await buildPost(env,'question',[],601);
+  assert.match(aiCalls.at(-1).messages.at(-1).content,/in English/);
+  assert.match(aiCalls.at(-1).messages[0].content,/defensible unpopular/);
+  assert.match(aiCalls.at(-1).messages[0].content,/No guilt trips/);
+  const poll=await buildPost(env,'poll',[{question:'Which droid wins?',options:['R2','Chopper']}],602);
+  assert.ok(!poll.seed.startsWith('quiet:'));assert.equal(poll.text,undefined);
+  assert.equal(await buildPost(env,'wallpapers',[],603),null);
+  assert.equal(await buildPost(env,'memes',[],604),null);
+ }finally{Math.random=random;}
+});
