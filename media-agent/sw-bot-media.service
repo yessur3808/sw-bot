@@ -1,0 +1,14 @@
+[Unit]
+Description=SW bot public YouTube trailer monitor
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Desktop/server/bots/sw-bot
+ExecStart=%h/.local/share/sw-bot-media/venv/bin/python media-agent/monitor.py --config %h/.config/sw-bot-media/config.json
+Environment=PATH=%h/.local/bin:/usr/bin:/bin
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+TimeoutStartSec=10min
+MemoryMax=768M

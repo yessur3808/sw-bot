@@ -1,0 +1,1252 @@
+[
+  {
+    "question": "Which original trilogy hero would you most want on your crew?",
+    "decision": "approve",
+    "reason": "Four distinct original-trilogy crew preferences; no factual answer implied."
+  },
+  {
+    "question": "Which Jedi Master would be the best mentor?",
+    "decision": "approve",
+    "reason": "All four are Jedi Masters; mentoring preference is a legitimate subjective comparison."
+  },
+  {
+    "question": "Which animated-series hero deserves more spotlight?",
+    "decision": "approve",
+    "reason": "All four appeared in animation; requests for more spotlight remain subjective despite later live-action appearances."
+  },
+  {
+    "question": "Which Sith villain has the strongest screen presence?",
+    "decision": "approve",
+    "reason": "All four are Sith villains; screen presence is a clear preference criterion."
+  },
+  {
+    "question": "Which Imperial strategist is the most intimidating?",
+    "decision": "approve",
+    "reason": "All four are Imperial leaders with strategic roles; intimidation is subjective."
+  },
+  {
+    "question": "Which droid would be the most useful on a dangerous mission?",
+    "decision": "approve",
+    "reason": "Distinct mission-support droids across media; BD-1 belongs to the games as the metadata allows."
+  },
+  {
+    "question": "Which droid has the funniest personality?",
+    "decision": "approve",
+    "reason": "Four distinct comic droid personalities; a clear humor preference."
+  },
+  {
+    "question": "Which ship would you choose as your home base?",
+    "decision": "approve",
+    "reason": "Four distinct ships; Ebon Hawk introduces Legends material, so recommend a Canon + Legends label."
+  },
+  {
+    "question": "Which starfighter would you want to pilot?",
+    "decision": "approve",
+    "reason": "Four recognizable fighter choices; Jedi Starfighter is broad but meaningfully distinct from the others."
+  },
+  {
+    "question": "Which TIE design looks the coolest?",
+    "decision": "approve",
+    "reason": "Four distinct TIE designs spanning Imperial and First Order service, consistent with the topic tags."
+  },
+  {
+    "question": "Which elegant core-world location would you most want to visit?",
+    "decision": "reject",
+    "reason": "Naboo is not a Core World; the premise misclassifies one option. Official Naboo entry places it near the Outer Rim border; the official atlas index lists Mid Rim. Sources: https://www.starwars.com/databank/naboo ; https://lumiere-a.akamaihd.net/v1/documents/starwars_7c65cf9e.pdf",
+    "fix": {
+      "question": "Which elegant Star Wars world would you most want to visit?"
+    }
+  },
+  {
+    "question": "Which desert world has the best story potential?",
+    "decision": "approve",
+    "reason": "All choices are desert settings; world appropriately includes the moon Jedha."
+  },
+  {
+    "question": "Which icy setting is the most memorable?",
+    "decision": "approve",
+    "reason": "A valid comparison of onscreen settings, including Ilum and its later Starkiller Base presentation. Recommend naming the eras so these are understood as different depictions, not independent planets."
+  },
+  {
+    "question": "Which Force-connected location feels the most mystical?",
+    "decision": "approve",
+    "reason": "All choices have established Force associations; location avoids falsely requiring Mortis to be an ordinary planet."
+  },
+  {
+    "question": "Which nature-filled world would make the best sanctuary?",
+    "decision": "approve",
+    "reason": "Distinct green settings; world can include the forest moon of Endor and Yavin 4. Sanctuary is hypothetical, not a claim that all are safe."
+  },
+  {
+    "question": "Which lightsaber color would you choose?",
+    "decision": "approve",
+    "reason": "Four distinct blade colors; straightforward personal preference."
+  },
+  {
+    "question": "Which lightsaber setup has the best style?",
+    "decision": "approve",
+    "reason": "Recognizable lightsaber configurations; the intended single, double, crossguard, and paired styles are clear."
+  },
+  {
+    "question": "Which lightsaber duel is the most rewatchable?",
+    "decision": "approve",
+    "reason": "Four distinct saber fight scenes; the Praetorian encounter is a team fight rather than a traditional duel. Optional wording: lightsaber fight. Recommend label: Spoilers — Revenge of the Sith / The Empire Strikes Back / The Phantom Menace / The Last Jedi fight scenes. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which iconic saber would you display?",
+    "decision": "approve",
+    "reason": "Four distinct iconic weapons; display preference differs from blade-color and fighting-style polls."
+  },
+  {
+    "question": "Which Force ability would be most useful in daily life?",
+    "decision": "approve",
+    "reason": "Four distinct powers with a clear hypothetical daily-use criterion."
+  },
+  {
+    "question": "Which dark or rare Force power is the most dramatic?",
+    "decision": "approve",
+    "reason": "A dramatic-power preference, not a claim that every listed power is dark side. Battle meditation merits a Canon + Legends framing."
+  },
+  {
+    "question": "Which anti-Imperial faction would you join?",
+    "decision": "reject",
+    "reason": "The Resistance is the movement formed to oppose the First Order, after the Galactic Empire era. Broaden anti-Imperial so all four choices clearly fit without conflating the two regimes. Source: https://www.starwars.com/databank/the-resistance",
+    "fix": {
+      "question": "Which group opposing the Empire or its successors would you join?"
+    }
+  },
+  {
+    "question": "Which villain faction has the strongest aesthetic?",
+    "decision": "approve",
+    "reason": "Four distinct antagonist factions; aesthetic preference is valid."
+  },
+  {
+    "question": "Which Mandalorian group has the most interesting culture?",
+    "decision": "approve",
+    "reason": "Different Mandalorian organizations and a clan can be compared as groups; do not present them as mutually exclusive memberships."
+  },
+  {
+    "question": "Which Mandalorian character has the best armor design?",
+    "decision": "approve",
+    "reason": "Distinct characters' armor designs; no factual ranking implied."
+  },
+  {
+    "question": "Which Mandalorian gear item would you want most?",
+    "decision": "approve",
+    "reason": "Four recognizable and distinct Mandalorian equipment choices."
+  },
+  {
+    "question": "Which clone trooper has the best character arc?",
+    "decision": "approve",
+    "reason": "Four clone characters with different arcs; preference does not require equal screen time."
+  },
+  {
+    "question": "Which clone unit would you follow into battle?",
+    "decision": "approve",
+    "reason": "Recognizable clone formations; mixed unit sizes are acceptable in this hypothetical choice. Optional precision: 104th Battalion (Wolfpack)."
+  },
+  {
+    "question": "Which Bad Batch member is your favorite?",
+    "decision": "approve",
+    "reason": "All four are Bad Batch members; a shortlist need not include every member."
+  },
+  {
+    "question": "Which clone-era survivor deserves more stories?",
+    "decision": "approve",
+    "reason": "All four survive the Clone Wars; survivor should mean that war, not survival through every later series. Optional wording: survivor of the Clone Wars. Recommend label: Spoilers — The Clone Wars and subsequent clone-character series. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which prequel-era title should we watch next?",
+    "decision": "approve",
+    "reason": "Four prequel-era viewing choices including the animated feature; title is appropriately broader than live-action film."
+  },
+  {
+    "question": "Which rebellion-era movie should anchor the next watch party?",
+    "decision": "approve",
+    "reason": "Four rebellion-era films; a useful watch-party choice."
+  },
+  {
+    "question": "Which sequel-era pick should we revisit?",
+    "decision": "approve",
+    "reason": "Four sequel-era viewing choices; pick allows a series alongside films."
+  },
+  {
+    "question": "Which Clone Wars arc should we binge first?",
+    "decision": "approve",
+    "reason": "Four recognizable Clone Wars arcs; binge preference is meaningful. Recommend label: Spoilers — The Clone Wars arcs. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which Rebels episode or finale deserves a group rewatch?",
+    "decision": "approve",
+    "reason": "Four real Rebels episodes or multi-part stories; rewatch preference is clear. Recommend label: Spoilers — Rebels major episodes. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which live-action series has the strongest overall tone?",
+    "decision": "approve",
+    "reason": "Four live-action series with distinguishable tones."
+  },
+  {
+    "question": "Which animated series is the best starting point for new fans?",
+    "decision": "approve",
+    "reason": "Four animated series; suitability for beginners is an opinion, not a factual prerequisite claim."
+  },
+  {
+    "question": "Which Mandalorian-era season or stretch is your favorite?",
+    "decision": "approve",
+    "reason": "The crossover option is explicitly distinguished from the three Mandalorian seasons. Metadata title is shorthand for this broader period."
+  },
+  {
+    "question": "Which Andor storyline is the most gripping?",
+    "decision": "approve",
+    "reason": "Four recognizable Andor season-one threads; optional wording: Andor season-one storyline, since later seasons also exist. Recommend label: Spoilers — Andor season 1 storylines. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which Andor character gives the most powerful performance?",
+    "decision": "approve",
+    "reason": "Clear performance preference using character names as shorthand for the actors; optional wording: performance as an Andor character."
+  },
+  {
+    "question": "Which Ghost crew member has the best development?",
+    "decision": "approve",
+    "reason": "Four principal Ghost crew members; development preference is valid."
+  },
+  {
+    "question": "Which Rebels supporting character deserves more love?",
+    "decision": "approve",
+    "reason": "Distinct Rebels ensemble choices; supporting is editorially broad, so optional wording: Which of these Rebels characters deserves more love?"
+  },
+  {
+    "question": "Which Ahsoka character would you most like to follow in a spin-off?",
+    "decision": "approve",
+    "reason": "Four Ahsoka characters; spin-off is clearly hypothetical, even when the title character is an option."
+  },
+  {
+    "question": "Which Ahsoka location should future stories explore more?",
+    "decision": "approve",
+    "reason": "All four are settings used in Ahsoka; Home One is a ship, but location does not require a planet."
+  },
+  {
+    "question": "Which bounty hunter is the most dangerous?",
+    "decision": "approve",
+    "reason": "Four established bounty hunters; danger is an opinion ranking."
+  },
+  {
+    "question": "Which bounty hunter has the best reputation?",
+    "decision": "approve",
+    "reason": "Four established bounty hunters; reputation is a different criterion from personal danger."
+  },
+  {
+    "question": "Which crime syndicate would make the best main antagonist?",
+    "decision": "approve",
+    "reason": "Four crime organizations; antagonist choice is hypothetical."
+  },
+  {
+    "question": "Which underworld location has the strongest atmosphere?",
+    "decision": "approve",
+    "reason": "Four underworld-associated settings; atmosphere is an opinion."
+  },
+  {
+    "question": "Which classic battle is the most iconic?",
+    "decision": "approve",
+    "reason": "Four distinct major battles; iconic status is subjective."
+  },
+  {
+    "question": "Which prequel-era battle has the best scale?",
+    "decision": "approve",
+    "reason": "Four prequel battles; scale is a valid comparison."
+  },
+  {
+    "question": "Which Clone Wars conflict should be adapted into a cinematic event?",
+    "decision": "approve",
+    "reason": "Four Clone Wars conflicts; recommend new cinematic treatment wording because Christophsis already appears in the animated feature. A hypothetical new adaptation remains a valid poll."
+  },
+  {
+    "question": "Which sequel-era battle has the most memorable visuals?",
+    "decision": "approve",
+    "reason": "Four distinct sequel-era action sequences; memorable visuals is a clear criterion."
+  },
+  {
+    "question": "Which Star Wars creature is the most terrifying?",
+    "decision": "approve",
+    "reason": "Four distinct dangerous creatures; terror is subjective."
+  },
+  {
+    "question": "Which creature would make the best companion?",
+    "decision": "approve",
+    "reason": "Four distinct creature preferences; companionship is hypothetical."
+  },
+  {
+    "question": "Which mystical creature should be explored more?",
+    "decision": "approve",
+    "reason": "Purrgil, loth-wolves, and mythosaurs have mystical associations; for the convor choice, recommend naming Morai to distinguish the specifically mystical individual from ordinary convorees."
+  },
+  {
+    "question": "Which Star Wars music theme hits the hardest?",
+    "decision": "approve",
+    "reason": "Four recognizable musical themes/cues; emotional impact is subjective."
+  },
+  {
+    "question": "Which in-universe music moment is your favorite?",
+    "decision": "reject",
+    "reason": "Jabba's Palace band overlaps Jedi Rocks, a song performed by that same band in the palace. Specify individual musical moments rather than mix performers and their songs. Source: https://www.starwars.com/news/music-in-star-wars",
+    "fix": {
+      "options": [
+        "Cantina Band in A New Hope",
+        "Lapti Nek (original Return of the Jedi)",
+        "Yub Nub (original Return of the Jedi)",
+        "Jedi Rocks (Return of the Jedi Special Edition)"
+      ]
+    }
+  },
+  {
+    "question": "Which quote is the most instantly recognizable?",
+    "decision": "approve",
+    "reason": "Recognizable spoken catchphrases; I am your father is a shortened excerpt rather than the complete sentence, acceptable for recognition. Recommend label: Spoilers — The Empire Strikes Back. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which quote would make the best daily motto?",
+    "decision": "approve",
+    "reason": "Recognizable excerpts used as hypothetical mottos; no inaccurate speaker attribution is made."
+  },
+  {
+    "question": "Which Jedi era would you most want to train in?",
+    "decision": "approve",
+    "reason": "Hypothetical training environments; Rey's future path should be presented as speculative rather than a defined existing academy."
+  },
+  {
+    "question": "Which Jedi was the best battlefield commander?",
+    "decision": "approve",
+    "reason": "All four commanded forces as Jedi or Jedi apprentices during the Clone Wars; historical wording accommodates Ahsoka later leaving the Order."
+  },
+  {
+    "question": "Which Sith Lord has the most interesting lore?",
+    "decision": "approve",
+    "reason": "Four Sith Lords; lore preference is legitimate. Recommend a Canon + Legends label if discussion draws on Legends biographies."
+  },
+  {
+    "question": "Which dark-side storyline is the most tragic?",
+    "decision": "approve",
+    "reason": "Four real story arcs; tragic is an interpretive comparison, not a factual claim that redemption itself is evil. Recommend label: Spoilers — The Clone Wars / prequel trilogy / The Rise of Skywalker. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which costume design is the most iconic?",
+    "decision": "approve",
+    "reason": "Four recognizable costumes; iconic status is subjective."
+  },
+  {
+    "question": "Which outfit style would you wear for a convention?",
+    "decision": "approve",
+    "reason": "Four clear convention-costume styles."
+  },
+  {
+    "question": "Which non-lightsaber weapon is the coolest?",
+    "decision": "approve",
+    "reason": "Four distinct non-lightsaber weapons correctly associated with Star Wars."
+  },
+  {
+    "question": "Which unusual weapon or tool would you bring into a fight?",
+    "decision": "approve",
+    "reason": "Four distinct offensive or defensive items; tool appropriately includes the energy shield."
+  },
+  {
+    "question": "Which Star Wars game would you recommend to a new player first?",
+    "decision": "reject",
+    "reason": "Battlefront II names both the 2005 and 2017 games; votes would not identify which game is recommended. Specify an edition. The supplied fix assumes the 2017 game; choosing the 2005 edition instead is also valid. Official 2017 title context: https://www.starwars.com/news/lucasfilm-games-team-star-wars-gaming-moments",
+    "fix": {
+      "options": [
+        "Knights of the Old Republic (2003)",
+        "Jedi: Survivor",
+        "Battlefront II (2017)",
+        "Squadrons"
+      ]
+    }
+  },
+  {
+    "question": "Which game protagonist has the best story?",
+    "decision": "approve",
+    "reason": "Four game protagonists; recommend Canon + Legends framing for Revan and Starkiller. Recommend label: Spoilers — Knights of the Old Republic identity reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which Jedi game location would you like to explore most?",
+    "decision": "approve",
+    "reason": "Four locations in the Jedi game series; Jedi game refers to Fallen Order/Survivor, not a claim they are all Jedi settlements. Recommend label: Spoilers — Jedi: Survivor locations. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which classic Star Wars game deserves a modern remake?",
+    "decision": "reject",
+    "reason": "Jedi Knight can mean the series or multiple differently subtitled games; the remake target is ambiguous. The fix assumes Dark Forces II (1997). Official title evidence: https://www.starwars.com/news/lucasfilm-games-team-star-wars-gaming-moments",
+    "fix": {
+      "options": [
+        "Jedi Knight: Dark Forces II (1997)",
+        "Knights of the Old Republic (2003)",
+        "Republic Commando",
+        "Empire at War"
+      ]
+    }
+  },
+  {
+    "question": "Which Legends character should return to canon?",
+    "decision": "reject",
+    "reason": "The premise treats all four characters as absent from current canon. Dash Rendar is reported as already mentioned in the licensed Solo: A Star Wars Story: Tales from Vandor (2018); I could not retrieve that primary passage during this review, so this canon-status finding has a source-access limitation. A major-role question avoids the disputed absence claim and preserves the intended preference. Corroborating reference: https://starwars.fandom.com/wiki/Dash_Rendar ; official older Legends context: https://www.starwars.com/series/star-wars-rebels/iron-squadron-trivia-gallery",
+    "fix": {
+      "question": "Which character best known from Legends deserves a major role in a new canon story?"
+    }
+  },
+  {
+    "question": "Which Legends storyline would you adapt for modern Star Wars?",
+    "decision": "approve",
+    "reason": "Four identifiable Legends stories or publishing runs; adaptations are hypothetical."
+  },
+  {
+    "question": "Which Legends Sith deserves the biggest spotlight?",
+    "decision": "approve",
+    "reason": "All four are Sith in Legends; the explicit Legends framing is appropriate even where a name also exists in canon."
+  },
+  {
+    "question": "Which Old Republic storyline would make the best series?",
+    "decision": "approve",
+    "reason": "Four broadly identifiable Old Republic subjects. Sith Empire conflict is vague; optionally specify the Great Galactic War and turn Rakatan Infinite Empire into rise/fall of that empire."
+  },
+  {
+    "question": "Which KOTOR companion or figure is your favorite?",
+    "decision": "approve",
+    "reason": "Figure correctly allows Revan alongside recruitable companions, avoiding a false companion-only premise."
+  },
+  {
+    "question": "Which High Republic concept sounds most interesting?",
+    "decision": "approve",
+    "reason": "Four High Republic-related concepts; interest is subjective and the question does not assert a particular published plot."
+  },
+  {
+    "question": "What tone should future Star Wars stories lean into?",
+    "decision": "approve",
+    "reason": "Distinct desired narrative emphases; overlap of tones does not prevent choosing a priority."
+  },
+  {
+    "question": "What format should the next big Star Wars story use?",
+    "decision": "approve",
+    "reason": "Four distinct formats; hypothetical preference is clear."
+  },
+  {
+    "question": "Which Jedi-focused project would you watch first?",
+    "decision": "approve",
+    "reason": "Four speculative Jedi projects; no production announcement is asserted."
+  },
+  {
+    "question": "Which unresolved storyline should get priority?",
+    "decision": "approve",
+    "reason": "Four broad ongoing story directions; unresolved is loose rather than an assertion that no stories exist. Optional wording: Which continuing storyline should get more attention? Recommend label: Spoilers — Ahsoka season 1 / The Mandalorian season 3 discussion. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which timeline gap should Star Wars explore more?",
+    "decision": "approve",
+    "reason": "A broad era preference; before the Sith rise is imprecise, so recommend specifying a period if this becomes a timeline quiz. As an opinion poll, the intended contrast is usable."
+  },
+  {
+    "question": "Which canon era has the richest storytelling?",
+    "decision": "approve",
+    "reason": "Recognizable canonical era labels; storytelling richness is subjective."
+  },
+  {
+    "question": "Which Star Wars relationship is the emotional core of its story?",
+    "decision": "approve",
+    "reason": "Four emotional relationships; relationship appropriately includes family/guardian bonds, not just romances."
+  },
+  {
+    "question": "Which complicated Force-user relationship is the most compelling?",
+    "decision": "approve",
+    "reason": "Four Force-user relationships; compelling is subjective."
+  },
+  {
+    "question": "Which master-apprentice pairing is your favorite?",
+    "decision": "approve",
+    "reason": "Four established master-apprentice pairs; distinct from the individual-mentor poll."
+  },
+  {
+    "question": "Which mentor gives the best wisdom?",
+    "decision": "approve",
+    "reason": "Wisdom differs from mentoring aptitude in poll 2; keep these polls separated in the publishing schedule to avoid repetition."
+  },
+  {
+    "question": "Which alien species would you like to learn more about?",
+    "decision": "approve",
+    "reason": "Four distinct species; curiosity about them is a clear preference."
+  },
+  {
+    "question": "Which culture has the most fascinating worldbuilding?",
+    "decision": "approve",
+    "reason": "Culture correctly accommodates the Nightsisters alongside species-based cultures."
+  },
+  {
+    "question": "Which walker or ground vehicle has the best design?",
+    "decision": "approve",
+    "reason": "Four ground vehicles; wording correctly permits the wheeled Juggernaut alongside walkers."
+  },
+  {
+    "question": "Which small vehicle would be the most fun to ride?",
+    "decision": "reject",
+    "reason": "Speeder bike is a broad category that includes the BARC speeder; the choices need a particular model or recognizable depiction. Source: https://www.starwars.com/databank/barc-speeder",
+    "fix": {
+      "options": [
+        "Imperial scout bike from Return of the Jedi",
+        "Podracer",
+        "Landspeeder",
+        "BARC speeder"
+      ]
+    }
+  },
+  {
+    "question": "Which podracer would you root for?",
+    "decision": "approve",
+    "reason": "Four actual Boonta Eve racers; rooting interest is subjective."
+  },
+  {
+    "question": "Which location would be the best setting for a mystery story?",
+    "decision": "approve",
+    "reason": "Four distinct mystery settings; hypothetical genre preference is clear."
+  },
+  {
+    "question": "Which glamorous location would you vacation in?",
+    "decision": "approve",
+    "reason": "Four recognizable travel settings; glamour and vacation suitability are subjective."
+  },
+  {
+    "question": "Which early Rebellion leader is the most interesting?",
+    "decision": "approve",
+    "reason": "Four early rebellion figures with distinct methods; interesting does not imply moral endorsement."
+  },
+  {
+    "question": "Which Rogue One team member is your favorite?",
+    "decision": "approve",
+    "reason": "Four actual Rogue One team members; an intentional shortlist is acceptable."
+  },
+  {
+    "question": "Which Imperial or First Order superweapon feels most threatening?",
+    "decision": "reject",
+    "reason": "Executor and Supremacy are capital warships, so grouping all choices as superweapons is misleading. Broaden the category to retain the intended threat comparison. Sources: https://www.starwars.com/databank/super-star-destroyer ; https://www.starwars.com/databank/the-supremacy",
+    "fix": {
+      "question": "Which Imperial or First Order warship or superweapon feels most threatening?"
+    }
+  },
+  {
+    "question": "Which trooper design is the coolest?",
+    "decision": "approve",
+    "reason": "Four distinct trooper designs; aesthetics are subjective."
+  },
+  {
+    "question": "Which Resistance hero deserved more screen time?",
+    "decision": "approve",
+    "reason": "Four Resistance heroes; deserving screen time is an opinion."
+  },
+  {
+    "question": "Which sequel-era ally should get a backstory project?",
+    "decision": "approve",
+    "reason": "Four sequel-era allies; requesting a backstory project does not claim no backstory currently exists."
+  },
+  {
+    "question": "Which Star Wars food or drink would you try first?",
+    "decision": "approve",
+    "reason": "Four distinct edible/drinkable in-universe items. Ronto wraps are especially associated with Galaxy's Edge; recommend adding theme park to source metadata, which currently only says movie + series."
+  },
+  {
+    "question": "Which social spot would be the most fun to hang out in?",
+    "decision": "approve",
+    "reason": "Four distinct social venues; fun is hypothetical."
+  },
+  {
+    "question": "Which Star Wars collectible would you want on your shelf?",
+    "decision": "approve",
+    "reason": "Distinct collectible types; preference is clear."
+  },
+  {
+    "question": "Which prop would make the best display centerpiece?",
+    "decision": "approve",
+    "reason": "Usable costume/prop centerpiece shortlist, but close in purpose to poll 103's shelf-display question. Recommend spacing them apart or replacing this with a replica-versus-original collecting question."
+  },
+  {
+    "question": "Which movie would you rank highest?",
+    "decision": "approve",
+    "reason": "Four distinct films; a best-of-shortlist poll is valid without including every movie."
+  },
+  {
+    "question": "Which Star Wars finale hit the hardest?",
+    "decision": "approve",
+    "reason": "Four real finales; emotional impact is subjective. Finale discussion can disclose endings even though this stem does not. Recommend label: Spoilers — listed series finales (for discussion). Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which scene gives you chills every time?",
+    "decision": "approve",
+    "reason": "Four recognizable scenes; Luke returns refers to his return to the screen, not a prior meeting with Grogu. Recommend Luke arrives to rescue Grogu for precision. Recommend label: Spoilers — Revenge of the Sith / Rogue One / The Mandalorian season 2 finale. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which emotional moment is the most powerful?",
+    "decision": "approve",
+    "reason": "Four distinct emotional scenes; subjective but contains explicit character-fate spoilers. Recommend label: Spoilers — The Empire Strikes Back / The Clone Wars season 5 / Rebels season 4 / Andor season 1. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which type of Star Wars humor is your favorite?",
+    "decision": "approve",
+    "reason": "Four distinct character-based humor styles."
+  },
+  {
+    "question": "Which Star Wars training path would you choose?",
+    "decision": "approve",
+    "reason": "Four different hypothetical training paths."
+  },
+  {
+    "question": "What role would you play in the galaxy?",
+    "decision": "approve",
+    "reason": "Four recognizably different role fantasies; Mandalorian is a culture rather than a profession, but this casual hypothetical is still intelligible."
+  },
+  {
+    "question": "Which non-combat role sounds most fun?",
+    "decision": "approve",
+    "reason": "Pilot can be civilian, so it is not inherently a false non-combat option. Recommend civilian pilot for precision."
+  },
+  {
+    "question": "Which philosophy makes the best debate topic?",
+    "decision": "approve",
+    "reason": "Distinct debate subjects; gray morality is a broad ethical concept, not an asserted official Gray Jedi doctrine."
+  },
+  {
+    "question": "Which hot take should we discuss next?",
+    "decision": "approve",
+    "reason": "Explicit hot-take framing makes these debatable propositions, not endorsed historical facts. Recommend label: Spoilers — prequel trilogy outcomes. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What kind of Star Wars post should we make next?",
+    "decision": "approve",
+    "reason": "Four distinct post formats; useful community input."
+  },
+  {
+    "question": "Which lore infographic would be most useful?",
+    "decision": "approve",
+    "reason": "Four distinguishable infographic subjects; no factual lineage is supplied here to adjudicate."
+  },
+  {
+    "question": "Which meme category should get a themed day?",
+    "decision": "approve",
+    "reason": "Four recognizable meme themes; choose a theme rather than claim their eras never overlap."
+  },
+  {
+    "question": "Which prequel meme quote is the most reusable?",
+    "decision": "approve",
+    "reason": "Recognizable shortened prequel quotes; reusable is subjective and no incorrect speaker is assigned."
+  },
+  {
+    "question": "Which Star Wars book lane should newcomers try?",
+    "decision": "approve",
+    "reason": "Four reading lanes; Thrawn novels span continuities and Darth Bane is Legends, so recommend a Canon + Legends label and clarify which Thrawn trilogy in follow-up recommendations."
+  },
+  {
+    "question": "Which comic run sounds most worth reading?",
+    "decision": "approve",
+    "reason": "Recognizable comic lines/event; comic run is broad, so optional wording: comic series or event. No factual reading-order claim is made."
+  },
+  {
+    "question": "How deep into canon do you usually go?",
+    "decision": "reject",
+    "reason": "The options overlap for viewers of both live-action and animation, and provide no accurate choice for screen-only fans who watch both but do not consume everything canon. Ask a clearer media-habits question with distinct buckets.",
+    "fix": {
+      "question": "Beyond the Star Wars movies, which media do you regularly follow?",
+      "options": [
+        "No other media",
+        "Shows, but no books, comics, or games",
+        "Books, comics, or games, but no shows",
+        "Both shows and books, comics, or games"
+      ]
+    }
+  },
+  {
+    "question": "Which medium adds the best lore?",
+    "decision": "approve",
+    "reason": "Four distinct medium buckets; games can include canon and Legends, so constrain to canon only if that is the intended discussion."
+  },
+  {
+    "question": "What's the best way to rewatch Star Wars?",
+    "decision": "approve",
+    "reason": "Four distinct rewatch strategies; no claim that one order is objectively mandatory."
+  },
+  {
+    "question": "How ambitious should our next rewatch be?",
+    "decision": "approve",
+    "reason": "Four different rewatch scopes; ambitious is an opinion, not a promise that every format fits a finite session."
+  },
+  {
+    "question": "Which movie ending is the most memorable?",
+    "decision": "approve",
+    "reason": "Four film endings; preference is valid and the options do not themselves reveal the outcomes. Recommend label: Spoilers — listed movie endings (for discussion). Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which opening sequence pulls you in fastest?",
+    "decision": "approve",
+    "reason": "Four correctly identified opening sequences."
+  },
+  {
+    "question": "Which character spin-off would you greenlight?",
+    "decision": "approve",
+    "reason": "Clearly hypothetical greenlighting; recommend an explicit What if? label for the Mace Windu survival option so readers do not mistake it for established survival."
+  },
+  {
+    "question": "Which species-focused spin-off sounds best?",
+    "decision": "reject",
+    "reason": "Nightsisters are a witch coven/cultural order, not a species. Culture-focused accommodates all four concepts without changing the options. Source: https://www.starwars.com/databank/nightsisters",
+    "fix": {
+      "question": "Which culture-focused spin-off sounds best?"
+    }
+  },
+  {
+    "question": "What color is Mace Windu's lightsaber?",
+    "decision": "approve",
+    "reason": "Key 2 (Purple) is supported by the supplied matching source note; no competing correct option identified. Official databank describes the blade as amethyst. Evidence: https://www.starwars.com/databank/mace-windus-lightsaber"
+  },
+  {
+    "question": "Who built C-3PO?",
+    "decision": "approve",
+    "reason": "Key 1 (Anakin Skywalker) is supported by the supplied matching source note; no competing correct option identified. Databank identifies young Anakin as the builder. Evidence: https://www.starwars.com/databank/c-3po"
+  },
+  {
+    "question": "What is the name of Han Solo's ship?",
+    "decision": "approve",
+    "reason": "Key 1 (Millennium Falcon) is supported by the supplied matching source note; no competing correct option identified. Han is identified as captain of the Millennium Falcon. Evidence: https://www.starwars.com/databank/han-solo"
+  },
+  {
+    "question": "Who trained Obi-Wan Kenobi as a Padawan?",
+    "decision": "approve",
+    "reason": "Key 2 (Qui-Gon Jinn) is supported by the supplied matching source note; no competing correct option identified. Obi-Wan is described as Qui-Gon’s Padawan. Evidence: https://www.starwars.com/databank/obi-wan-kenobi"
+  },
+  {
+    "question": "Which planet is known as the Wookiee homeworld?",
+    "decision": "approve",
+    "reason": "Key 0 (Kashyyyk) is supported by the supplied matching source note; no competing correct option identified. Databank identifies Kashyyyk as the Wookiee homeworld. Evidence: https://www.starwars.com/databank/wookiee"
+  },
+  {
+    "question": "Who created the Darksaber?",
+    "decision": "approve",
+    "reason": "Key 1 (Tarre Vizsla) is supported by the supplied matching source note; no competing correct option identified. Official Darksaber history credits Tarre Vizsla. Evidence: https://www.starwars.com/news/what-is-the-darksaber"
+  },
+  {
+    "question": "In canon, what rank does Thrawn hold in the Empire?",
+    "decision": "approve",
+    "reason": "Key 1 (Grand Admiral) is supported by the supplied matching source note; no competing correct option identified. Official character entry identifies his Imperial rank. Evidence: https://www.starwars.com/databank/grand-admiral-thrawn The Rebels source context identifies his familiar senior rank; optionally say in Rebels to exclude earlier career ranks."
+  },
+  {
+    "question": "Which battle station was destroyed at Yavin?",
+    "decision": "approve",
+    "reason": "Key 1 (Death Star I) is supported by the supplied matching source note; no competing correct option identified. Imperial history describes the first Death Star’s destruction at Yavin. Evidence: https://www.starwars.com/databank/organization/theempire/ Recommend label: Spoilers — A New Hope ending. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which character says 'I am one with the Force and the Force is with me'?",
+    "decision": "reject",
+    "reason": "Ambiguous attribution: Baze Malbus also repeats the Force mantra in Rogue One's Scarif finale, and both Baze and Chirrut are options. The inherited official clip establishes Chirrut as a speaker but does not establish exclusivity. Narrowing the stem to the blind warrior removes the ambiguity while keeping key 2. Official support for the distinguishing trait: https://www.starwars.com/databank/chirrut-imwe . The live official pages retrieved did not reproduce Baze's final dialogue; that part of the finding is based on the film scene, not claimed as independently confirmed by those pages.",
+    "fix": {
+      "question": "Which blind warrior in Rogue One says 'I am one with the Force and the Force is with me'?",
+      "correct": 2
+    }
+  },
+  {
+    "question": "Which game first introduced Darth Revan?",
+    "decision": "approve",
+    "reason": "Key 2 (KOTOR) is supported by the supplied matching source note; no competing correct option identified. Official gaming retrospective recalls the Revan reveal in the 2003 Knights of the Old Republic. Evidence: https://www.starwars.com/news/lucasfilm-games-team-star-wars-gaming-moments Independently opened official source: The official Lucasfilm Games retrospective identifies the 2003 KOTOR Revan reveal."
+  },
+  {
+    "question": "In The Phantom Menace, what species is the podracer Sebulba?",
+    "decision": "approve",
+    "reason": "Key 2 (Dug) is supported by the supplied matching source note; no competing correct option identified. The Sebulba entry identifies the racer as a Dug. Evidence: https://www.starwars.com/databank/sebulba"
+  },
+  {
+    "question": "What is the name of the podrace Anakin wins in The Phantom Menace?",
+    "decision": "approve",
+    "reason": "Key 1 (Boonta Eve Classic) is supported by the supplied matching source note; no competing correct option identified. The biography names the Boonta Eve Classic and describes Anakin beating Sebulba. Evidence: https://www.starwars.com/databank/sebulba Recommend label: Spoilers — The Phantom Menace podrace outcome. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Phantom Menace, which species does the junk dealer Watto belong to?",
+    "decision": "approve",
+    "reason": "Key 2 (Toydarian) is supported by the supplied matching source note; no competing correct option identified. Watto is identified as a Toydarian dealer in Mos Espa. Evidence: https://www.starwars.com/databank/watto"
+  },
+  {
+    "question": "Which Gungan leader agrees to help Queen Amidala fight the invasion in The Phantom Menace?",
+    "decision": "approve",
+    "reason": "Key 3 (Boss Nass) is supported by the supplied matching source note; no competing correct option identified. Nass agrees to commit his army after Amidala appeals to him. Evidence: https://www.starwars.com/databank/boss-nass Recommend label: Spoilers — The Phantom Menace alliance. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Whose genetic material is used for the Republic clone army revealed in Attack of the Clones?",
+    "decision": "approve",
+    "reason": "Key 3 (Jango Fett) is supported by the supplied matching source note; no competing correct option identified. The biography explicitly names Jango as the genetic source of the army. Evidence: https://www.starwars.com/databank/Jango-Fett Recommend label: Spoilers — Attack of the Clones clone-army reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Attack of the Clones, what is Boba Fett genetically in relation to Jango Fett?",
+    "decision": "approve",
+    "reason": "Key 2 (An unaltered clone) is supported by the supplied matching source note; no competing correct option identified. The entry distinguishes Boba as Jango's unaltered clone, raised as his son. Evidence: https://www.starwars.com/databank/Jango-Fett Recommend label: Spoilers — Attack of the Clones Boba reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which shapeshifting assassin do Obi-Wan and Anakin capture on Coruscant in Attack of the Clones?",
+    "decision": "approve",
+    "reason": "Key 0 (Zam Wesell) is supported by the supplied matching source note; no competing correct option identified. The biography names Zam Wesell as the captured shapeshifter who targeted Padme. Evidence: https://www.starwars.com/databank/Jango-Fett"
+  },
+  {
+    "question": "Which Jedi kills Jango Fett during the arena battle in Attack of the Clones?",
+    "decision": "approve",
+    "reason": "Key 1 (Mace Windu) is supported by the supplied matching source note; no competing correct option identified. The account of Geonosis states that Windu decapitates Jango. Evidence: https://www.starwars.com/databank/Jango-Fett Recommend label: Spoilers — Attack of the Clones character death. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which storm-covered ocean planet conceals the cloning operation Obi-Wan discovers in Attack of the Clones?",
+    "decision": "approve",
+    "reason": "Key 0 (Kamino) is supported by the supplied matching source note; no competing correct option identified. The entry describes the ocean world and Obi-Wan's discovery of its clone army. Evidence: https://www.starwars.com/databank/kamino"
+  },
+  {
+    "question": "How many lightsabers does General Grievous wield at once against Obi-Wan on Utapau in Revenge of the Sith?",
+    "decision": "approve",
+    "reason": "Key 1 (Four) is supported by the supplied matching source note; no competing correct option identified. The Utapau duel account explicitly says Grievous wields four simultaneously. Evidence: https://www.starwars.com/databank/general-grievous Four is the maximum wielded simultaneously in this duel; optionally add at the start of their duel for precision."
+  },
+  {
+    "question": "What weapon does Obi-Wan use to deliver the fatal shots to Grievous in Revenge of the Sith?",
+    "decision": "approve",
+    "reason": "Key 1 (A blaster) is supported by the supplied matching source note; no competing correct option identified. Obi-Wan retrieves Grievous's blaster with the Force and shoots his chest. Evidence: https://www.starwars.com/databank/general-grievous Recommend label: Spoilers — Revenge of the Sith character death. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Who is the captive Anakin and Obi-Wan rescue above Coruscant at the start of Revenge of the Sith?",
+    "decision": "approve",
+    "reason": "Key 1 (Chancellor Palpatine) is supported by the supplied matching source note; no competing correct option identified. The biography describes Palpatine's kidnapping and the Jedi rescue aboard the flagship. Evidence: https://www.starwars.com/databank/general-grievous"
+  },
+  {
+    "question": "Which clone commander orders his troops to fire on Obi-Wan on Utapau after Order 66 in Revenge of the Sith?",
+    "decision": "approve",
+    "reason": "Key 2 (Commander Cody) is supported by the supplied matching source note; no competing correct option identified. The film-era history names Cody as the commander who orders the attack. Evidence: https://www.starwars.com/databank/utapau Recommend label: Spoilers — Revenge of the Sith / Order 66. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which local administrator quietly tells Obi-Wan where to find Grievous in Revenge of the Sith?",
+    "decision": "approve",
+    "reason": "Key 3 (Tion Medon) is supported by the supplied matching source note; no competing correct option identified. The Tion Medon summary says the administrator quietly reveals Grievous's location to Obi-Wan. Evidence: https://www.starwars.com/databank/utapau"
+  },
+  {
+    "question": "Which planet does Tarkin destroy to demonstrate the Death Star's power in A New Hope?",
+    "decision": "approve",
+    "reason": "Key 0 (Alderaan) is supported by the supplied matching source note; no competing correct option identified. The entry names Alderaan as the planet Tarkin destroys in the demonstration. Evidence: https://www.starwars.com/databank/grand-moff-tarkin Recommend label: Spoilers — A New Hope / Alderaan. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which political body has the Emperor dissolved by the Imperial briefing in A New Hope?",
+    "decision": "approve",
+    "reason": "Key 3 (The Imperial Senate) is supported by the supplied matching source note; no competing correct option identified. The biography says the Emperor dissolves the Imperial Senate once the station is operational. Evidence: https://www.starwars.com/databank/grand-moff-tarkin Recommend label: Spoilers — A New Hope political developments. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What are the huge tracked vehicles used by the Jawas in A New Hope called?",
+    "decision": "approve",
+    "reason": "Key 2 (Sandcrawlers) is supported by the supplied matching source note; no competing correct option identified. The Jawa entry calls their treaded mobile homes sandcrawlers. Evidence: https://www.starwars.com/databank/jawa"
+  },
+  {
+    "question": "In A New Hope, what component fails in the red astromech Owen initially buys from the Jawas?",
+    "decision": "approve",
+    "reason": "Key 0 (Its motivator) is supported by the supplied matching source note; no competing correct option identified. The Bad Motivator clip description says the red astromech blows a motivator. Evidence: https://www.starwars.com/databank/jawa This describes the apparent component failure in A New Hope, without claiming it was accidental. The supplied Jawa URL timed out during the live spot-check; the retained source note was not independently re-fetched."
+  },
+  {
+    "question": "Who is Cloud City's administrator when Han and Leia arrive in The Empire Strikes Back?",
+    "decision": "approve",
+    "reason": "Key 3 (Lando Calrissian) is supported by the supplied matching source note; no competing correct option identified. The biography identifies Lando as Cloud City's administrator before Vader's trap. Evidence: https://www.starwars.com/databank/lando-calrissian"
+  },
+  {
+    "question": "What gas is mined at Cloud City in The Empire Strikes Back?",
+    "decision": "approve",
+    "reason": "Key 0 (Tibanna) is supported by the supplied matching source note; no competing correct option identified. Cloud City is described as a Tibanna gas installation in Bespin's atmosphere. Evidence: https://www.starwars.com/databank/lando-calrissian"
+  },
+  {
+    "question": "Which animals do Rebel patrols ride on Hoth in The Empire Strikes Back?",
+    "decision": "approve",
+    "reason": "Key 2 (Tauntauns) is supported by the supplied matching source note; no competing correct option identified. The entry says Rebels domesticated tauntauns for patrols outside their base. Evidence: https://www.starwars.com/databank/tauntaun"
+  },
+  {
+    "question": "What creature captures Luke and hangs him upside down in an icy cave in The Empire Strikes Back?",
+    "decision": "approve",
+    "reason": "Key 2 (A wampa) is supported by the supplied matching source note; no competing correct option identified. The entry describes the wampa attack and Luke awakening suspended in its lair. Evidence: https://www.starwars.com/databank/wampa Recommend label: Spoilers — The Empire Strikes Back opening. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What is the name of the Rebel installation on Hoth in The Empire Strikes Back?",
+    "decision": "approve",
+    "reason": "Key 1 (Echo Base) is supported by the supplied matching source note; no competing correct option identified. Both the patrol description and Hoth summary identify the installation as Echo Base. Evidence: https://www.starwars.com/databank/tauntaun"
+  },
+  {
+    "question": "Which Ewok befriends Leia after her speeder-bike crash in Return of the Jedi?",
+    "decision": "approve",
+    "reason": "Key 0 (Wicket) is supported by the supplied matching source note; no competing correct option identified. Wicket's biography connects Leia's crash and encounter with their new friendship. Evidence: https://www.starwars.com/databank/wicket-w-warrick Recommend label: Spoilers — Return of the Jedi Endor sequence. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What kind of creature does Luke face beneath Jabba's throne room in Return of the Jedi?",
+    "decision": "approve",
+    "reason": "Key 3 (A rancor) is supported by the supplied matching source note; no competing correct option identified. The entry places Jabba's rancor beneath the throne room and says Luke kills it. Evidence: https://www.starwars.com/databank/rancor"
+  },
+  {
+    "question": "What Imperial installation do the Rebels destroy on Endor to make the Death Star attack possible in Return of the Jedi?",
+    "decision": "approve",
+    "reason": "Key 3 (A shield generator) is supported by the supplied matching source note; no competing correct option identified. The biography states that destroying the ground shield generator enables the attack in space. Evidence: https://www.starwars.com/databank/wicket-w-warrick Recommend label: Spoilers — Return of the Jedi final battle. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Who serves as Lando's co-pilot aboard the Millennium Falcon during the Battle of Endor in Return of the Jedi?",
+    "decision": "approve",
+    "reason": "Key 0 (Nien Nunb) is supported by the supplied matching source note; no competing correct option identified. The entry explicitly identifies Nien Nunb as Lando's co-pilot during that battle. Evidence: https://www.starwars.com/databank/nien-nunb"
+  },
+  {
+    "question": "What stormtrooper designation does Finn have before his escape in The Force Awakens?",
+    "decision": "approve",
+    "reason": "Key 3 (FN-2187) is supported by the supplied matching source note; no competing correct option identified. Finn's original First Order designation is given as FN-2187. Evidence: https://www.starwars.com/databank/finn"
+  },
+  {
+    "question": "Who gives Finn his new name in The Force Awakens?",
+    "decision": "approve",
+    "reason": "Key 1 (Poe Dameron) is supported by the supplied matching source note; no competing correct option identified. The escape account specifically credits Poe with giving him the nickname Finn. Evidence: https://www.starwars.com/databank/finn Recommend label: Spoilers — The Force Awakens escape. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "How does Rey make a living on Jakku before meeting BB-8 in The Force Awakens?",
+    "decision": "approve",
+    "reason": "Key 0 (Salvaging wreckage) is supported by the supplied matching source note; no competing correct option identified. The biography describes Rey scavenging and salvaging components from crashed warships. Evidence: https://www.starwars.com/databank/rey"
+  },
+  {
+    "question": "Which droid carries a star chart pointing toward Luke Skywalker while on Jakku in The Force Awakens?",
+    "decision": "approve",
+    "reason": "Key 1 (BB-8) is supported by the supplied matching source note; no competing correct option identified. The biography identifies BB-8 as the astromech carrying the location clue Rey encounters. Evidence: https://www.starwars.com/databank/rey"
+  },
+  {
+    "question": "What is the name of Rose Tico's sister, a Resistance bomber gunner in The Last Jedi?",
+    "decision": "approve",
+    "reason": "Key 2 (Paige) is supported by the supplied matching source note; no competing correct option identified. The biography names Paige as Rose's older sister and a bomber gunner. Evidence: https://www.starwars.com/databank/rose-tico"
+  },
+  {
+    "question": "Which casino city do Finn and Rose visit to find the Master Codebreaker in The Last Jedi?",
+    "decision": "approve",
+    "reason": "Key 3 (Canto Bight) is supported by the supplied matching source note; no competing correct option identified. The mission summary names Canto Bight as the codebreaker search destination. Evidence: https://www.starwars.com/databank/rose-tico Recommend label: Spoilers — The Last Jedi mission. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What animals carry Finn and Rose as they flee the police in The Last Jedi?",
+    "decision": "approve",
+    "reason": "Key 0 (Fathiers) is supported by the supplied matching source note; no competing correct option identified. The biography states that Finn and Rose flee the police on fathiers. Evidence: https://www.starwars.com/databank/rose-tico Recommend label: Spoilers — The Last Jedi escape. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What system aboard the First Order flagship do Finn and Rose plan to disable in The Last Jedi?",
+    "decision": "approve",
+    "reason": "Key 3 (The hyperspace tracker) is supported by the supplied matching source note; no competing correct option identified. Their infiltration mission is explicitly intended to shut down the hyperspace tracker. Evidence: https://www.starwars.com/databank/rose-tico Recommend label: Spoilers — The Last Jedi mission. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Who is revealed to be Rey's grandfather in The Rise of Skywalker?",
+    "decision": "approve",
+    "reason": "Key 2 (Emperor Palpatine) is supported by the supplied matching source note; no competing correct option identified. The biography states that Kylo reveals Rey to be Palpatine's granddaughter. Evidence: https://www.starwars.com/databank/rey Recommend label: Spoilers — The Rise of Skywalker ancestry reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "On which ocean moon does Rey explore Death Star wreckage in The Rise of Skywalker?",
+    "decision": "approve",
+    "reason": "Key 1 (Kef Bir) is supported by the supplied matching source note; no competing correct option identified. Rey's biography places her search through Death Star wreckage on Kef Bir. Evidence: https://www.starwars.com/databank/rey Recommend label: Spoilers — The Rise of Skywalker mission. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "On which world does the droidsmith Babu Frik work in The Rise of Skywalker?",
+    "decision": "approve",
+    "reason": "Key 2 (Kijimi) is supported by the supplied matching source note; no competing correct option identified. Babu's entry places his droidsmith work among the Spice Runners of Kijimi. Evidence: https://www.starwars.com/databank/babu-frik"
+  },
+  {
+    "question": "What hidden Sith world houses the citadel of Palpatine's followers in The Rise of Skywalker?",
+    "decision": "approve",
+    "reason": "Key 0 (Exegol) is supported by the supplied matching source note; no competing correct option identified. The Exegol entry identifies the hidden Sith world, citadel, and followers of Sidious. Evidence: https://www.starwars.com/databank/exegol Recommend label: Spoilers — The Rise of Skywalker Sith reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "Which scientist deliberately seeks to introduce a fatal weakness into the Death Star in Rogue One?",
+    "decision": "approve",
+    "reason": "Key 3 (Galen Erso) is supported by the supplied matching source note; no competing correct option identified. Galen's entry explicitly says he seeks to build in a fatal flaw for the Alliance. Evidence: https://www.starwars.com/databank/galen-erso Recommend label: Spoilers — Rogue One sabotage reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "On which remote world is Galen Erso hiding when Krennic finds him in Rogue One?",
+    "decision": "approve",
+    "reason": "Key 1 (Lah'mu) is supported by the supplied matching source note; no competing correct option identified. The biography says Galen flees to Lah'mu and Krennic tracks him there. Evidence: https://www.starwars.com/databank/galen-erso"
+  },
+  {
+    "question": "What type of Imperial droid was K-2SO before his reprogramming, as established in Rogue One?",
+    "decision": "approve",
+    "reason": "Key 1 (A security droid) is supported by the supplied matching source note; no competing correct option identified. The introduction explicitly identifies K-2SO as a reprogrammed Imperial security droid. Evidence: https://www.starwars.com/databank/k-2so-kay-tuesso"
+  },
+  {
+    "question": "Which planet houses the vault that Jyn and Cassian infiltrate to steal the Death Star plans in Rogue One?",
+    "decision": "approve",
+    "reason": "Key 2 (Scarif) is supported by the supplied matching source note; no competing correct option identified. The Rogue One mission account describes K-2SO leading Jyn and Cassian to Scarif's vault. Evidence: https://www.starwars.com/databank/k-2so-kay-tuesso Recommend label: Spoilers — Rogue One final mission. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What was Bodhi Rook's occupation before he joined the Rebellion in Rogue One?",
+    "decision": "approve",
+    "reason": "Key 2 (Imperial pilot) is supported by the supplied matching source note; no competing correct option identified. Bodhi's entry explicitly calls him a former Imperial pilot. Evidence: https://www.starwars.com/databank/bodhi-rook"
+  },
+  {
+    "question": "Which Imperial director oversees Advanced Weapons Research in Rogue One?",
+    "decision": "approve",
+    "reason": "Key 0 (Orson Krennic) is supported by the supplied matching source note; no competing correct option identified. The Krennic summary identifies him as director of Advanced Weapons Research. Evidence: https://www.starwars.com/databank/jyn-erso"
+  },
+  {
+    "question": "Which droid sparks a revolt among the enslaved workers and droids on Kessel in Solo?",
+    "decision": "approve",
+    "reason": "Key 0 (L3-37) is supported by the supplied matching source note; no competing correct option identified. The biography describes L3-37 freeing workers and droids during the Kessel infiltration. Evidence: https://www.starwars.com/databank/l3-37 Recommend label: Spoilers — Solo Kessel escape. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What valuable fuel is the target of Beckett's train robbery on Vandor in Solo?",
+    "decision": "approve",
+    "reason": "Key 3 (Coaxium) is supported by the supplied matching source note; no competing correct option identified. The Conveyex summary identifies the train cargo Beckett's gang targets as coaxium. Evidence: https://www.starwars.com/databank/coaxium"
+  },
+  {
+    "question": "What is the name of the swoop gang led by Enfys Nest in Solo?",
+    "decision": "approve",
+    "reason": "Key 1 (The Cloud-Riders) is supported by the supplied matching source note; no competing correct option identified. Enfys's introduction identifies her as leader of the Cloud-Riders. Evidence: https://www.starwars.com/databank/enfys-nest"
+  },
+  {
+    "question": "Which crime syndicate does Dryden Vos publicly represent in Solo?",
+    "decision": "approve",
+    "reason": "Key 1 (Crimson Dawn) is supported by the supplied matching source note; no competing correct option identified. Dryden's introduction identifies him as the public representative of Crimson Dawn. Evidence: https://www.starwars.com/databank/dryden-vos"
+  },
+  {
+    "question": "What is the name of Dryden Vos's luxury yacht in Solo?",
+    "decision": "approve",
+    "reason": "Key 0 (First Light) is supported by the supplied matching source note; no competing correct option identified. The entry names Dryden's lavish yacht First Light. Evidence: https://www.starwars.com/databank/dryden-vos"
+  },
+  {
+    "question": "In The Clone Wars, what nickname does Anakin use for Ahsoka?",
+    "decision": "approve",
+    "reason": "Key 3 (Snips) is supported by the supplied matching source note; no competing correct option identified. Ahsoka's biography identifies Snips as Anakin's nickname for her. Evidence: https://www.starwars.com/databank/ahsoka-tano Independently opened official source: The Ahsoka Databank history independently confirms the Snips nickname."
+  },
+  {
+    "question": "In The Clone Wars, who framed Ahsoka for the Jedi Temple bombing?",
+    "decision": "approve",
+    "reason": "Key 1 (Barriss Offee) is supported by the supplied matching source note; no competing correct option identified. The biography identifies Barriss as the bomber whose guilt Anakin uncovered. Evidence: https://www.starwars.com/databank/ahsoka-tano Independently opened official source: The Ahsoka Databank history independently identifies Barriss as the culprit. Recommend label: Spoilers — The Clone Wars season 5 culprit reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Clone Wars, which icy world do Ahsoka and Huyang visit with younglings for the Gathering?",
+    "decision": "approve",
+    "reason": "Key 3 (Ilum) is supported by the supplied matching source note; no competing correct option identified. The biography places Ahsoka's youngling expedition with Huyang on Ilum. Evidence: https://www.starwars.com/databank/ahsoka-tano Independently opened official source: The Ahsoka Databank history explicitly describes this Ilum expedition with Huyang."
+  },
+  {
+    "question": "In The Clone Wars, which brother does Savage Opress seek at Mother Talzin's direction?",
+    "decision": "approve",
+    "reason": "Key 2 (Maul) is supported by the supplied matching source note; no competing correct option identified. Talzin sends Savage into the Outer Rim to locate his lost brother Maul. Evidence: https://www.starwars.com/databank/Savage-Opress Independently opened official source: The Nightsisters Databank related Savage biography independently confirms the search for Maul. Recommend label: Spoilers — The Clone Wars / Maul survival. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Clone Wars, whose magic transforms Savage Opress into a hulking warrior?",
+    "decision": "approve",
+    "reason": "Key 2 (Mother Talzin) is supported by the supplied matching source note; no competing correct option identified. Savage's biography attributes his physical transformation to Talzin's magic. Evidence: https://www.starwars.com/databank/Savage-Opress Independently opened official source: The Nightsisters Databank related Savage biography independently credits Mother Talzin. Recommend label: Spoilers — The Clone Wars Savage origin. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Clone Wars, Duchess Satine rules which world while pursuing a pacifist policy?",
+    "decision": "approve",
+    "reason": "Key 1 (Mandalore) is supported by the supplied matching source note; no competing correct option identified. Satine's entry identifies her as Mandalore's leader and describes her pacifist government. Evidence: https://www.starwars.com/databank/duchess-satine-kryze/"
+  },
+  {
+    "question": "In Rebels, on which planet did Ezra grow up as an orphan?",
+    "decision": "approve",
+    "reason": "Key 3 (Lothal) is supported by the supplied matching source note; no competing correct option identified. Ezra's biography places his childhood on the streets of Lothal. Evidence: https://www.starwars.com/databank/ezra-bridger"
+  },
+  {
+    "question": "In Rebels, who takes Ezra Bridger as a Jedi apprentice?",
+    "decision": "approve",
+    "reason": "Key 3 (Kanan Jarrus) is supported by the supplied matching source note; no competing correct option identified. The entry names Kanan as Ezra's Jedi mentor. Evidence: https://www.starwars.com/databank/ezra-bridger"
+  },
+  {
+    "question": "In Rebels, Chopper Base is established on which planet?",
+    "decision": "approve",
+    "reason": "Key 2 (Atollon) is supported by the supplied matching source note; no competing correct option identified. Ezra's biography locates the rebels' Chopper Base on Atollon. Evidence: https://www.starwars.com/databank/ezra-bridger Recommend label: Spoilers — Rebels season 2 base. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "What was Rebels hero Kanan Jarrus called before he adopted that identity?",
+    "decision": "approve",
+    "reason": "Key 1 (Caleb Dume) is supported by the supplied matching source note; no competing correct option identified. Kanan's entry states that he was previously known as Caleb Dume. Evidence: https://www.starwars.com/databank/kanan-jarrus Recommend label: Spoilers — Rebels / Kanan backstory. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Rebels, which Jedi gives Ezra a kyber crystal during his first visit to Lothal's Jedi Temple?",
+    "decision": "approve",
+    "reason": "Key 0 (Yoda) is supported by the supplied matching source note; no competing correct option identified. The temple entry says Yoda gives Ezra the crystal for his first lightsaber. Evidence: https://www.starwars.com/databank/lothal-jedi-temple Independently opened official source: The Lothal Jedi Temple Databank explicitly credits Yoda; he communes remotely, so the question need not imply his physical presence. Recommend label: Spoilers — Rebels Path of the Jedi. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Rebels, the Temple Guard who knights Kanan is revealed to be which figure?",
+    "decision": "approve",
+    "reason": "Key 0 (The Grand Inquisitor) is supported by the supplied matching source note; no competing correct option identified. The temple history identifies Kanan's knighting guard as the Grand Inquisitor. Evidence: https://www.starwars.com/databank/lothal-jedi-temple Independently opened official source: The Lothal Jedi Temple Databank confirms the Grand Inquisitor. Recommend adding in Kanan's temple vision to avoid suggesting an ordinary physical encounter. Recommend label: Spoilers — Rebels Shroud of Darkness identity reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Mandalorian's first season, what ship carries Din Djarin and the Child between worlds?",
+    "decision": "approve",
+    "reason": "Key 2 (Razor Crest) is supported by the supplied matching source note; no competing correct option identified. Din's biography names the Razor Crest as their transport while evading bounty hunters. Evidence: https://www.starwars.com/databank/the-mandalorian"
+  },
+  {
+    "question": "In The Mandalorian's first season, which creature becomes Din Djarin's signet?",
+    "decision": "approve",
+    "reason": "Key 0 (Mudhorn) is supported by the supplied matching source note; no competing correct option identified. The Armorer awards Din the Mudhorn signet when declaring his clan of two. Evidence: https://www.starwars.com/databank/the-mandalorian Recommend label: Spoilers — The Mandalorian season 1 finale. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Mandalorian, who discovers the Child's name is Grogu by communicating through the Force?",
+    "decision": "approve",
+    "reason": "Key 2 (Ahsoka Tano) is supported by the supplied matching source note; no competing correct option identified. Din's biography credits Ahsoka with learning Grogu's name through the Force. Evidence: https://www.starwars.com/databank/the-mandalorian Recommend label: Spoilers — The Mandalorian season 2 name reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Mandalorian, Kuiil belongs to which species?",
+    "decision": "approve",
+    "reason": "Key 3 (Ugnaught) is supported by the supplied matching source note; no competing correct option identified. Kuiil's Databank species field lists Ugnaught. Evidence: https://www.starwars.com/databank/kuiil"
+  },
+  {
+    "question": "In The Mandalorian, on which world does Kuiil work as a vapor farmer?",
+    "decision": "approve",
+    "reason": "Key 2 (Arvala-7) is supported by the supplied matching source note; no competing correct option identified. Kuiil's entry places his vapor farm on Arvala-7. Evidence: https://www.starwars.com/databank/kuiil"
+  },
+  {
+    "question": "In The Mandalorian's first season, who rebuilds and reprograms IG-11 as a nurse droid?",
+    "decision": "approve",
+    "reason": "Key 0 (Kuiil) is supported by the supplied matching source note; no competing correct option identified. The article describes Kuiil rebuilding IG-11 and teaching it caregiving tasks. Evidence: https://www.starwars.com/news/kuiil-ig-11 Recommend label: Spoilers — The Mandalorian season 1 IG-11 return. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Andor, which planet was Cassian's childhood home when he was known as Kassa?",
+    "decision": "approve",
+    "reason": "Key 2 (Kenari) is supported by the supplied matching source note; no competing correct option identified. Cassian's biography places Kassa on Kenari before his adoption. Evidence: https://www.starwars.com/databank/cassian-andor Recommend label: Spoilers — Andor season 1 childhood reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Andor, what name does Cassian use with the rebel heist team on Aldhani?",
+    "decision": "approve",
+    "reason": "Key 1 (Clem) is supported by the supplied matching source note; no competing correct option identified. The biography says Cassian asks the Aldhani rebels to call him Clem. Evidence: https://www.starwars.com/databank/cassian-andor Recommend label: Spoilers — Andor season 1 Aldhani mission. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Andor's first season, where is Cassian imprisoned after his arrest on Niamos?",
+    "decision": "approve",
+    "reason": "Key 1 (Narkina 5) is supported by the supplied matching source note; no competing correct option identified. The biography states that his Niamos arrest results in imprisonment on Narkina 5. Evidence: https://www.starwars.com/databank/cassian-andor Recommend label: Spoilers — Andor season 1 prison arc. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Andor, rebel operative Vel Sartha is the cousin of which senator?",
+    "decision": "approve",
+    "reason": "Key 2 (Mon Mothma) is supported by the supplied matching source note; no competing correct option identified. The official recap identifies Vel as Mon Mothma's cousin. Evidence: https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3 Live re-fetch of the inherited source timed out; approval relies on the supplied evidence and content review, not a fresh successful page check. Recommend label: Spoilers — Andor season 1 family reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Andor's 'One Way Out,' which ISB officer is revealed as Luthen's undercover source?",
+    "decision": "approve",
+    "reason": "Key 0 (Lonni Jung) is supported by the supplied matching source note; no competing correct option identified. The recap identifies Lonni Jung as the ISB officer secretly working for Luthen. Evidence: https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3 Live re-fetch of the inherited source timed out; approval relies on the supplied evidence and content review, not a fresh successful page check. Recommend label: Spoilers — Andor season 1 One Way Out mole reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Andor, what built-in feature lets guards punish barefoot prisoners on Narkina 5?",
+    "decision": "approve",
+    "reason": "Key 0 (Electrified floors) is supported by the supplied matching source note; no competing correct option identified. The recap explains that electric floors deliver shocks to control the prisoners. Evidence: https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3 Live re-fetch of the inherited source timed out; approval relies on the supplied evidence and content review, not a fresh successful page check. Recommend label: Spoilers — Andor season 1 prison arc. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Bad Batch, which clone leads Clone Force 99?",
+    "decision": "approve",
+    "reason": "Key 0 (Hunter) is supported by the supplied matching source note; no competing correct option identified. Hunter's entry identifies him as the squad's leader. Evidence: https://www.starwars.com/databank/hunter"
+  },
+  {
+    "question": "In The Bad Batch, on which planet does Cid arrange jobs for the squad?",
+    "decision": "approve",
+    "reason": "Key 3 (Ord Mantell) is supported by the supplied matching source note; no competing correct option identified. Hunter's biography places his work arrangement with Cid on Ord Mantell. Evidence: https://www.starwars.com/databank/hunter Recommend label: Spoilers — The Bad Batch season 1 Cid arrangement. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Bad Batch's second season, which world offers the squad a peaceful potential home?",
+    "decision": "approve",
+    "reason": "Key 2 (Pabu) is supported by the supplied matching source note; no competing correct option identified. The biography describes Hunter trying to settle the squad on peaceful Pabu. Evidence: https://www.starwars.com/databank/hunter Recommend label: Spoilers — The Bad Batch season 2 Pabu. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Bad Batch, which squad member is the computer specialist?",
+    "decision": "approve",
+    "reason": "Key 1 (Tech) is supported by the supplied matching source note; no competing correct option identified. The official season-one recap identifies Tech as the group's computer expert. Evidence: https://www.starwars.com/news/the-bad-batch-recon"
+  },
+  {
+    "question": "Before joining the Bad Batch, Omega worked as an assistant to which Kaminoan scientist?",
+    "decision": "approve",
+    "reason": "Key 0 (Nala Se) is supported by the supplied matching source note; no competing correct option identified. The recap states that Omega assisted Nala Se. Evidence: https://www.starwars.com/news/the-bad-batch-recon Recommend label: Spoilers — The Bad Batch premiere. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In The Bad Batch's premiere, which squad member stays with the Empire when the others escape with Omega?",
+    "decision": "approve",
+    "reason": "Key 2 (Crosshair) is supported by the supplied matching source note; no competing correct option identified. The recap says Crosshair stays behind with the Empire as his squad escapes Kamino. Evidence: https://www.starwars.com/news/the-bad-batch-recon Recommend label: Spoilers — The Bad Batch premiere allegiance split. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Ahsoka, Shin Hati is the apprentice of which mercenary?",
+    "decision": "approve",
+    "reason": "Key 1 (Baylan Skoll) is supported by the supplied matching source note; no competing correct option identified. Shin's entry explicitly identifies Baylan Skoll as her master. Evidence: https://www.starwars.com/databank/shin-hati"
+  },
+  {
+    "question": "In Ahsoka, what is Morgan Elsbeth's enormous hyperspace ring called?",
+    "decision": "approve",
+    "reason": "Key 1 (Eye of Sion) is supported by the supplied matching source note; no competing correct option identified. The Databank names Elsbeth's intergalactic hyperspace ring the Eye of Sion. Evidence: https://www.starwars.com/databank/the-eye-of-sion"
+  },
+  {
+    "question": "Which droid in Ahsoka preserves records of the lightsabers he helped Jedi construct?",
+    "decision": "approve",
+    "reason": "Key 0 (Huyang) is supported by the supplied matching source note; no competing correct option identified. Huyang's entry describes his long supervision of lightsaber construction and retained records. Evidence: https://www.starwars.com/databank/professor-huyang"
+  },
+  {
+    "question": "In Ahsoka's first season, on which distant world are Ezra Bridger and Thrawn found in exile?",
+    "decision": "approve",
+    "reason": "Key 1 (Peridea) is supported by the supplied matching source note; no competing correct option identified. Peridea's entry identifies it as Ezra and Thrawn's place of exile. Evidence: https://www.starwars.com/databank/peridea Independently opened official source: The Peridea Databank independently confirms both exiles. Recommend label: Spoilers — Ahsoka season 1 exile destination. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Ahsoka, what do the Noti resemble when they withdraw into their shells to hide?",
+    "decision": "approve",
+    "reason": "Key 3 (Rocks) is supported by the supplied matching source note; no competing correct option identified. The related Noti description explains their rock disguise when hiding in their shells. Evidence: https://www.starwars.com/databank/peridea Independently opened official source: The Peridea Databank related Noti description explicitly confirms the rock disguise."
+  },
+  {
+    "question": "In Jedi: Fallen Order, who was Cal Kestis's Jedi Master before Order 66?",
+    "decision": "approve",
+    "reason": "Key 0 (Jaro Tapal) is supported by the supplied matching source note; no competing correct option identified. Cal's biography names Jaro Tapal as his original Jedi Master. Evidence: https://www.starwars.com/databank/cal-kestis/"
+  },
+  {
+    "question": "At the start of Jedi: Fallen Order, on which planet does Cal work as a scrapper?",
+    "decision": "approve",
+    "reason": "Key 3 (Bracca) is supported by the supplied matching source note; no competing correct option identified. Cal's biography states that he hides and works as a scrapper on Bracca. Evidence: https://www.starwars.com/databank/cal-kestis/"
+  },
+  {
+    "question": "What is Cal's ability to sense an object's past called in Jedi: Fallen Order?",
+    "decision": "approve",
+    "reason": "Key 3 (Psychometry) is supported by the supplied matching source note; no competing correct option identified. The entry names Cal's perception of an object's past as psychometry. Evidence: https://www.starwars.com/databank/cal-kestis/"
+  },
+  {
+    "question": "In Jedi: Fallen Order, Greez Dritus belongs to which four-armed species?",
+    "decision": "approve",
+    "reason": "Key 0 (Latero) is supported by the supplied matching source note; no competing correct option identified. Greez's entry identifies him as a four-armed Latero. Evidence: https://www.starwars.com/databank/greez"
+  },
+  {
+    "question": "In Jedi: Fallen Order, which crime syndicate is owed Greez's gambling debt?",
+    "decision": "approve",
+    "reason": "Key 2 (Haxion Brood) is supported by the supplied matching source note; no competing correct option identified. The biography names the Haxion Brood as Greez's creditor. Evidence: https://www.starwars.com/databank/greez Recommend label: Spoilers — Jedi: Fallen Order debt subplot. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Jedi: Fallen Order, what is the name of the ship captained by Greez?",
+    "decision": "approve",
+    "reason": "Key 0 (Stinger Mantis) is supported by the supplied matching source note; no competing correct option identified. The ship's Databank entry identifies Greez as captain of the Stinger Mantis. Evidence: https://www.starwars.com/databank/stinger-mantis"
+  },
+  {
+    "question": "In Jedi: Fallen Order, which companion droid supplies Cal with healing stims?",
+    "decision": "approve",
+    "reason": "Key 0 (BD-1) is supported by the supplied matching source note; no competing correct option identified. The article's BD-1 section describes the droid providing life-saving stims. Evidence: https://www.starwars.com/news/10-of-the-best-star-wars-video-game-characters"
+  },
+  {
+    "question": "In Jedi: Survivor, what is Greez's cantina in Rambler's Reach called?",
+    "decision": "approve",
+    "reason": "Key 3 (Pyloon's Saloon) is supported by the supplied matching source note; no competing correct option identified. Greez's biography names his Rambler's Reach establishment Pyloon's Saloon. Evidence: https://www.starwars.com/databank/greez"
+  },
+  {
+    "question": "In Jedi: Survivor, what has kept Dagan Gera alive for centuries before Cal frees him?",
+    "decision": "approve",
+    "reason": "Key 2 (A bacta tank) is supported by the supplied matching source note; no competing correct option identified. Dagan's entry states he has been preserved for centuries in a bacta tank. Evidence: https://www.starwars.com/databank/dagan-gera Live re-fetch of the inherited source timed out; approval relies on the supplied evidence and content review, not a fresh successful page check. Recommend label: Spoilers — Jedi: Survivor Dagan reveal. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Jedi: Survivor, Dagan Gera is obsessed with returning to which hidden planet?",
+    "decision": "approve",
+    "reason": "Key 1 (Tanalorr) is supported by the supplied matching source note; no competing correct option identified. The entry identifies Tanalorr as the hidden world Dagan is determined to reclaim. Evidence: https://www.starwars.com/databank/dagan-gera Live re-fetch of the inherited source timed out; approval relies on the supplied evidence and content review, not a fresh successful page check. Recommend label: Spoilers — Jedi: Survivor Tanalorr. Spoilers alone are not a rejection."
+  },
+  {
+    "question": "In Battlefront II's campaign, which Imperial special-forces unit does Iden Versio initially command?",
+    "decision": "approve",
+    "reason": "Key 3 (Inferno Squad) is supported by the supplied matching source note; no competing correct option identified. Iden's Databank entry names her as Inferno Squad's commander. Evidence: https://www.starwars.com/databank/commander-iden-versio Recommend specifying Battlefront II (2017); the Iden Versio context already uniquely identifies that edition."
+  },
+  {
+    "question": "In Battlefront II's campaign, which Imperial admiral is Iden Versio's father?",
+    "decision": "approve",
+    "reason": "Key 1 (Garrick Versio) is supported by the supplied matching source note; no competing correct option identified. The entry explicitly identifies Admiral Garrick Versio as Iden's father. Evidence: https://www.starwars.com/databank/commander-iden-versio Recommend specifying Battlefront II (2017); the Iden Versio context already uniquely identifies that edition."
+  },
+  {
+    "question": "In Battlefront II's campaign, which planet is Iden Versio's homeworld?",
+    "decision": "approve",
+    "reason": "Key 1 (Vardos) is supported by the supplied matching source note; no competing correct option identified. The entry names Vardos as Iden's homeworld and the site of her military schooling. Evidence: https://www.starwars.com/databank/commander-iden-versio Recommend specifying Battlefront II (2017); the Iden Versio context already uniquely identifies that edition."
+  },
+  {
+    "question": "In the Legends game Knights of the Old Republic, what insulting term does HK-47 use for organic beings?",
+    "decision": "approve",
+    "reason": "Key 3 (Meatbags) is supported by the supplied matching source note; no competing correct option identified. The HK-47 section explicitly labels KOTOR Legends and identifies his term for organics. Evidence: https://www.starwars.com/news/10-of-the-deadliest-droids-in-star-wars Independently opened official source: The official deadly-droids article independently confirms the term and Legends continuity."
+  },
+  {
+    "question": "In the Legends game Knights of the Old Republic, whom does HK-47 recognize as his master?",
+    "decision": "approve",
+    "reason": "Key 1 (Revan) is supported by the supplied matching source note; no competing correct option identified. The HK-47 section names Revan as the droid's master. Evidence: https://www.starwars.com/news/10-of-the-deadliest-droids-in-star-wars Independently opened official source: The official deadly-droids article independently identifies Revan as the master. Recommend label: Spoilers — Knights of the Old Republic / Revan and HK-47. Spoilers alone are not a rejection."
+  }
+]

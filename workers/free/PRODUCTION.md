@@ -1,0 +1,84 @@
+# Moving SIU-M8 to the real group
+
+## Separate testing and production
+
+The live group is https://t.me/starwarshk, **Star Wars Hong Kong Community**, verified through Telegram `getChat` as forum supergroup **`-1002432071241`** on 2026-10-28. Telegram also verified @SIU_M8_bot has Delete messages and Restrict members permissions, and the sole configured administrator `1678078373` is the group owner.
+
+- Test Worker: `sw-bot-test`, webhook `https://sw-bot-test.yaser3808.workers.dev/telegram`, configured with `wrangler.jsonc`.
+- Test database: `sw-bot-test` (`fc9c66e4-71bb-4e78-9d34-ec665fd313b4`).
+- Separate provisioned production Worker: `sw-bot-production`, webhook `https://sw-bot-production.yaser3808.workers.dev/telegram`, configured with `wrangler.production.jsonc`.
+- Production database binding: `sw-bot-production` (`dea947f5-8a8f-4e52-971f-31a07620af84`). Verify its remote schema and state before cutover.
+- Production config is `DEPLOYMENT_ENABLED=true` with the verified group ID. After fresh readiness passed on 2026-10-28, D1 `settings.paused=0` resumed production. Proactive and scheduled posts run only from 08:00 until midnight HKT; direct questions and replies remain available overnight.
+
+The owner-authorized webhook switch completed on 2026-10-28. Production has its bot credential, a distinct webhook secret and the minutely cron trigger. Testing is paused and disabled, with its cron removed; its database and content remain intact. Never replace either Worker's database binding with the other's.
+
+Current portal: https://sw-bot-production.yaser3808.workers.dev/admin. Fresh Telegram readiness passed with no issues: correct forum group, bot/admin permissions, webhook and update subscriptions. Real admin binding commands confirmed end-to-end webhook delivery. All topic mappings are present: Gaming 19, Movies 17, Lore 20, Hong Kong 8, Global Events 9, Memes 22, Wallpapers 26 and TV 18; General uses 0. Eight owner-approved rules are saved in production (see `data/starwarshk-approved-rules-2026-10-28.json`). The reviewed test editorial content has not been transferred.
+
+The waking-hours release passed all 316 tests, including overnight direct replies and a portal claim crossing midnight that defers safely and sends once after 08:00. A final delivery check enforces the cutoff after database claims. Overnight portal publication times are rejected without consuming approval; delayed jobs retain their existing expiry checks. Temporary authenticated readiness tooling was removed and verified 404; no credentials or fabricated Telegram updates were exposed. Live overnight readiness confirmed zero automation reservations for the new HKT day.
+
+Both Workers use the same @SIU_M8_bot identity for this cutover. Telegram has one webhook destination per bot, and each Worker's cron can still run independently of that webhook. Never leave both Workers enabled, or a polling process running for the same bot token. An independently active test service after cutover needs a separate BotFather bot token and its own webhook.
+
+A database identity binds one database to one group and environment. Missing or mismatched identity blocks webhook intake, cron processing and outbound delivery. Never edit the test identity to make it match the real group. Preserve the test database for rollback.
+
+## Requirements before cutover
+
+1. Verify the numeric `-100…` ID of https://t.me/starwarshk through an authorised Telegram lookup or an actual update from that group. Verify it is a forum supergroup. Do not guess from the username or reuse test group `-1004441702993`.
+2. Add @SIU_M8_bot as a group administrator and verify Delete messages and Restrict members rights. Topic management is only needed if it will manage topics; binding existing topics does not require creating them. Do not grant Add admins.
+3. Confirm owner `1678078373` is an administrator of the real group; retain this existing configured admin and agree any additions to `ADMIN_USER_IDS`.
+4. Obtain approved group rules and welcome guidance. The suggested member notice below is still a draft. Prepare real topics for all seven required categories: `gaming,movies,lore,hongkong,global_events,memes,wallpapers`. Bind their production IDs during paused setup; never reuse test topic IDs.
+5. Securely provision `BOT_TOKEN` on the new production Worker from the owner's trusted credential store. Cloudflare secrets cannot be read back through its dashboard/API to copy them from the test Worker; `keep_vars` does not transfer secrets between Workers. Do not read or reuse an old root `.env`, print credentials, or put any secret in the repository. If the token is unavailable, the owner must securely supply it; rotating the shared bot token also affects testing and must be coordinated.
+6. Generate and securely provision a production-specific `WEBHOOK_SECRET`, distinct from test's, and retain it in a trusted credential store for the webhook switch. Also ensure the test webhook secret is securely available for rollback; if unavailable, provision a replacement during the controlled rollback before setting its webhook. Never assume Telegram or Cloudflare can return the existing secret. Use a secure Cloudflare secret deployment flow explicitly targeting `sw-bot-production`. See [Cloudflare secret handling](https://developers.cloudflare.com/workers/configuration/secrets/).
+7. Verify fresh production D1 state, apply `schema.sql` and all migrations (currently through `0008_imported_polls.sql`), and inspect the production identity. The portal migration is required by cron and the web interface. Before any selected content import, `members`, `context`, `club_messages`, `club_jobs`, `updates`, `topic_map`, `club_memory`, `admin_posts`, `admin_sessions`, and `admin_actions` must be empty. Do not reset an existing database to force it to pass; investigate any unexpected data.
+8. Have a compatible tested release, rollback configuration and secure webhook credentials ready. The deployed runtime has passed topic/expiry guard tests; this still does not establish live readiness without Telegram prerequisites.
+
+## Selected editorial content transfer
+
+Transfer only explicitly selected editorial knowledge and authored posts approved for reuse in production. Do not clone the database. Recreate selected items with fresh production record IDs and no test message, poll, thread or conversation references; map each category to the actual production topic. Imported knowledge must receive production approval, and posts must be fresh drafts requiring production approval before publishing. Do not carry over test approvals, schedules, sent status or delivery jobs. Preserve relevant editorial source attribution, without bringing test conversation or member data along.
+
+Never transfer members, preferences, consent records, scores, sessions, authentication/audit actions, test conversations, context, updates, events/RSVPs, or jobs. Rules need explicit approval for this group. Content transfer is optional and must leave production paused; verify that it creates no outbound jobs. Existing imports approved in test are not automatically approved in production.
+
+## Cutover procedure (only after requested and prerequisites are ready)
+
+1. Record the test Worker's deployed version, non-secret variables, database binding, group identity, topic routing and current webhook URL/subscriptions. Keep secret values only in the trusted credential store. Confirm no legacy Python process or other service is polling the same bot token. Keep test enabled while preparing the separate disabled production Worker and D1.
+2. From this directory generate identity SQL with `node scripts/production-identity.mjs -100REALGROUPID`. Inspect and execute it only against production D1, then verify the group/environment and `settings.paused=1`. It never overwrites an existing identity. Set the verified real `GROUP_ID` and agreed `ADMIN_USER_IDS` in production config. Keep General routing (`PRIVATE_THREAD_ID=0`, `PROACTIVE_THREAD_ID=0`) until topics are bound, and keep `DEPLOYMENT_ENABLED=false` throughout preparation. Deploy only to the separate `sw-bot-production` Worker with its own secrets and production DB; verify these bindings explicitly.
+3. Start the requested cutover: in Star Wars Test run `/pause` and verify test D1 `settings.paused=1`. Then set `DEPLOYMENT_ENABLED=false` on **sw-bot-test**, preserving its existing test DB, group, routing and other variables. Verify the deployed disabled state and that in-flight work has stopped before proceeding. A pause alone does not disable all administrative actions or webhook intake. Do not enable production while test remains enabled.
+4. Set `DEPLOYMENT_ENABLED=true` only on **sw-bot-production**, deploy using `wrangler.production.jsonc` including its minutely cron trigger, and verify production D1 is still paused with the correct identity and binding. This enabled-but-paused state is for administrator setup. If deployment or verification fails, leave it paused/disabled and follow rollback; do not redirect the webhook to a disabled or unhealthy target.
+5. Move the shared bot's webhook using Telegram `setWebhook` to `https://sw-bot-production.yaser3808.workers.dev/telegram`, supplying the production `WEBHOOK_SECRET` as `secret_token` and explicit `allowed_updates` of `message,poll,poll_answer,message_reaction`. As part of the cutover, discard the old destination's pending update backlog with `drop_pending_updates=true`; this loses pending updates, so coordinate a quiet transition window and do not replay them into production. Use a credential-safe operator tool without logging request secrets. Verify `getWebhookInfo` reports the exact production URL and required subscriptions, and confirm authenticated delivery succeeds. See [Telegram webhook parameters](https://core.telegram.org/bots/api#setwebhook). Test stays disabled.
+6. While production remains paused, run `/bindtopic CATEGORY` inside each corresponding real topic for **gaming, movies, lore, hongkong, global_events, memes and wallpapers**. Check `/topics` and `/whereami`. Never copy test topic IDs or reduce `REQUIRED_TOPICS` to bypass readiness.
+7. Add actual rules using `/remember rule | Group rules | Approved text`, inspect `/pending` and `/memory show ID`, then `/approve memory ID`. Welcomes include approved rules and the topic map. If transferring selected editorial content, follow the restrictions above and inspect it in production before approval.
+8. Run `/readiness`. It checks identity, required mappings, approved rules, bot identity, forum group, deletion/restriction rights, actual administrator status of every allowlisted admin, webhook URL and subscriptions. Reports go privately to the requesting configured admin. Verify all seven real topic destinations, rights and approved rules before `/resume`; fix every reported issue. The production resume guard must pass. Verify test remains disabled.
+9. Publish the reviewed member notice below. Run `/resume`, then perform the acceptance checks with real volunteers. Use `/pause` immediately if delivery or privacy behavior is wrong. General hosting uses the existing 5–10 starter policy and the overall 20 automated-send budget per Hong Kong day. Testing stays disabled after live activation.
+
+## Acceptance checks
+
+Record the actual message links and outcomes; do not manufacture member updates.
+
+- Direct mention followed by a reply to the bot: specific, contextual answers in the same topic.
+- Private admin question: answer appears in General, with no private answer or private message ID attached.
+- `/topics`: every required mapping matches the topic where the bind command was sent. Request one post in each intended category.
+- Open `/admin`, sign in through a real configured Telegram administrator, and verify the portal displays **PRODUCTION GROUP**. Test draft → approve → publish, edit revocation, Hong Kong scheduling, cancellation, and sign-out. Confirm the destination links refer to the real group. Proactive starters stay automatic; manually created portal posts require approval.
+- `/event create Title | YYYY-MM-DD HH:mm | Venue | hongkong | https://source`: draft only. Confirm after checking the source, RSVP with `yes remind`, verify one group reminder near the event. A `yes silent` or withdrawn RSVP must not be mentioned.
+- `/briefing`: links resolve to actual real-group messages; no test-group discussion or private input appears.
+- `/game trivia` and `/game character`: actual votes/answers advance the game and score once. `/season` shows a clean production season.
+- `/preferences on`, `/era`, `/spoilers`, `/interests`, `/prompts off`, `/forget`: volunteer verifies opt-in and deletion behavior.
+- Non-admin `/pending`, `/approve`, `/readiness`, `/resume`: no privileged action. Admin `/pending`: review reasons and correct message links. Destructive actions remain fixture-tested unless an admin deliberately selects a disposable test message/account.
+- `/status` and `/settings`: automation usage and cap, active hours, quiet mode and configured topics. `/pause` stops autonomous activity. `/readiness` has no unresolved issues.
+
+## Suggested member notice — review before posting
+
+“SIU-M8 is our AI cantina host. It can run games, help plan events, answer questions and recap discussions. All bot answers, including answers to private admin requests, appear in this group. For briefings and follow-ups it keeps limited group-message excerpts for 24 hours. Preferences are optional: /preferences on; /preferences off removes them. /optout stops processing your participation; /forget removes your stored personal records and opts you out. /privacy explains retention. Moderation flags require an admin's approval before deletion, restriction or banning. Event details are admin-confirmed, not independently verified by the bot.”
+
+## Posting budget
+
+`AUTOMATED_DAILY_CAP=20` is shared by starters, poll follow-ups, welcomes, daily briefings, hosting nudges, all multi-round game posts, ambient replies and opt-in reminders. Explicit commands and addressed replies, explicitly requested briefings/event announcements, and approved moderation are excluded. These retain their existing quotas. The starter baseline of five is a target, not a guarantee when quiet periods, pauses or the overall cap prevent posting.
+
+Slots are reserved atomically before Telegram sends. Rate-limit retries reuse a slot; failed or uncertain sends conservatively retain theirs. At exhaustion, the automated job is marked `budget_limited` and is not dumped into the group the next day. Games may end early and reminders may be skipped when the budget is exhausted. `/status` and `/settings` expose reserved usage. The counter resets at midnight Asia/Hong_Kong. Inspect `updates.error='automated-budget-exhausted'` for suppressed sends.
+
+## Rollback
+
+1. Run `/pause` on production and verify production D1 `settings.paused=1`. Set `DEPLOYMENT_ENABLED=false` on **sw-bot-production**, retaining its production DB and identity. Verify it is disabled and in-flight work has stopped before re-enabling test. If commands are unavailable, pause through an authorised D1 operation and disable the Worker directly.
+2. On **sw-bot-test**, restore/verify its saved test configuration: DB `sw-bot-test` (`fc9c66e4-71bb-4e78-9d34-ec665fd313b4`), `GROUP_ID=-1004441702993`, `DEPLOYMENT_ENV=test`, original topic routing/admin list, test webhook expectation and compatible guarded code. The production credential may have been rotated, so verify or securely replace the test token before rollback. Verify test D1 is still paused, then enable only this Worker with `DEPLOYMENT_ENABLED=true` and restore the minutely cron. Neither Worker's DB binding should ever be swapped.
+3. Set the bot webhook back to `https://sw-bot-test.yaser3808.workers.dev/telegram`, using **the test Worker's** `WEBHOOK_SECRET` as `secret_token`, not production's, and the required subscriptions. If the test secret was lost, securely provision a new test-specific secret before this step. Discard pending production updates with `drop_pending_updates=true` in the coordinated rollback window; never replay them in test.
+4. Verify `getWebhookInfo`, authenticated delivery, test identity, topic routing and diagnostics while test remains paused. Resume testing only after these pass. Production stays disabled and paused with its database retained for investigation; never alter its identity or transfer its jobs/member data to test.
+
+A disabled or identity-mismatched deployment intentionally returns HTTP 503 on `/healthz` and accepts no Telegram updates. Expect a brief delivery gap during the controlled switch; complete the webhook move or rollback promptly instead of leaving Telegram pointed at a disabled Worker. Do not equate a successful deployment or health response with passing production readiness.

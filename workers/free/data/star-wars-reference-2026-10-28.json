@@ -1,0 +1,1107 @@
+[
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie"
+    },
+    "text": "The Death Star represents the Empire's doctrine of ruling through fear rather than diplomacy or consent.",
+    "topics": [
+      "death star",
+      "empire",
+      "fear"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "text": "The Empire Strikes Back is often discussed for its darker tone, unresolved ending, and major family revelation.",
+    "topics": [
+      "empire strikes back",
+      "tone",
+      "skywalker family"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode I-III",
+      "type": "movie"
+    },
+    "text": "The prequel trilogy frames Anakin Skywalker's fall as both a personal tragedy and a political collapse.",
+    "topics": [
+      "anakin skywalker",
+      "prequels",
+      "tragedy"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "text": "Order 66 transformed the clone army from Jedi allies into instruments of the Jedi Purge.",
+    "topics": [
+      "order 66",
+      "jedi purge",
+      "clone troopers"
+    ]
+  },
+  {
+    "category": "tv_series_fact",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series"
+    },
+    "text": "The Clone Wars expanded the clone troopers from background soldiers into distinct characters with personal identities.",
+    "topics": [
+      "clone wars",
+      "clone troopers",
+      "identity"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series"
+    },
+    "text": "Ahsoka Tano's departure from the Jedi Order raises questions about institutional failure and personal conscience.",
+    "topics": [
+      "ahsoka tano",
+      "jedi order",
+      "morality"
+    ]
+  },
+  {
+    "category": "tv_series_fact",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "text": "Star Wars Rebels shows the Rebellion forming through small acts of resistance before becoming a galaxy-wide movement.",
+    "topics": [
+      "rebels",
+      "rebellion",
+      "found family"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "text": "The World Between Worlds introduced a mystical Force dimension connected to time, memory, and destiny.",
+    "topics": [
+      "world between worlds",
+      "force",
+      "time"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "text": "Ezra Bridger's connection with animals highlights a gentler, empathetic expression of the Force.",
+    "topics": [
+      "ezra bridger",
+      "force",
+      "animals"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "text": "Darth Vader's redemption centers on a final act of compassion toward his son rather than military victory.",
+    "topics": [
+      "darth vader",
+      "redemption",
+      "luke skywalker"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode IV-VI",
+      "type": "movie"
+    },
+    "text": "The original trilogy uses Luke Skywalker's journey as a classic hero's arc from farm boy to Jedi Knight.",
+    "topics": [
+      "luke skywalker",
+      "hero journey",
+      "original trilogy"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "text": "Dagobah serves as a place of isolation, testing, and spiritual growth for Luke Skywalker.",
+    "topics": [
+      "dagobah",
+      "jedi training",
+      "luke skywalker"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "text": "Ahch-To presents the Jedi legacy as something both sacred and deeply flawed.",
+    "topics": [
+      "ahch-to",
+      "jedi legacy",
+      "luke skywalker"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode VII-IX",
+      "type": "movie"
+    },
+    "text": "The sequel trilogy explores how later generations inherit, reject, and reinterpret the legacy of the Skywalkers.",
+    "topics": [
+      "sequel trilogy",
+      "legacy",
+      "skywalker saga"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie"
+    },
+    "text": "Kylo Ren's obsession with Darth Vader shows how history can be misunderstood and mythologized.",
+    "topics": [
+      "kylo ren",
+      "darth vader",
+      "legacy"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "text": "Rey's mirror-cave vision explores identity, loneliness, and the desire for belonging.",
+    "topics": [
+      "rey",
+      "identity",
+      "force vision"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode VII-IX",
+      "type": "movie"
+    },
+    "text": "Finn's arc begins with rejecting First Order conditioning and choosing his own moral path.",
+    "topics": [
+      "finn",
+      "stormtroopers",
+      "free will"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie"
+    },
+    "text": "The Holdo maneuver became a major fan discussion point because it raised questions about hyperspace tactics.",
+    "topics": [
+      "holdo maneuver",
+      "hyperspace",
+      "space battles"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie"
+    },
+    "text": "Exegol functions as a hidden Sith world tied to secrecy, cloning, cult devotion, and imperial resurrection.",
+    "topics": [
+      "exegol",
+      "sith eternal",
+      "palpatine"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "text": "The Jedi Council's reaction to young Anakin reveals the Order's concern with fear, attachment, and prophecy.",
+    "topics": [
+      "jedi council",
+      "anakin skywalker",
+      "chosen one"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "text": "The clone army creates an ethical dilemma because the Republic depends on soldiers bred for war.",
+    "topics": [
+      "clone army",
+      "republic",
+      "ethics"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode II-III",
+      "type": "movie"
+    },
+    "text": "Count Dooku's role blurs the line between political separatism and Sith manipulation.",
+    "topics": [
+      "count dooku",
+      "separatists",
+      "sith"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode I-III",
+      "type": "movie"
+    },
+    "text": "Palpatine rises by exploiting fear, bureaucracy, war, and the Republic's own legal systems.",
+    "topics": [
+      "palpatine",
+      "republic",
+      "politics"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "text": "Revenge of the Sith connects the prequel era to the original trilogy by showing the birth of Vader, the Empire, and the Skywalker twins.",
+    "topics": [
+      "revenge of the sith",
+      "darth vader",
+      "skywalker twins"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode I-III",
+      "type": "movie"
+    },
+    "text": "The Jedi Order's ban on attachment is central to debates about whether the Order helped cause Anakin's fall.",
+    "topics": [
+      "jedi order",
+      "attachment",
+      "anakin skywalker"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie"
+    },
+    "text": "Mustafar symbolizes Anakin's transformation through fire, rage, loss, and self-destruction.",
+    "topics": [
+      "mustafar",
+      "anakin skywalker",
+      "symbolism"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode IV-VI",
+      "type": "movie"
+    },
+    "text": "Leia Organa combines royal authority, military leadership, political resistance, and personal courage.",
+    "topics": [
+      "leia organa",
+      "leadership",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode IV-VI",
+      "type": "movie"
+    },
+    "text": "Han Solo's arc moves from self-interested smuggler to committed Rebel hero.",
+    "topics": [
+      "han solo",
+      "character arc",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode V-VI",
+      "type": "movie"
+    },
+    "text": "Lando Calrissian's betrayal and later heroism make him a key example of redemption outside the Jedi-Sith conflict.",
+    "topics": [
+      "lando calrissian",
+      "redemption",
+      "cloud city"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie"
+    },
+    "text": "The Ewoks demonstrate one of Star Wars' recurring themes: underestimated local communities can defeat technological empires.",
+    "topics": [
+      "ewoks",
+      "endor",
+      "empire"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "text": "Rogue One emphasizes that many unnamed people sacrificed themselves to make Luke's victory at Yavin possible.",
+    "topics": [
+      "rogue one",
+      "sacrifice",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "text": "The Battle of Scarif directly bridges Rogue One into the opening events of A New Hope.",
+    "topics": [
+      "scarif",
+      "death star plans",
+      "timeline"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie"
+    },
+    "text": "Saw Gerrera shows the moral tension between rebellion, extremism, and the cost of resistance.",
+    "topics": [
+      "saw gerrera",
+      "rebellion",
+      "extremism"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Andor / Rogue One",
+      "type": "series + movie"
+    },
+    "text": "Cassian Andor's story explores the emotional cost of becoming someone willing to sacrifice everything for a cause.",
+    "topics": [
+      "cassian andor",
+      "sacrifice",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "tv_series_fact",
+    "source": {
+      "title": "Andor Season 1",
+      "type": "series"
+    },
+    "text": "The Narkina 5 prison arc uses routine, labor, and surveillance to show how Imperial control operates at a personal level.",
+    "topics": [
+      "narkina 5",
+      "andor",
+      "empire"
+    ]
+  },
+  {
+    "category": "tv_series_fact",
+    "source": {
+      "title": "Andor Season 1",
+      "type": "series"
+    },
+    "text": "Luthen Rael's monologue is often discussed as a statement on sacrifice, secrecy, and moral compromise in rebellion.",
+    "topics": [
+      "luthen rael",
+      "rebellion",
+      "sacrifice"
+    ]
+  },
+  {
+    "category": "tv_series_fact",
+    "source": {
+      "title": "Andor Season 1",
+      "type": "series"
+    },
+    "text": "Mon Mothma's subplot shows that rebellion can be fought through finance, politics, and social risk as much as combat.",
+    "topics": [
+      "mon mothma",
+      "politics",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series"
+    },
+    "text": "Din Djarin's bond with Grogu reframes the Mandalorian warrior code around guardianship and found family.",
+    "topics": [
+      "din djarin",
+      "grogu",
+      "found family"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series"
+    },
+    "text": "Grogu's choice between Jedi training and life with Din Djarin highlights the tension between attachment and belonging.",
+    "topics": [
+      "grogu",
+      "din djarin",
+      "attachment"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "The Mandalorian / The Clone Wars / Rebels",
+      "type": "series"
+    },
+    "text": "Mandalorian culture is shown as diverse, with conflicting ideas about helmets, clans, rulership, and tradition.",
+    "topics": [
+      "mandalorian",
+      "culture",
+      "tradition"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "The Mandalorian Season 3",
+      "type": "series"
+    },
+    "text": "Bo-Katan Kryze's journey explores leadership, legitimacy, and whether Mandalore can be united after catastrophe.",
+    "topics": [
+      "bo-katan kryze",
+      "mandalore",
+      "leadership"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "The Book of Boba Fett",
+      "type": "series"
+    },
+    "text": "Boba Fett's later story shifts him from feared bounty hunter toward crime lord, protector, and community figure.",
+    "topics": [
+      "boba fett",
+      "tatooine",
+      "character arc"
+    ]
+  },
+  {
+    "category": "tv_series_fact",
+    "source": {
+      "title": "Obi-Wan Kenobi",
+      "type": "series"
+    },
+    "text": "The Obi-Wan Kenobi series focuses on trauma, guilt, and recovery after the fall of the Jedi Order.",
+    "topics": [
+      "obi-wan kenobi",
+      "trauma",
+      "jedi purge"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Obi-Wan Kenobi",
+      "type": "series"
+    },
+    "text": "Reva's story examines how survivors of violence can be consumed by revenge against the systems that harmed them.",
+    "topics": [
+      "reva",
+      "inquisitors",
+      "revenge"
+    ]
+  },
+  {
+    "category": "tv_series_fact",
+    "source": {
+      "title": "The Bad Batch",
+      "type": "series"
+    },
+    "text": "The Bad Batch explores the transition from Republic clone army to Imperial military machine.",
+    "topics": [
+      "bad batch",
+      "empire",
+      "clone troopers"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "The Bad Batch",
+      "type": "series"
+    },
+    "text": "Omega's role in Clone Force 99 adds a family-centered perspective to clone identity and autonomy.",
+    "topics": [
+      "omega",
+      "bad batch",
+      "clone identity"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series"
+    },
+    "text": "Ahsoka continues threads from Rebels by focusing on Thrawn's return, Ezra's fate, and Sabine's growth.",
+    "topics": [
+      "ahsoka",
+      "thrawn",
+      "rebels sequel"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series"
+    },
+    "text": "Sabine Wren's training raises discussion about discipline, potential, and different ways of connecting to the Force.",
+    "topics": [
+      "sabine wren",
+      "force",
+      "training"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series"
+    },
+    "text": "Baylan Skoll is notable for seeking something beyond the usual Jedi-versus-Sith conflict.",
+    "topics": [
+      "baylan skoll",
+      "force",
+      "mystery"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series"
+    },
+    "text": "Peridea expands the Star Wars setting by introducing a major story world outside the familiar galaxy.",
+    "topics": [
+      "peridea",
+      "new galaxy",
+      "ahsoka"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Rebels / Ahsoka",
+      "type": "series"
+    },
+    "text": "Thrawn's threat comes less from Force powers and more from patience, art analysis, strategy, and psychological insight.",
+    "topics": [
+      "thrawn",
+      "strategy",
+      "empire"
+    ]
+  },
+  {
+    "category": "legends_lore_fact",
+    "source": {
+      "title": "Heir to the Empire Trilogy",
+      "type": "novel"
+    },
+    "text": "The original Thrawn Trilogy became a landmark in the Expanded Universe by showing a post-Endor Imperial threat.",
+    "topics": [
+      "thrawn trilogy",
+      "expanded universe",
+      "post-endor"
+    ]
+  },
+  {
+    "category": "legends_lore_fact",
+    "source": {
+      "title": "Star Wars Legends",
+      "type": "expanded universe"
+    },
+    "text": "Mara Jade's journey from Emperor's Hand to Jedi Master is one of the most discussed redemption arcs in Legends.",
+    "topics": [
+      "mara jade",
+      "legends",
+      "redemption"
+    ]
+  },
+  {
+    "category": "legends_lore_fact",
+    "source": {
+      "title": "New Jedi Order",
+      "type": "novel series"
+    },
+    "text": "The Yuuzhan Vong War challenged the New Jedi Order by introducing enemies outside familiar Force traditions.",
+    "topics": [
+      "yuuzhan vong",
+      "new jedi order",
+      "legends"
+    ]
+  },
+  {
+    "category": "legends_lore_fact",
+    "source": {
+      "title": "Legacy of the Force",
+      "type": "novel series"
+    },
+    "text": "Jacen Solo's fall into Darth Caedus created a major Legends debate about destiny, trauma, and repeating family patterns.",
+    "topics": [
+      "jacen solo",
+      "darth caedus",
+      "legends"
+    ]
+  },
+  {
+    "category": "game_fact",
+    "source": {
+      "title": "Star Wars: Knights of the Old Republic",
+      "type": "game"
+    },
+    "text": "Knights of the Old Republic uses player choice to explore identity, redemption, and the boundary between Jedi and Sith.",
+    "topics": [
+      "kotor",
+      "revan",
+      "choice"
+    ]
+  },
+  {
+    "category": "game_fact",
+    "source": {
+      "title": "Star Wars: Knights of the Old Republic II",
+      "type": "game"
+    },
+    "text": "KOTOR II is often discussed for its critique of the Force, the Jedi Council, and dependency on cosmic destiny.",
+    "topics": [
+      "kotor ii",
+      "kreia",
+      "force philosophy"
+    ]
+  },
+  {
+    "category": "game_fact",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game"
+    },
+    "text": "Cal Kestis' story focuses on survival, trauma, and rebuilding trust after Order 66.",
+    "topics": [
+      "cal kestis",
+      "fallen order",
+      "order 66"
+    ]
+  },
+  {
+    "category": "game_fact",
+    "source": {
+      "title": "Star Wars Jedi: Survivor",
+      "type": "game"
+    },
+    "text": "Jedi: Survivor explores how fighting the Empire can strain relationships, ideals, and personal limits.",
+    "topics": [
+      "jedi survivor",
+      "cal kestis",
+      "resistance"
+    ]
+  },
+  {
+    "category": "comic_series_fact",
+    "source": {
+      "title": "Marvel Star Wars Comics",
+      "type": "comic"
+    },
+    "text": "Modern Star Wars comics often fill narrative gaps between films while expanding characters like Vader, Aphra, and Luke.",
+    "topics": [
+      "marvel comics",
+      "expanded storytelling",
+      "canon"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "Lightsaber colors often invite discussion about Jedi identity, kyber bonding, and character symbolism.",
+    "topics": [
+      "lightsabers",
+      "kyber crystals",
+      "symbolism"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "Red Sith lightsabers are associated with bleeding kyber crystals through dark side corruption.",
+    "topics": [
+      "sith lightsabers",
+      "kyber bleeding",
+      "dark side"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "White lightsabers are associated with purified kyber crystals and Ahsoka Tano's independent path.",
+    "topics": [
+      "white lightsabers",
+      "ahsoka tano",
+      "kyber"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "Force ghosts represent a Jedi path beyond death rooted in selflessness, training, and spiritual survival.",
+    "topics": [
+      "force ghosts",
+      "jedi",
+      "afterlife"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode I-IX",
+      "type": "movie"
+    },
+    "text": "The prophecy of the Chosen One remains debated because Anakin's fall and redemption complicate simple interpretations of balance.",
+    "topics": [
+      "chosen one",
+      "anakin skywalker",
+      "balance"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "Balance in the Force is one of the franchise's most debated ideas, especially in relation to Jedi restraint and Sith domination.",
+    "topics": [
+      "force balance",
+      "jedi",
+      "sith"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "The dark side is repeatedly linked to fear, anger, possession, domination, and the refusal to accept loss.",
+    "topics": [
+      "dark side",
+      "fear",
+      "attachment"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "Jedi compassion and Jedi detachment often create tension in how the Order teaches emotional discipline.",
+    "topics": [
+      "jedi philosophy",
+      "compassion",
+      "detachment"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "The Sith seek freedom through power, but their traditions often trap them in cycles of betrayal and fear.",
+    "topics": [
+      "sith philosophy",
+      "power",
+      "betrayal"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Canon",
+      "type": "lore"
+    },
+    "text": "Droids in Star Wars raise recurring questions about memory, personhood, ownership, and autonomy.",
+    "topics": [
+      "droids",
+      "personhood",
+      "autonomy"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie"
+    },
+    "text": "L3-37's storyline explicitly foregrounds droid rights and rebellion in a way many earlier Star Wars stories only implied.",
+    "topics": [
+      "l3-37",
+      "droid rights",
+      "solo"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode IV-IX",
+      "type": "movie"
+    },
+    "text": "The Millennium Falcon often symbolizes improvisation, found family, and unlikely survival against impossible odds.",
+    "topics": [
+      "millennium falcon",
+      "found family",
+      "ships"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode IV-VI",
+      "type": "movie"
+    },
+    "text": "X-wings and TIE fighters visually contrast the Rebellion's individual pilots with the Empire's mass-produced military order.",
+    "topics": [
+      "x-wing",
+      "tie fighter",
+      "visual design"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode IV-VI",
+      "type": "movie"
+    },
+    "text": "Practical models, matte paintings, puppetry, and miniatures helped define the tactile look of the original trilogy.",
+    "topics": [
+      "practical effects",
+      "original trilogy",
+      "production design"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode I-III",
+      "type": "movie"
+    },
+    "text": "The prequels expanded digital filmmaking and visual effects while introducing large-scale galactic environments.",
+    "topics": [
+      "prequels",
+      "visual effects",
+      "digital filmmaking"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Star Wars Films",
+      "type": "movie"
+    },
+    "text": "John Williams' musical themes help define characters, factions, romance, menace, and spiritual wonder across the saga.",
+    "topics": [
+      "john williams",
+      "music",
+      "leitmotifs"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Episode I-IX",
+      "type": "movie"
+    },
+    "text": "Duel of the Fates, the Imperial March, and Binary Sunset are among the saga's most discussed musical themes.",
+    "topics": [
+      "music",
+      "duel of the fates",
+      "imperial march"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Star Wars Production",
+      "type": "production"
+    },
+    "text": "Ben Burtt's sound design helped create instantly recognizable audio identities for lightsabers, blasters, droids, and starships.",
+    "topics": [
+      "ben burtt",
+      "sound design",
+      "production"
+    ]
+  },
+  {
+    "category": "movie_fact",
+    "source": {
+      "title": "Star Wars Creature Design",
+      "type": "production"
+    },
+    "text": "Star Wars creature design often mixes humor, menace, and lived-in worldbuilding through aliens like Jawas, Wookiees, Ewoks, and Hutts.",
+    "topics": [
+      "creature design",
+      "aliens",
+      "worldbuilding"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Star Wars Galaxy",
+      "type": "lore"
+    },
+    "text": "Tatooine repeatedly appears as a marginal desert world that still shapes major galactic events.",
+    "topics": [
+      "tatooine",
+      "desert planets",
+      "skywalker saga"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode I / Episode IV",
+      "type": "movie"
+    },
+    "text": "Naboo and Tatooine contrast wealth, beauty, and political ceremony with poverty, survival, and frontier life.",
+    "topics": [
+      "naboo",
+      "tatooine",
+      "worldbuilding"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode I-III",
+      "type": "movie"
+    },
+    "text": "Coruscant's city-planet design reflects both the grandeur and the blindness of centralized galactic power.",
+    "topics": [
+      "coruscant",
+      "republic",
+      "urban planet"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie"
+    },
+    "text": "Bespin's Cloud City introduces a morally ambiguous space between Rebel idealism and Imperial control.",
+    "topics": [
+      "bespin",
+      "cloud city",
+      "neutrality"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "text": "Kamino's sterile oceans and cloning facilities create a visual contrast with the individuality of the clone troopers.",
+    "topics": [
+      "kamino",
+      "cloning",
+      "visual symbolism"
+    ]
+  },
+  {
+    "category": "lore_fact",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie"
+    },
+    "text": "Geonosis marks the point where political tension becomes open galactic warfare.",
+    "topics": [
+      "geonosis",
+      "clone wars",
+      "separatists"
+    ]
+  }
+]

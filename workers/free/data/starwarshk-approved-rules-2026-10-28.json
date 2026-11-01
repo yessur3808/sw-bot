@@ -1,0 +1,39 @@
+{
+  "group_id": "-1002432071241",
+  "approved_by": 1678078373,
+  "approved_on": "2026-10-28",
+  "rules": [
+    {
+      "title": "Respect fellow fans",
+      "body": "Debate opinions freely; no harassment, discrimination, threats or personal attacks."
+    },
+    {
+      "title": "Protect spoilers",
+      "body": "Use Telegram spoiler formatting and name the film, show or game outside the hidden text. Keep major reveals out of topic titles."
+    },
+    {
+      "title": "Use the matching topic",
+      "body": "Gaming, Movies, Lore, Memes, Wallpapers and events belong in their respective topics."
+    },
+    {
+      "title": "No spam or scams",
+      "body": "Avoid repeated promotions, suspicious links and unsolicited sales. Ask an admin before advertising."
+    },
+    {
+      "title": "Credit creators",
+      "body": "Link to the original artist or source when sharing artwork, wallpapers and memes. Do not claim someone else's work."
+    },
+    {
+      "title": "Share reliable event details",
+      "body": "Include an organiser link, date, location and Hong Kong time where relevant. Clearly label rumours and unofficial meetups."
+    },
+    {
+      "title": "Respect privacy",
+      "body": "Do not share someone's personal information or private messages without permission."
+    },
+    {
+      "title": "Keep moderation human-led",
+      "body": "The bot may flag concerns, but deletion, restrictions and bans require the group owner's approval."
+    }
+  ]
+}

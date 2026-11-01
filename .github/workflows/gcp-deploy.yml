@@ -1,8 +1,7 @@
 name: Deploy to Google Compute Engine
 
 on:
-  push:
-    branches: [main]
+  # Legacy Python deployment is manual only; Cloudflare owns the Telegram webhook.
   workflow_dispatch:
 
 concurrency:

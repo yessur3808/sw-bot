@@ -1,0 +1,2293 @@
+[
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Blue",
+      "Green",
+      "Purple",
+      "Red"
+    ],
+    "question": "What color is Mace Windu's lightsaber?",
+    "source": {
+      "title": "Episode II and III",
+      "type": "movie"
+    },
+    "topics": [
+      "jedi",
+      "lightsaber"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Han Solo",
+      "Anakin Skywalker",
+      "Obi-Wan Kenobi",
+      "Luke Skywalker"
+    ],
+    "question": "Who built C-3PO?",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie"
+    },
+    "topics": [
+      "droids",
+      "tatooine"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Slave I",
+      "Millennium Falcon",
+      "Ghost",
+      "Razor Crest"
+    ],
+    "question": "What is the name of Han Solo's ship?",
+    "source": {
+      "title": "Original Trilogy",
+      "type": "movie"
+    },
+    "topics": [
+      "ships",
+      "smugglers"
+    ]
+  },
+  {
+    "category": "lore_trivia",
+    "correct": 2,
+    "options": [
+      "Yoda",
+      "Mace Windu",
+      "Qui-Gon Jinn",
+      "Ki-Adi-Mundi"
+    ],
+    "question": "Who trained Obi-Wan Kenobi as a Padawan?",
+    "source": {
+      "title": "Episode I",
+      "type": "movie"
+    },
+    "topics": [
+      "jedi lineage",
+      "prequels"
+    ]
+  },
+  {
+    "category": "lore_trivia",
+    "correct": 0,
+    "options": [
+      "Kashyyyk",
+      "Corellia",
+      "Mandalore",
+      "Mon Cala"
+    ],
+    "question": "Which planet is known as the Wookiee homeworld?",
+    "source": {
+      "title": "Episode III",
+      "type": "movie"
+    },
+    "topics": [
+      "planets",
+      "species"
+    ]
+  },
+  {
+    "category": "lore_trivia",
+    "correct": 1,
+    "options": [
+      "Bo-Katan Kryze",
+      "Tarre Vizsla",
+      "Pre Vizsla",
+      "Darth Maul"
+    ],
+    "question": "Who created the Darksaber?",
+    "source": {
+      "title": "The Clone Wars / Rebels",
+      "type": "series"
+    },
+    "topics": [
+      "mandalorian",
+      "darksaber"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Moff",
+      "Grand Admiral",
+      "Commander",
+      "General"
+    ],
+    "question": "In canon, what rank does Thrawn hold in the Empire?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series"
+    },
+    "topics": [
+      "imperial",
+      "thrawn"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Starkiller Base",
+      "Death Star I",
+      "Death Star II",
+      "The Supremacy"
+    ],
+    "question": "Which battle station was destroyed at Yavin?",
+    "source": {
+      "title": "Episode IV",
+      "type": "movie"
+    },
+    "topics": [
+      "rebellion",
+      "space battles"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Baze Malbus",
+      "Cassian Andor",
+      "Chirrut Imwe",
+      "Saw Gerrera"
+    ],
+    "question": "Which character says 'I am one with the Force and the Force is with me'?",
+    "source": {
+      "title": "Rogue One",
+      "type": "movie"
+    },
+    "topics": [
+      "rogue one",
+      "quotes"
+    ]
+  },
+  {
+    "category": "legends_trivia",
+    "correct": 2,
+    "options": [
+      "Jedi Outcast",
+      "Battlefront II",
+      "KOTOR",
+      "The Force Unleashed"
+    ],
+    "question": "Which game first introduced Darth Revan?",
+    "source": {
+      "title": "Star Wars: Knights of the Old Republic",
+      "type": "game"
+    },
+    "topics": [
+      "old republic",
+      "games",
+      "legends"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Toydarian",
+      "Gungan",
+      "Dug",
+      "Rodian"
+    ],
+    "question": "In The Phantom Menace, what species is the podracer Sebulba?",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/sebulba"
+    },
+    "topics": [
+      "prequels",
+      "podracing",
+      "species"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Tatooine Open",
+      "Boonta Eve Classic",
+      "Malastare Grand Prix",
+      "Mos Espa Challenge"
+    ],
+    "question": "What is the name of the podrace Anakin wins in The Phantom Menace?",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/sebulba"
+    },
+    "topics": [
+      "prequels",
+      "podracing",
+      "tatooine"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Dug",
+      "Geonosian",
+      "Toydarian",
+      "Rodian"
+    ],
+    "question": "In The Phantom Menace, which species does the junk dealer Watto belong to?",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/watto"
+    },
+    "topics": [
+      "prequels",
+      "species",
+      "tatooine"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "Nute Gunray",
+      "Jar Jar Binks",
+      "Captain Tarpals",
+      "Boss Nass"
+    ],
+    "question": "Which Gungan leader agrees to help Queen Amidala fight the invasion in The Phantom Menace?",
+    "source": {
+      "title": "Episode I: The Phantom Menace",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/boss-nass"
+    },
+    "topics": [
+      "prequels",
+      "gungans",
+      "naboo"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "Obi-Wan Kenobi",
+      "Count Dooku",
+      "Boba Fett",
+      "Jango Fett"
+    ],
+    "question": "Whose genetic material is used for the Republic clone army revealed in Attack of the Clones?",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/Jango-Fett"
+    },
+    "topics": [
+      "prequels",
+      "clones",
+      "bounty hunters"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "An unrelated adopted child",
+      "A younger biological brother",
+      "An unaltered clone",
+      "A naturally conceived son"
+    ],
+    "question": "In Attack of the Clones, what is Boba Fett genetically in relation to Jango Fett?",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/Jango-Fett"
+    },
+    "topics": [
+      "prequels",
+      "clones",
+      "boba fett"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Zam Wesell",
+      "Zuckuss",
+      "Bossk",
+      "Aurra Sing"
+    ],
+    "question": "Which shapeshifting assassin do Obi-Wan and Anakin capture on Coruscant in Attack of the Clones?",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/Jango-Fett"
+    },
+    "topics": [
+      "prequels",
+      "bounty hunters",
+      "coruscant"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Anakin Skywalker",
+      "Mace Windu",
+      "Kit Fisto",
+      "Obi-Wan Kenobi"
+    ],
+    "question": "Which Jedi kills Jango Fett during the arena battle in Attack of the Clones?",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/Jango-Fett"
+    },
+    "topics": [
+      "prequels",
+      "jedi",
+      "geonosis"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Kamino",
+      "Naboo",
+      "Geonosis",
+      "Coruscant"
+    ],
+    "question": "Which storm-covered ocean planet conceals the cloning operation Obi-Wan discovers in Attack of the Clones?",
+    "source": {
+      "title": "Episode II: Attack of the Clones",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/kamino"
+    },
+    "topics": [
+      "prequels",
+      "planets",
+      "clones"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Six",
+      "Four",
+      "Three",
+      "Two"
+    ],
+    "question": "How many lightsabers does General Grievous wield at once against Obi-Wan on Utapau in Revenge of the Sith?",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/general-grievous"
+    },
+    "topics": [
+      "prequels",
+      "lightsabers",
+      "grievous"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "A thermal detonator",
+      "A blaster",
+      "A lightsaber",
+      "An electrostaff"
+    ],
+    "question": "What weapon does Obi-Wan use to deliver the fatal shots to Grievous in Revenge of the Sith?",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/general-grievous"
+    },
+    "topics": [
+      "prequels",
+      "weapons",
+      "obi-wan"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Padme Amidala",
+      "Chancellor Palpatine",
+      "Mon Mothma",
+      "Senator Bail Organa"
+    ],
+    "question": "Who is the captive Anakin and Obi-Wan rescue above Coruscant at the start of Revenge of the Sith?",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/general-grievous"
+    },
+    "topics": [
+      "prequels",
+      "coruscant",
+      "rescue"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Commander Bacara",
+      "Commander Gree",
+      "Commander Cody",
+      "Commander Bly"
+    ],
+    "question": "Which clone commander orders his troops to fire on Obi-Wan on Utapau after Order 66 in Revenge of the Sith?",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/utapau"
+    },
+    "topics": [
+      "prequels",
+      "clones",
+      "order 66"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "Lama Su",
+      "Sio Bibble",
+      "Mas Amedda",
+      "Tion Medon"
+    ],
+    "question": "Which local administrator quietly tells Obi-Wan where to find Grievous in Revenge of the Sith?",
+    "source": {
+      "title": "Episode III: Revenge of the Sith",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/utapau"
+    },
+    "topics": [
+      "prequels",
+      "utapau",
+      "characters"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Alderaan",
+      "Corellia",
+      "Dantooine",
+      "Naboo"
+    ],
+    "question": "Which planet does Tarkin destroy to demonstrate the Death Star's power in A New Hope?",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/grand-moff-tarkin"
+    },
+    "topics": [
+      "original trilogy",
+      "planets",
+      "empire"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "The Jedi Council",
+      "The Rebel Council",
+      "The Trade Federation",
+      "The Imperial Senate"
+    ],
+    "question": "Which political body has the Emperor dissolved by the Imperial briefing in A New Hope?",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/grand-moff-tarkin"
+    },
+    "topics": [
+      "original trilogy",
+      "politics",
+      "empire"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Sail barges",
+      "Conveyex trains",
+      "Sandcrawlers",
+      "Landspeeders"
+    ],
+    "question": "What are the huge tracked vehicles used by the Jawas in A New Hope called?",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/jawa"
+    },
+    "topics": [
+      "original trilogy",
+      "vehicles",
+      "jawas"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Its motivator",
+      "Its restraining bolt",
+      "Its photoreceptor",
+      "Its communications antenna"
+    ],
+    "question": "In A New Hope, what component fails in the red astromech Owen initially buys from the Jawas?",
+    "source": {
+      "title": "Episode IV: A New Hope",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/jawa"
+    },
+    "topics": [
+      "original trilogy",
+      "droids",
+      "tatooine"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "Lobot",
+      "Firmus Piett",
+      "Boba Fett",
+      "Lando Calrissian"
+    ],
+    "question": "Who is Cloud City's administrator when Han and Leia arrive in The Empire Strikes Back?",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/lando-calrissian"
+    },
+    "topics": [
+      "original trilogy",
+      "cloud city",
+      "lando"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Tibanna",
+      "Hydrogen",
+      "Methane",
+      "Oxygen"
+    ],
+    "question": "What gas is mined at Cloud City in The Empire Strikes Back?",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/lando-calrissian"
+    },
+    "topics": [
+      "original trilogy",
+      "cloud city",
+      "resources"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Dewbacks",
+      "Banthas",
+      "Tauntauns",
+      "Kaadu"
+    ],
+    "question": "Which animals do Rebel patrols ride on Hoth in The Empire Strikes Back?",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/tauntaun"
+    },
+    "topics": [
+      "original trilogy",
+      "creatures",
+      "hoth"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "A rancor",
+      "An acklay",
+      "A wampa",
+      "A nexu"
+    ],
+    "question": "What creature captures Luke and hangs him upside down in an icy cave in The Empire Strikes Back?",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/wampa"
+    },
+    "topics": [
+      "original trilogy",
+      "creatures",
+      "luke"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Starkiller Base",
+      "Echo Base",
+      "Chopper Base",
+      "Massassi Base"
+    ],
+    "question": "What is the name of the Rebel installation on Hoth in The Empire Strikes Back?",
+    "source": {
+      "title": "Episode V: The Empire Strikes Back",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/tauntaun"
+    },
+    "topics": [
+      "original trilogy",
+      "rebel alliance",
+      "hoth"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Wicket",
+      "Teebo",
+      "Logray",
+      "Paploo"
+    ],
+    "question": "Which Ewok befriends Leia after her speeder-bike crash in Return of the Jedi?",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/wicket-w-warrick"
+    },
+    "topics": [
+      "original trilogy",
+      "ewoks",
+      "leia"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "A wampa",
+      "A nexu",
+      "A reek",
+      "A rancor"
+    ],
+    "question": "What kind of creature does Luke face beneath Jabba's throne room in Return of the Jedi?",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rancor"
+    },
+    "topics": [
+      "original trilogy",
+      "creatures",
+      "jabba"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "A detention center",
+      "A communications tower",
+      "A fuel refinery",
+      "A shield generator"
+    ],
+    "question": "What Imperial installation do the Rebels destroy on Endor to make the Death Star attack possible in Return of the Jedi?",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/wicket-w-warrick"
+    },
+    "topics": [
+      "original trilogy",
+      "endor",
+      "rebel alliance"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Nien Nunb",
+      "Admiral Ackbar",
+      "Chewbacca",
+      "Wedge Antilles"
+    ],
+    "question": "Who serves as Lando's co-pilot aboard the Millennium Falcon during the Battle of Endor in Return of the Jedi?",
+    "source": {
+      "title": "Episode VI: Return of the Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/nien-nunb"
+    },
+    "topics": [
+      "original trilogy",
+      "pilots",
+      "endor"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "CT-7567",
+      "FN-2199",
+      "TK-421",
+      "FN-2187"
+    ],
+    "question": "What stormtrooper designation does Finn have before his escape in The Force Awakens?",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/finn"
+    },
+    "topics": [
+      "sequels",
+      "stormtroopers",
+      "finn"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Rey",
+      "Poe Dameron",
+      "Han Solo",
+      "Leia Organa"
+    ],
+    "question": "Who gives Finn his new name in The Force Awakens?",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/finn"
+    },
+    "topics": [
+      "sequels",
+      "characters",
+      "finn"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Salvaging wreckage",
+      "Working as a cantina server",
+      "Piloting passenger shuttles",
+      "Repairing moisture vaporators"
+    ],
+    "question": "How does Rey make a living on Jakku before meeting BB-8 in The Force Awakens?",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rey"
+    },
+    "topics": [
+      "sequels",
+      "jakku",
+      "rey"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "R5-D4",
+      "BB-8",
+      "K-2SO",
+      "C-3PO"
+    ],
+    "question": "Which droid carries a star chart pointing toward Luke Skywalker while on Jakku in The Force Awakens?",
+    "source": {
+      "title": "Episode VII: The Force Awakens",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rey"
+    },
+    "topics": [
+      "sequels",
+      "droids",
+      "resistance"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Tallie",
+      "Kaydel",
+      "Paige",
+      "Jannah"
+    ],
+    "question": "What is the name of Rose Tico's sister, a Resistance bomber gunner in The Last Jedi?",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rose-tico"
+    },
+    "topics": [
+      "sequels",
+      "resistance",
+      "tico sisters"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "Cloud City",
+      "Niima Outpost",
+      "Mos Eisley",
+      "Canto Bight"
+    ],
+    "question": "Which casino city do Finn and Rose visit to find the Master Codebreaker in The Last Jedi?",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rose-tico"
+    },
+    "topics": [
+      "sequels",
+      "locations",
+      "codebreaking"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Fathiers",
+      "Dewbacks",
+      "Tauntauns",
+      "Kaadu"
+    ],
+    "question": "What animals carry Finn and Rose as they flee the police in The Last Jedi?",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rose-tico"
+    },
+    "topics": [
+      "sequels",
+      "creatures",
+      "canto bight"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "The main reactor",
+      "The communications array",
+      "The planetary shield projector",
+      "The hyperspace tracker"
+    ],
+    "question": "What system aboard the First Order flagship do Finn and Rose plan to disable in The Last Jedi?",
+    "source": {
+      "title": "Episode VIII: The Last Jedi",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rose-tico"
+    },
+    "topics": [
+      "sequels",
+      "first order",
+      "technology"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Count Dooku",
+      "Bail Organa",
+      "Emperor Palpatine",
+      "Obi-Wan Kenobi"
+    ],
+    "question": "Who is revealed to be Rey's grandfather in The Rise of Skywalker?",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rey"
+    },
+    "topics": [
+      "sequels",
+      "rey",
+      "family"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Jedha",
+      "Kef Bir",
+      "Endor's forest moon",
+      "Yavin 4"
+    ],
+    "question": "On which ocean moon does Rey explore Death Star wreckage in The Rise of Skywalker?",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/rey"
+    },
+    "topics": [
+      "sequels",
+      "moons",
+      "death star"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Crait",
+      "Jakku",
+      "Kijimi",
+      "Pasaana"
+    ],
+    "question": "On which world does the droidsmith Babu Frik work in The Rise of Skywalker?",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/babu-frik"
+    },
+    "topics": [
+      "sequels",
+      "droids",
+      "planets"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Exegol",
+      "Mustafar",
+      "Dathomir",
+      "Moraband"
+    ],
+    "question": "What hidden Sith world houses the citadel of Palpatine's followers in The Rise of Skywalker?",
+    "source": {
+      "title": "Episode IX: The Rise of Skywalker",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/exegol"
+    },
+    "topics": [
+      "sequels",
+      "sith",
+      "planets"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "Wilhuff Tarkin",
+      "Tynnra Pamlo",
+      "Orson Krennic",
+      "Galen Erso"
+    ],
+    "question": "Which scientist deliberately seeks to introduce a fatal weakness into the Death Star in Rogue One?",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/galen-erso"
+    },
+    "topics": [
+      "rogue one",
+      "death star",
+      "sabotage"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "Scarif",
+      "Lah'mu",
+      "Eadu",
+      "Jedha"
+    ],
+    "question": "On which remote world is Galen Erso hiding when Krennic finds him in Rogue One?",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/galen-erso"
+    },
+    "topics": [
+      "rogue one",
+      "planets",
+      "erso family"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "A protocol droid",
+      "A security droid",
+      "A medical droid",
+      "An astromech droid"
+    ],
+    "question": "What type of Imperial droid was K-2SO before his reprogramming, as established in Rogue One?",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/k-2so-kay-tuesso"
+    },
+    "topics": [
+      "rogue one",
+      "droids",
+      "empire"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Eadu",
+      "Lah'mu",
+      "Scarif",
+      "Jedha"
+    ],
+    "question": "Which planet houses the vault that Jyn and Cassian infiltrate to steal the Death Star plans in Rogue One?",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/k-2so-kay-tuesso"
+    },
+    "topics": [
+      "rogue one",
+      "planets",
+      "death star"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 2,
+    "options": [
+      "Jedi archivist",
+      "Senate guard",
+      "Imperial pilot",
+      "Rebel fighter pilot"
+    ],
+    "question": "What was Bodhi Rook's occupation before he joined the Rebellion in Rogue One?",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/bodhi-rook"
+    },
+    "topics": [
+      "rogue one",
+      "pilots",
+      "rebellion"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "Orson Krennic",
+      "Wilhuff Tarkin",
+      "Wullf Yularen",
+      "Conan Antonio Motti"
+    ],
+    "question": "Which Imperial director oversees Advanced Weapons Research in Rogue One?",
+    "source": {
+      "title": "Rogue One: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/jyn-erso"
+    },
+    "topics": [
+      "rogue one",
+      "empire",
+      "weapons research"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "L3-37",
+      "L0-LA59",
+      "R2-D2",
+      "K-2SO"
+    ],
+    "question": "Which droid sparks a revolt among the enslaved workers and droids on Kessel in Solo?",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/l3-37"
+    },
+    "topics": [
+      "solo",
+      "droids",
+      "kessel"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 3,
+    "options": [
+      "Rhydonium",
+      "Tibanna gas",
+      "Kyber crystals",
+      "Coaxium"
+    ],
+    "question": "What valuable fuel is the target of Beckett's train robbery on Vandor in Solo?",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/coaxium"
+    },
+    "topics": [
+      "solo",
+      "heists",
+      "fuel"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "The White Worms",
+      "The Cloud-Riders",
+      "The Black Sun syndicate",
+      "The Pyke Syndicate"
+    ],
+    "question": "What is the name of the swoop gang led by Enfys Nest in Solo?",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/enfys-nest"
+    },
+    "topics": [
+      "solo",
+      "gangs",
+      "enfys nest"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 1,
+    "options": [
+      "The Hutt Cartel",
+      "Crimson Dawn",
+      "Black Sun",
+      "The Pyke Syndicate"
+    ],
+    "question": "Which crime syndicate does Dryden Vos publicly represent in Solo?",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/dryden-vos"
+    },
+    "topics": [
+      "solo",
+      "crime syndicates",
+      "dryden vos"
+    ]
+  },
+  {
+    "category": "movie_trivia",
+    "correct": 0,
+    "options": [
+      "First Light",
+      "Lady Luck",
+      "Tantive IV",
+      "Eravana"
+    ],
+    "question": "What is the name of Dryden Vos's luxury yacht in Solo?",
+    "source": {
+      "title": "Solo: A Star Wars Story",
+      "type": "movie",
+      "url": "https://www.starwars.com/databank/dryden-vos"
+    },
+    "topics": [
+      "solo",
+      "ships",
+      "dryden vos"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 3,
+    "options": [
+      "Skipper",
+      "Sparks",
+      "Scout",
+      "Snips"
+    ],
+    "question": "In The Clone Wars, what nickname does Anakin use for Ahsoka?",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/ahsoka-tano"
+    },
+    "topics": [
+      "the_clone_wars",
+      "jedi",
+      "characters"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Asajj Ventress",
+      "Barriss Offee",
+      "Luminara Unduli",
+      "Aurra Sing"
+    ],
+    "question": "In The Clone Wars, who framed Ahsoka for the Jedi Temple bombing?",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/ahsoka-tano"
+    },
+    "topics": [
+      "the_clone_wars",
+      "jedi",
+      "characters"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 3,
+    "options": [
+      "Orto Plutonia",
+      "Rhen Var",
+      "Hoth",
+      "Ilum"
+    ],
+    "question": "In The Clone Wars, which icy world do Ahsoka and Huyang visit with younglings for the Gathering?",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/ahsoka-tano"
+    },
+    "topics": [
+      "the_clone_wars",
+      "jedi",
+      "planets"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Pre Vizsla",
+      "Dooku",
+      "Maul",
+      "Feral"
+    ],
+    "question": "In The Clone Wars, which brother does Savage Opress seek at Mother Talzin's direction?",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/Savage-Opress"
+    },
+    "topics": [
+      "the_clone_wars",
+      "sith",
+      "family"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Old Daka",
+      "Mother Aniseya",
+      "Mother Talzin",
+      "Asajj Ventress"
+    ],
+    "question": "In The Clone Wars, whose magic transforms Savage Opress into a hulking warrior?",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/Savage-Opress"
+    },
+    "topics": [
+      "the_clone_wars",
+      "nightsisters",
+      "characters"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Onderon",
+      "Mandalore",
+      "Serenno",
+      "Ryloth"
+    ],
+    "question": "In The Clone Wars, Duchess Satine rules which world while pursuing a pacifist policy?",
+    "source": {
+      "title": "Star Wars: The Clone Wars",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/duchess-satine-kryze/"
+    },
+    "topics": [
+      "the_clone_wars",
+      "mandalorians",
+      "politics"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 3,
+    "options": [
+      "Ryloth",
+      "Jedha",
+      "Corellia",
+      "Lothal"
+    ],
+    "question": "In Rebels, on which planet did Ezra grow up as an orphan?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/ezra-bridger"
+    },
+    "topics": [
+      "rebels",
+      "ezra_bridger",
+      "planets"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 3,
+    "options": [
+      "Plo Koon",
+      "Obi-Wan Kenobi",
+      "Quinlan Vos",
+      "Kanan Jarrus"
+    ],
+    "question": "In Rebels, who takes Ezra Bridger as a Jedi apprentice?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/ezra-bridger"
+    },
+    "topics": [
+      "rebels",
+      "jedi",
+      "mentors"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Yavin 4",
+      "Seelos",
+      "Atollon",
+      "Dantooine"
+    ],
+    "question": "In Rebels, Chopper Base is established on which planet?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/ezra-bridger"
+    },
+    "topics": [
+      "rebels",
+      "rebel_alliance",
+      "bases"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Cal Kestis",
+      "Caleb Dume",
+      "Zare Leonis",
+      "Quinlan Vos"
+    ],
+    "question": "What was Rebels hero Kanan Jarrus called before he adopted that identity?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/kanan-jarrus"
+    },
+    "topics": [
+      "rebels",
+      "kanan_jarrus",
+      "identities"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Yoda",
+      "Qui-Gon Jinn",
+      "Mace Windu",
+      "Plo Koon"
+    ],
+    "question": "In Rebels, which Jedi gives Ezra a kyber crystal during his first visit to Lothal's Jedi Temple?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/lothal-jedi-temple"
+    },
+    "topics": [
+      "rebels",
+      "jedi",
+      "lightsabers"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "The Grand Inquisitor",
+      "The Seventh Sister",
+      "The Fifth Brother",
+      "Darth Vader"
+    ],
+    "question": "In Rebels, the Temple Guard who knights Kanan is revealed to be which figure?",
+    "source": {
+      "title": "Star Wars Rebels",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/lothal-jedi-temple"
+    },
+    "topics": [
+      "rebels",
+      "jedi",
+      "visions"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Outrider",
+      "Ghost",
+      "Razor Crest",
+      "Slave I"
+    ],
+    "question": "In The Mandalorian's first season, what ship carries Din Djarin and the Child between worlds?",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/the-mandalorian"
+    },
+    "topics": [
+      "the_mandalorian",
+      "ships",
+      "din_djarin"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Mudhorn",
+      "Blurrg",
+      "Krayt dragon",
+      "Mythosaur"
+    ],
+    "question": "In The Mandalorian's first season, which creature becomes Din Djarin's signet?",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/the-mandalorian"
+    },
+    "topics": [
+      "the_mandalorian",
+      "mandalorians",
+      "symbols"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "The Armorer",
+      "Bo-Katan Kryze",
+      "Ahsoka Tano",
+      "Luke Skywalker"
+    ],
+    "question": "In The Mandalorian, who discovers the Child's name is Grogu by communicating through the Force?",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/the-mandalorian"
+    },
+    "topics": [
+      "the_mandalorian",
+      "grogu",
+      "characters"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 3,
+    "options": [
+      "Sullustan",
+      "Ithorian",
+      "Jawa",
+      "Ugnaught"
+    ],
+    "question": "In The Mandalorian, Kuiil belongs to which species?",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/kuiil"
+    },
+    "topics": [
+      "the_mandalorian",
+      "kuiil",
+      "species"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Nevarro",
+      "Tatooine",
+      "Arvala-7",
+      "Sorgan"
+    ],
+    "question": "In The Mandalorian, on which world does Kuiil work as a vapor farmer?",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/kuiil"
+    },
+    "topics": [
+      "the_mandalorian",
+      "kuiil",
+      "planets"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Kuiil",
+      "Peli Motto",
+      "Dr. Pershing",
+      "Greef Karga"
+    ],
+    "question": "In The Mandalorian's first season, who rebuilds and reprograms IG-11 as a nurse droid?",
+    "source": {
+      "title": "The Mandalorian",
+      "type": "series",
+      "url": "https://www.starwars.com/news/kuiil-ig-11"
+    },
+    "topics": [
+      "the_mandalorian",
+      "droids",
+      "kuiil"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Fest",
+      "Mimban",
+      "Kenari",
+      "Ferrix"
+    ],
+    "question": "In Andor, which planet was Cassian's childhood home when he was known as Kassa?",
+    "source": {
+      "title": "Andor",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/cassian-andor"
+    },
+    "topics": [
+      "andor",
+      "cassian_andor",
+      "planets"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Keef Girgo",
+      "Clem",
+      "Luthen",
+      "Kassa"
+    ],
+    "question": "In Andor, what name does Cassian use with the rebel heist team on Aldhani?",
+    "source": {
+      "title": "Andor",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/cassian-andor"
+    },
+    "topics": [
+      "andor",
+      "cassian_andor",
+      "aliases"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Scarif",
+      "Narkina 5",
+      "Wobani",
+      "Kessel"
+    ],
+    "question": "In Andor's first season, where is Cassian imprisoned after his arrest on Niamos?",
+    "source": {
+      "title": "Andor",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/cassian-andor"
+    },
+    "topics": [
+      "andor",
+      "empire",
+      "prisons"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Riyo Chuchi",
+      "Orn Free Taa",
+      "Mon Mothma",
+      "Bail Organa"
+    ],
+    "question": "In Andor, rebel operative Vel Sartha is the cousin of which senator?",
+    "source": {
+      "title": "Andor",
+      "type": "series",
+      "url": "https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3"
+    },
+    "topics": [
+      "andor",
+      "mon_mothma",
+      "family"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Lonni Jung",
+      "Blevin",
+      "Dedra Meero",
+      "Wullf Yularen"
+    ],
+    "question": "In Andor's 'One Way Out,' which ISB officer is revealed as Luthen's undercover source?",
+    "source": {
+      "title": "Andor",
+      "type": "series",
+      "url": "https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3"
+    },
+    "topics": [
+      "andor",
+      "espionage",
+      "isb"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Electrified floors",
+      "Gas vents",
+      "Retractable wall spikes",
+      "Sonic ceiling emitters"
+    ],
+    "question": "In Andor, what built-in feature lets guards punish barefoot prisoners on Narkina 5?",
+    "source": {
+      "title": "Andor",
+      "type": "series",
+      "url": "https://www.starwars.com/news/andor-revisited-rewatch-season-1-arc-3"
+    },
+    "topics": [
+      "andor",
+      "empire",
+      "prisons"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Hunter",
+      "Wrecker",
+      "Tech",
+      "Echo"
+    ],
+    "question": "In The Bad Batch, which clone leads Clone Force 99?",
+    "source": {
+      "title": "Star Wars: The Bad Batch",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/hunter"
+    },
+    "topics": [
+      "the_bad_batch",
+      "clone_force_99",
+      "leadership"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 3,
+    "options": [
+      "Corellia",
+      "Nar Shaddaa",
+      "Florrum",
+      "Ord Mantell"
+    ],
+    "question": "In The Bad Batch, on which planet does Cid arrange jobs for the squad?",
+    "source": {
+      "title": "Star Wars: The Bad Batch",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/hunter"
+    },
+    "topics": [
+      "the_bad_batch",
+      "underworld",
+      "planets"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Pantora",
+      "Serenno",
+      "Pabu",
+      "Saleucami"
+    ],
+    "question": "In The Bad Batch's second season, which world offers the squad a peaceful potential home?",
+    "source": {
+      "title": "Star Wars: The Bad Batch",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/hunter"
+    },
+    "topics": [
+      "the_bad_batch",
+      "omega",
+      "planets"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Crosshair",
+      "Tech",
+      "Wrecker",
+      "Hunter"
+    ],
+    "question": "In The Bad Batch, which squad member is the computer specialist?",
+    "source": {
+      "title": "Star Wars: The Bad Batch",
+      "type": "series",
+      "url": "https://www.starwars.com/news/the-bad-batch-recon"
+    },
+    "topics": [
+      "the_bad_batch",
+      "clone_force_99",
+      "technology"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Nala Se",
+      "Taun We",
+      "Halle Burtoni",
+      "Lama Su"
+    ],
+    "question": "Before joining the Bad Batch, Omega worked as an assistant to which Kaminoan scientist?",
+    "source": {
+      "title": "Star Wars: The Bad Batch",
+      "type": "series",
+      "url": "https://www.starwars.com/news/the-bad-batch-recon"
+    },
+    "topics": [
+      "the_bad_batch",
+      "omega",
+      "kamino"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 2,
+    "options": [
+      "Tech",
+      "Echo",
+      "Crosshair",
+      "Wrecker"
+    ],
+    "question": "In The Bad Batch's premiere, which squad member stays with the Empire when the others escape with Omega?",
+    "source": {
+      "title": "Star Wars: The Bad Batch",
+      "type": "series",
+      "url": "https://www.starwars.com/news/the-bad-batch-recon"
+    },
+    "topics": [
+      "the_bad_batch",
+      "clone_force_99",
+      "empire"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Marrok",
+      "Baylan Skoll",
+      "Captain Enoch",
+      "Morgan Elsbeth"
+    ],
+    "question": "In Ahsoka, Shin Hati is the apprentice of which mercenary?",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/shin-hati"
+    },
+    "topics": [
+      "ahsoka",
+      "shin_hati",
+      "mentors"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Chimaera",
+      "Eye of Sion",
+      "Scimitar",
+      "Eye of Palpatine"
+    ],
+    "question": "In Ahsoka, what is Morgan Elsbeth's enormous hyperspace ring called?",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/the-eye-of-sion"
+    },
+    "topics": [
+      "ahsoka",
+      "ships",
+      "morgan_elsbeth"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 0,
+    "options": [
+      "Huyang",
+      "Chopper",
+      "AZI-3",
+      "AP-5"
+    ],
+    "question": "Which droid in Ahsoka preserves records of the lightsabers he helped Jedi construct?",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/professor-huyang"
+    },
+    "topics": [
+      "ahsoka",
+      "droids",
+      "lightsabers"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 1,
+    "options": [
+      "Seatos",
+      "Peridea",
+      "Malachor",
+      "Arcana"
+    ],
+    "question": "In Ahsoka's first season, on which distant world are Ezra Bridger and Thrawn found in exile?",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/peridea"
+    },
+    "topics": [
+      "ahsoka",
+      "ezra_bridger",
+      "planets"
+    ]
+  },
+  {
+    "category": "series_trivia",
+    "correct": 3,
+    "options": [
+      "Cargo crates",
+      "Eggs",
+      "Tree stumps",
+      "Rocks"
+    ],
+    "question": "In Ahsoka, what do the Noti resemble when they withdraw into their shells to hide?",
+    "source": {
+      "title": "Ahsoka",
+      "type": "series",
+      "url": "https://www.starwars.com/databank/peridea"
+    },
+    "topics": [
+      "ahsoka",
+      "noti",
+      "creatures"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 0,
+    "options": [
+      "Jaro Tapal",
+      "Cere Junda",
+      "Eno Cordova",
+      "Taron Malicos"
+    ],
+    "question": "In Jedi: Fallen Order, who was Cal Kestis's Jedi Master before Order 66?",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/cal-kestis/"
+    },
+    "topics": [
+      "jedi_fallen_order",
+      "cal_kestis",
+      "mentors"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 3,
+    "options": [
+      "Zeffo",
+      "Dathomir",
+      "Bogano",
+      "Bracca"
+    ],
+    "question": "At the start of Jedi: Fallen Order, on which planet does Cal work as a scrapper?",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/cal-kestis/"
+    },
+    "topics": [
+      "jedi_fallen_order",
+      "cal_kestis",
+      "planets"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 3,
+    "options": [
+      "Force projection",
+      "Battle meditation",
+      "Telekinesis",
+      "Psychometry"
+    ],
+    "question": "What is Cal's ability to sense an object's past called in Jedi: Fallen Order?",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/cal-kestis/"
+    },
+    "topics": [
+      "jedi_fallen_order",
+      "cal_kestis",
+      "force"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 0,
+    "options": [
+      "Latero",
+      "Ardennian",
+      "Besalisk",
+      "Sakiyan"
+    ],
+    "question": "In Jedi: Fallen Order, Greez Dritus belongs to which four-armed species?",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/greez"
+    },
+    "topics": [
+      "jedi_fallen_order",
+      "greez_dritus",
+      "species"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 2,
+    "options": [
+      "Pyke Syndicate",
+      "Black Sun",
+      "Haxion Brood",
+      "Crimson Dawn"
+    ],
+    "question": "In Jedi: Fallen Order, which crime syndicate is owed Greez's gambling debt?",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/greez"
+    },
+    "topics": [
+      "jedi_fallen_order",
+      "underworld",
+      "greez_dritus"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 0,
+    "options": [
+      "Stinger Mantis",
+      "Outrider",
+      "Corvus",
+      "Ebon Hawk"
+    ],
+    "question": "In Jedi: Fallen Order, what is the name of the ship captained by Greez?",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/stinger-mantis"
+    },
+    "topics": [
+      "jedi_fallen_order",
+      "ships",
+      "greez_dritus"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 0,
+    "options": [
+      "BD-1",
+      "D-O",
+      "R2-D2",
+      "T3-M4"
+    ],
+    "question": "In Jedi: Fallen Order, which companion droid supplies Cal with healing stims?",
+    "source": {
+      "title": "Star Wars Jedi: Fallen Order",
+      "type": "game",
+      "url": "https://www.starwars.com/news/10-of-the-best-star-wars-video-game-characters"
+    },
+    "topics": [
+      "jedi_fallen_order",
+      "droids",
+      "gameplay"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 3,
+    "options": [
+      "Garsa's Sanctuary",
+      "Dex's Diner",
+      "Oga's Cantina",
+      "Pyloon's Saloon"
+    ],
+    "question": "In Jedi: Survivor, what is Greez's cantina in Rambler's Reach called?",
+    "source": {
+      "title": "Star Wars Jedi: Survivor",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/greez"
+    },
+    "topics": [
+      "jedi_survivor",
+      "koboh",
+      "locations"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 2,
+    "options": [
+      "A ray-shielded pod",
+      "A Sith sarcophagus",
+      "A bacta tank",
+      "A carbonite block"
+    ],
+    "question": "In Jedi: Survivor, what has kept Dagan Gera alive for centuries before Cal frees him?",
+    "source": {
+      "title": "Star Wars Jedi: Survivor",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/dagan-gera"
+    },
+    "topics": [
+      "jedi_survivor",
+      "dagan_gera",
+      "technology"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 1,
+    "options": [
+      "Moraband",
+      "Tanalorr",
+      "Exegol",
+      "Ilum"
+    ],
+    "question": "In Jedi: Survivor, Dagan Gera is obsessed with returning to which hidden planet?",
+    "source": {
+      "title": "Star Wars Jedi: Survivor",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/dagan-gera"
+    },
+    "topics": [
+      "jedi_survivor",
+      "dagan_gera",
+      "planets"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 3,
+    "options": [
+      "Titan Squadron",
+      "Scar Squadron",
+      "Delta Squad",
+      "Inferno Squad"
+    ],
+    "question": "In Battlefront II's campaign, which Imperial special-forces unit does Iden Versio initially command?",
+    "source": {
+      "title": "Star Wars Battlefront II (2017)",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/commander-iden-versio"
+    },
+    "topics": [
+      "battlefront_ii",
+      "iden_versio",
+      "empire"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 1,
+    "options": [
+      "Rae Sloane",
+      "Garrick Versio",
+      "Kendal Ozzel",
+      "Firmus Piett"
+    ],
+    "question": "In Battlefront II's campaign, which Imperial admiral is Iden Versio's father?",
+    "source": {
+      "title": "Star Wars Battlefront II (2017)",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/commander-iden-versio"
+    },
+    "topics": [
+      "battlefront_ii",
+      "iden_versio",
+      "family"
+    ]
+  },
+  {
+    "category": "game_trivia",
+    "correct": 1,
+    "options": [
+      "Kuat",
+      "Vardos",
+      "Coruscant",
+      "Carida"
+    ],
+    "question": "In Battlefront II's campaign, which planet is Iden Versio's homeworld?",
+    "source": {
+      "title": "Star Wars Battlefront II (2017)",
+      "type": "game",
+      "url": "https://www.starwars.com/databank/commander-iden-versio"
+    },
+    "topics": [
+      "battlefront_ii",
+      "iden_versio",
+      "planets"
+    ]
+  },
+  {
+    "category": "legends_trivia",
+    "correct": 3,
+    "options": [
+      "Rustbuckets",
+      "Scrapheaps",
+      "Bucketheads",
+      "Meatbags"
+    ],
+    "question": "In the Legends game Knights of the Old Republic, what insulting term does HK-47 use for organic beings?",
+    "source": {
+      "title": "Star Wars: Knights of the Old Republic",
+      "type": "game",
+      "url": "https://www.starwars.com/news/10-of-the-deadliest-droids-in-star-wars"
+    },
+    "topics": [
+      "kotor",
+      "legends",
+      "droids"
+    ]
+  },
+  {
+    "category": "legends_trivia",
+    "correct": 1,
+    "options": [
+      "Darth Nihilus",
+      "Revan",
+      "Darth Sion",
+      "Darth Malak"
+    ],
+    "question": "In the Legends game Knights of the Old Republic, whom does HK-47 recognize as his master?",
+    "source": {
+      "title": "Star Wars: Knights of the Old Republic",
+      "type": "game",
+      "url": "https://www.starwars.com/news/10-of-the-deadliest-droids-in-star-wars"
+    },
+    "topics": [
+      "kotor",
+      "legends",
+      "hk_47"
+    ]
+  }
+]
