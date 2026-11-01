@@ -938,3 +938,30 @@ test('source cards preserve native formatting and topic routing through a Telegr
  assert.ok(sent[1].body.entities.some(e=>e.type==='text_link'&&e.url===url));
  assert.equal(sent[1].body.parse_mode,undefined);
 });
+
+
+test('category rotation spreads posts across topics rather than repeating Lore',async()=>{
+ const now=Date.now()/1000;
+ sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('adaptive-plan:2026-10-27',JSON.stringify(Array.from({length:5},()=>({at:now-7202,kind:'question'}))));
+ for(const [id,kind,at] of [[-1,'question',now-4*86400],[-2,'poll',now-4*86400],[-3,'idea',now-4*86400],[-4,'movie',now-3*86400],[-5,'game',now-2*86400],[-6,'character',now-7201]])
+  sqlite.prepare("INSERT INTO engagement_posts(update_id,kind,seed,text,payload,created_at,state) VALUES (?,?,?,?,?,?, 'sent')").run(id,kind,kind,kind,'{}',at);
+ await scheduleProactive(env);
+ const row=sqlite.prepare("SELECT payload FROM updates WHERE json_extract(payload,'$.internal_post') IS NOT NULL").get();
+ assert.equal(JSON.parse(row.payload).internal_post.kind,'movie');
+});
+test('missing final poll totals wait beyond three attempts, then a late final result sends once',async()=>{
+ trackedPoll(undefined,0);
+ globalThis.fetch=async()=>Response.json({ok:false,error_code:400,description:"poll can't be stopped"});
+ await queue(-4000000000010,{internal_followup:'poll-1'});
+ for(let i=1;i<=4;i++){
+  Date.now=()=>Date.parse('2026-10-27T06:00:00Z')+i*301000;
+  await processUpdate(env,-4000000000010);
+ }
+ const row=sqlite.prepare('SELECT state,attempts FROM updates WHERE id=-4000000000010').get();
+ assert.equal(row.state,'queued');assert.equal(row.attempts,0);assert.equal(aiCalls.length,0);
+ await receivePoll(env,{id:'poll-1',is_closed:true,options:[{text:'R2-D2',voter_count:2},{text:'Chopper',voter_count:1}]});
+ Date.now=()=>Date.parse('2026-10-27T06:30:00Z');
+ globalThis.fetch=async(url,options)=>{sent.push({method:String(url).split('/').at(-1),body:JSON.parse(options.body)});return Response.json({ok:true,result:{message_id:901}});};
+ await processUpdate(env,-4000000000010);await processUpdate(env,-4000000000010);
+ assert.equal(sent.length,1);assert.match(sent[0].body.text,/R2-D2 \(2 votes\)/);
+});

@@ -86,12 +86,14 @@ export async function scheduleFollowups(env) {
   const polls=(await env.DB.prepare("SELECT * FROM community_polls p WHERE closes_at<=? AND closes_at>? AND NOT EXISTS(SELECT 1 FROM updates u WHERE u.id=p.followup_id AND u.state IN ('failed','uncertain','done'))").bind(nowSeconds(),nowSeconds()-86400).all()).results;
   for(const p of polls) {
     if (!p.closed) {
+      const waiting=await env.DB.prepare('SELECT ready_at FROM updates WHERE id=?').bind(p.followup_id).first();
+      if(waiting?.ready_at>nowSeconds())continue;
       try {await closePoll(env,p);} catch { /* Follow-up queue retries missing results; never guesses. */ }
     }
     const final=await env.DB.prepare('SELECT closed,options FROM community_polls WHERE poll_id=?').bind(p.poll_id).first();
     if(final?.closed && JSON.parse(final.options).every(o=>o.voter_count===0))continue;
     if(env.PROACTIVE_ENABLED==='false'||await setting(env,'paused')==='1')continue;
-    await env.DB.prepare('INSERT OR IGNORE INTO updates(id,payload,created_at) VALUES (?,?,?)').bind(p.followup_id,JSON.stringify({internal_followup:p.poll_id}),nowSeconds()).run();
+    await env.DB.prepare('INSERT OR IGNORE INTO updates(id,payload,created_at,ready_at) VALUES (?,?,?,?)').bind(p.followup_id,JSON.stringify({internal_followup:p.poll_id}),nowSeconds(),final?.closed?0:nowSeconds()+300).run();
   }
   await env.DB.prepare('DELETE FROM activity WHERE created_at<?').bind(nowSeconds()-86400).run();
   await env.DB.prepare('DELETE FROM community_polls WHERE closes_at<?').bind(nowSeconds()-7*86400).run();
@@ -116,7 +118,7 @@ export async function followup(env,id,pollId,send,personality) {
   if (!p.closed) {
     await closePoll(env,p);
     const refreshed=await env.DB.prepare('SELECT * FROM community_polls WHERE poll_id=?').bind(pollId).first();
-    if (!refreshed.closed) throw Error('final-poll-results-unavailable');
+    if (!refreshed.closed) {await defer(env,id);return;} // Wait for verified totals without exhausting retries.
     Object.assign(p,refreshed);
   }
   const result=pollResult(p),hasVotes=JSON.parse(p.options).some(o=>o.voter_count>0);
