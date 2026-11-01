@@ -80,3 +80,33 @@ test('concurrent uploads claim one send and oversized files never enter sending 
   const first=mediaFetch(upload(),env);await new Promise(r=>setTimeout(r,5));const second=await mediaFetch(upload(),env);release();assert.equal(second.status,409);assert.equal((await first).status,200);assert.equal(calls,1);
  }finally{release();globalThis.fetch=original;}
 }));
+
+test('screen trailers require an upcoming exact title and season; released and unknown stay held',()=>fixture(async(db,env)=>{
+ await scan(env,[item('Baseline001')]);
+ for(const [id,title] of [['FutureTV001','Ahsoka Season 2 | Official Trailer'],['PastFilm001','The Mandalorian and Grogu | Official Trailer'],['OldSeason01','Ahsoka Season 1 | Official Trailer'],['NoSeason001','Ahsoka | Official Trailer'],['Unknown0001','New Mystery | Official Trailer']]){
+  await scan(env,[{...item(id),title,description:'A series on Disney+'}]);
+ }
+ assert.equal(db.prepare("SELECT state FROM youtube_videos WHERE video_id='FutureTV001'").get().state,'pending');
+ for(const id of ['PastFilm001','OldSeason01','NoSeason001','Unknown0001'])assert.notEqual(db.prepare('SELECT state FROM youtube_videos WHERE video_id=?').get(id).state,'pending');
+}));
+test('upcoming show upload includes release details with video, and rechecks changed evidence',()=>fixture(async(db,env)=>{
+ await scan(env,[item('Baseline001')]);await scan(env,[{...item(),title:'Ahsoka Season 2 | Official Trailer'}]);
+ const original=fetch;let calls=0;
+ globalThis.fetch=async(url,options)=>{calls++;const form=await new Response(options.body,{headers:options.headers}).formData();assert.equal(form.get('message_thread_id'),'18');assert.match(form.get('caption'),/Upcoming · 2027-01-20/);assert.match(form.get('caption'),/Planned for Disney\+/);assert.equal(form.get('video').size,2000);return Response.json({ok:true,result:{message_id:124}});};
+ try{
+  db.prepare('INSERT INTO settings VALUES (?,?)').run('source-feed:cache:catalog-ahsoka-season-2',JSON.stringify({needsReview:true}));
+  assert.equal((await mediaFetch(upload(),env)).status,409);assert.equal(calls,0);
+  db.exec("DELETE FROM settings WHERE key='source-feed:cache:catalog-ahsoka-season-2'");
+  assert.equal((await mediaFetch(upload(),env)).status,200);assert.equal(calls,1);
+ }finally{globalThis.fetch=original;}
+}));
+test('release day and stale evidence cannot make an upcoming trailer eligible',()=>fixture(async(db,env)=>{
+ const {upcomingScreenRelease}=await import('../source-feed.mjs');
+ assert.ok(await upcomingScreenRelease(env,'Ahsoka Season 2 | Trailer','tv'));
+ const oldNow=Date.now;
+ try{
+  Date.now=()=>Date.parse('2027-01-19T16:00:00Z');
+  db.prepare('INSERT INTO settings VALUES (?,?)').run('source-feed:cache:catalog-ahsoka-season-2',JSON.stringify({markersPass:true,checkedAt:Date.now()/1000}));
+  assert.equal(await upcomingScreenRelease(env,'Ahsoka Season 2 | Trailer','tv'),null);
+ }finally{Date.now=oldNow;}
+}));

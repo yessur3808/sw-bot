@@ -144,13 +144,36 @@ export async function sourceContext(env,query='',options={}){
   }).sort((a,b)=>score(b)-score(a)||(a.freshness==='fresh'?-1:1)-(b.freshness==='fresh'?-1:1)).slice(0,Math.min(20,Math.max(1,options.limit||8)));
 }
 
+// Movie/show announcements travel only with an eligible downloaded trailer.
+// Match the title AND explicit season; never reuse Season 1 for Season 2.
+export async function upcomingScreenRelease(env,title,topic){
+  const kind={movies:'movie',tv:'series'}[topic];
+  if(!kind)return null;
+  const normalize=s=>String(s).toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').trim();
+  const name=normalize(title),season=name.match(/\bseason (\d+)\b/)?.[1];
+  const cards=await sourceContext(env,'',{category:'releases',kind,limit:20});
+  const matches=cards.filter(card=>{
+    if(card.freshness!=='fresh'||!['upcoming','announced'].includes(card.status))return false;
+    // Without a verified local hour, stop before release day begins in HKT.
+    if(card.releaseDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(card.releaseDate)||Date.parse(card.releaseDate+'T00:00:00+08:00')<=Date.now()))return false;
+    const canonical=normalize(card.title),expectedSeason=canonical.match(/\bseason (\d+)\b/)?.[1];
+    if(season!==expectedSeason)return false;
+    const base=canonical.replace(/^star wars /,'').replace(/\bseason \d+\b/,'').trim();
+    return base.length>=5&&(' '+name+' ').includes(' '+base+' ');
+  });
+  return matches.length===1?matches[0]:null;
+}
+
 export async function sourcePost(env,kind,usedSeeds=new Set()){
+  if(['movie','tv'].includes(kind))return null;
   const topic={movie:'movies',game:'gaming',tv:'tv',hongkong:'hongkong',global_events:'global_events'}[kind];
   if(!topic)return null;
   const at=now(),saved=await snapshot(env);
   for(const source of NEWS_SOURCES.filter(s=>s.topic===topic)){
     const cache=saved.get(cacheKey(source.id))||{};
     for(const item of cache.items||[]){
+      // Release/trailer headlines must use the video announcement route too.
+      if(/\b(trailer|teaser|premiere|streaming|release|released|releases|season \d+)\b/i.test(item.title))continue;
       const seed='source:'+item.url;
       if(usedSeeds.has(seed)||at-item.checkedAt>=NEWS_TTL||at-(item.publishedAt||item.discoveredAt)>=NEWS_TTL||item.publishedAt>at)continue;
       const formatted=formatSourcePost(item,{news:true,sourceName:source.title});

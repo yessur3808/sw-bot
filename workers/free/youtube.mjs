@@ -1,3 +1,4 @@
+import {upcomingScreenRelease} from './source-feed.mjs';
 import {assertDeployment,reserveAutomation} from './production.mjs';
 import {activeHours,nowSeconds,setting,setSetting} from './engagement.mjs';
 import {quiet} from './community.mjs';
@@ -59,6 +60,7 @@ async function ingest(env,data){
    else if(!published||published>now||published<now-7*DAY)reason='outside_freshness_window';
    else if(duration<5||duration>600||item.is_live||item.live_status==='is_upcoming')reason='unsupported_duration_or_live';
    else if(!topic){state='review';reason='ambiguous_or_excluded_trailer';}
+   else if(['movies','tv'].includes(topic)&&!await upcomingScreenRelease(env,title,topic)){state='review';reason='upcoming_release_unverified';}
    else{state='pending';reason=null;}
   }
   await env.DB.prepare('INSERT OR IGNORE INTO youtube_videos(video_id,channel_id,title,topic,published_at,duration,state,reason,discovered_at) VALUES (?,?,?,?,?,?,?,?,?)').bind(item.id,data.channel_id,title,topic,published,duration,state,reason,now).run();
@@ -68,6 +70,8 @@ async function ingest(env,data){
 }
 async function allowed(env,row){
  if(!row||row.state!=='pending')return {ok:false,reason:row?.state||'not_found'};
+ const release=['movies','tv'].includes(row.topic)?await upcomingScreenRelease(env,row.title,row.topic):null;
+ if(['movies','tv'].includes(row.topic)&&!release)return {ok:false,reason:'upcoming_release_unverified'};
  if(row.published_at<nowSeconds()-7*DAY)return {ok:false,reason:'expired'};
  if(await setting(env,'paused')==='1'||Number(await setting(env,'quiet_until'))>nowSeconds()||!activeHours())return {ok:false,reason:'quiet_hours_or_paused'};
  if(row.ready_at>nowSeconds())return {ok:false,reason:'retry_later'};
@@ -77,7 +81,7 @@ async function allowed(env,row){
  if(!await quiet(env,thread))return {ok:false,reason:'topic_busy'};
  const latest=await env.DB.prepare('SELECT MAX(attempted_at) t FROM youtube_videos WHERE id<>? AND state IN (\'sent\',\'sending\',\'uncertain\')').bind(row.id).first();
  if(latest?.t>nowSeconds()-3600)return {ok:false,reason:'trailer_spacing'};
- return {ok:true,thread};
+ return {ok:true,thread,release};
 }
 export async function youtubeStatus(env){
  const channels=[];
@@ -119,7 +123,9 @@ async function upload(request,env,videoId){
   if(!final.ok||final.thread!==permit.thread||!activeHours()){
    await env.DB.prepare("UPDATE youtube_videos SET state='pending',reason='delivery_deferred' WHERE id=?").bind(row.id).run();return json({ok:false,reason:'delivery_deferred'},409);
   }
-  const caption=`${row.title}\n\nOfficial ${channel(row.channel_id).title} trailer · may contain spoilers.\nhttps://www.youtube.com/watch?v=${row.video_id}`;
+  const release=final.release;
+  const announcement=release?`${release.title}\n\nUpcoming · ${release.releaseDate||'Release date to be announced'}\n${release.platforms.length?'Planned for '+release.platforms.join(', ')+'\n':''}Hong Kong date and availability: ${release.hkAvailability==='confirmed'?'confirmed by the official source':'not verified'}\n\n`:'';
+  const caption=announcement+`${row.title}\n\nOfficial ${channel(row.channel_id).title} trailer · may contain spoilers.\nhttps://www.youtube.com/watch?v=${row.video_id}`;
   const form=multipart(request,{chat_id:env.GROUP_ID,message_thread_id:permit.thread,caption,supports_streaming:true,has_spoiler:true},size);
   let result;
   try{

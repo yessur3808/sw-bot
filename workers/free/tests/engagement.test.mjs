@@ -93,9 +93,11 @@ test('proactive native poll is delivered once and logged',async()=>{
 test('scheduled posts respect gap, but an explicit admin /post can request one',async()=>{
  await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});await queue(-2,{internal_post:{kind:'idea',scheduled_at:Date.now()/1000}});assert.equal(sent.length,1);await webhook(update(10,'/post poll'));assert.equal(sent.length,2);
 });
-test('movie cards use the verified release catalogue with source links',async()=>{
+test('movie starters stay evergreen instead of sending standalone release cards',async()=>{
  Date.now=()=>Date.parse('2026-10-29T06:00:00Z');
- await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});assert.match(sent[0].body.text,/22 May 2026/);assert.ok(sent[0].body.entities.some(e=>e.type==='text_link'&&e.url.startsWith('https://www.starwars.com/')));assert.equal(releaseCard('movie',Date.parse('2027-06-01')/1000),undefined);assert.equal(releaseCard('game',Date.parse('2026-12-01')/1000),undefined);
+ await queue(-1,{internal_post:{kind:'movie',scheduled_at:Date.now()/1000}});
+ assert.equal(sent.length,1);assert.doesNotMatch(sent[0].body.text,/22 May 2026|Release date|Released/);
+ assert.notEqual(sqlite.prepare('SELECT seed FROM engagement_posts').get().seed.slice(0,8),'catalog:');
 });
 test('changed release cache supersedes original seeded date',async()=>{
  sqlite.prepare('INSERT INTO settings VALUES (?,?)').run('release:movie',JSON.stringify({date:'2026-10-26',checked:'2026-10-27'}));assert.equal(await currentRelease(env,'movie'),null);
